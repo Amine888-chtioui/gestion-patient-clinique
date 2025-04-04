@@ -6,45 +6,135 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Enregistrer un nouvel utilisateur
+     */
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|confirmed|min:8',
-        ]);
+        try {
+            // Validation des données
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Erreur de validation',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Création de l'utilisateur
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            // Création du token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
+                'message' => 'Utilisateur créé avec succès'
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de l\'inscription',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        $token = $user->createToken('YourAppName')->plainTextToken;
-
-        return response()->json(['token' => $token]);
     }
 
+    /**
+     * Connecter un utilisateur existant
+     */
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        try {
+            // Validation des données
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
 
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-            $token = $user->createToken('YourAppName')->plainTextToken;
-            return response()->json(['token' => $token]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Erreur de validation',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Tentative d'authentification
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                return response()->json([
+                    'message' => 'Email ou mot de passe incorrect'
+                ], 401);
+            }
+
+            // Récupération de l'utilisateur
+            $user = User::where('email', $request->email)->firstOrFail();
+            
+            // Suppression des anciens tokens (optionnel)
+            $user->tokens()->delete();
+            
+            // Création d'un nouveau token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
+                'message' => 'Connexion réussie'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la connexion',
+                'error' => $e->getMessage()
+            ], 500);
         }
+    }
 
-        return response()->json(['message' => 'Unauthorized'], 401);
+    /**
+     * Récupérer les informations de l'utilisateur connecté
+     */
+    public function user(Request $request)
+    {
+        try {
+            // Le middleware auth:sanctum garantit que l'utilisateur est authentifié
+            return response()->json($request->user());
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la récupération des données utilisateur',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Déconnecter l'utilisateur (révoquer le token)
+     */
+    public function logout(Request $request)
+    {
+        try {
+            // Suppression du token actuel
+            $request->user()->currentAccessToken()->delete();
+
+            return response()->json([
+                'message' => 'Déconnexion réussie'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la déconnexion',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
-
