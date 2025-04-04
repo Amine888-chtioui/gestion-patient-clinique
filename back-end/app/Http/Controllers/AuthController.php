@@ -2,60 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // Validate the request data
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|confirmed|min:8',
         ]);
 
-        // Create a new user
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => Hash::make($request->password),
         ]);
 
-        // Return a success response
-        return response()->json(['message' => 'User registered successfully'], 201);
+        $token = $user->createToken('YourAppName')->plainTextToken;
+
+        return response()->json(['token' => $token]);
     }
+
     public function login(Request $request)
     {
-        // Validate the request data
-        $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+        $credentials = $request->only('email', 'password');
 
-        // Attempt to authenticate the user
-        if (!auth()->attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            $token = $user->createToken('YourAppName')->plainTextToken;
+            return response()->json(['token' => $token]);
         }
 
-        // Generate a new token for the user
-        $token = auth()->user()->createToken('auth_token')->plainTextToken;
-
-        // Return the token in the response
-        return response()->json(['token' => $token], 200);
-    }
-    public function logout(Request $request)
-    {
-        // Revoke the user's token
-        auth()->user()->tokens()->delete();
-
-        // Return a success response
-        return response()->json(['message' => 'User logged out successfully'], 200);
-    }
-    public function getUser(Request $request)
-    {
-        // Return the authenticated user
-        return response()->json($request->user(), 200);
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
 }
+

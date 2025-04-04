@@ -17,17 +17,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Routes d'authentification
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
-// Routes nécessitant authentification
-Route::middleware('auth:sanctum')->group(function () {
-    // Route pour récupérer l'utilisateur authentifié
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
-    
-    // Route de déconnexion
-    Route::post('/logout', [AuthController::class, 'logout']);
-    
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
 });
