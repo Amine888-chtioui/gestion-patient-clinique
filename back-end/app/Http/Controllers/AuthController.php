@@ -36,6 +36,7 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                'role' => $request->role // خاص يكون جاي من React
             ]);
 
             // Création du token
@@ -65,33 +66,35 @@ class AuthController extends Controller
                 'email' => 'required|email',
                 'password' => 'required',
             ]);
-
+    
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Erreur de validation',
                     'errors' => $validator->errors()
                 ], 422);
             }
-
+    
             // Tentative d'authentification
             if (!Auth::attempt($request->only('email', 'password'))) {
                 return response()->json([
                     'message' => 'Email ou mot de passe incorrect'
                 ], 401);
             }
-
+    
             // Récupération de l'utilisateur
-            $user = User::where('email', $request->email)->firstOrFail();
+            $user = Auth::user();
             
             // Suppression des anciens tokens (optionnel)
             $user->tokens()->delete();
             
             // Création d'un nouveau token
             $token = $user->createToken('auth_token')->plainTextToken;
-
+    
+            // Retourner معلومات المستخدم مع التوكن والدور ديالو
             return response()->json([
                 'user' => $user,
                 'token' => $token,
+                'role' => $user->role,  // رجعنا الدور ديال المستخدم
                 'message' => 'Connexion réussie'
             ]);
         } catch (\Exception $e) {
@@ -101,6 +104,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    
 
     /**
      * Récupérer les informations de l'utilisateur connecté

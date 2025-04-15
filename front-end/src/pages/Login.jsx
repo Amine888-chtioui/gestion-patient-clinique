@@ -89,6 +89,10 @@ const Login = () => {
           />
         </div>
 
+        <div className="forgot-password-link">
+          <Link to="/forgot-password">Mot de passe oublié ?</Link>
+        </div>
+
         <button type="submit" className="btn-submit" disabled={loading}>
           {loading ? "Connexion en cours..." : "Se connecter"}
         </button>
