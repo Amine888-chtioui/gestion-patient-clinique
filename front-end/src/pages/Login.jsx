@@ -24,11 +24,18 @@ const Login = () => {
       // Stockage du token dans le localStorage
       if (response.data && response.data.token) {
         localStorage.setItem("token", response.data.token);
-
-        console.log("Connexion réussie ✅");
-
-        // Rediriger vers la page d'accueil
-        navigate("/");
+      
+        const role = response.data.user?.role;
+      
+        if (role === "admin") {
+          navigate("/admin/dashboard");
+        } else if (role === "doctor") {
+          navigate("/doctor/dashboard");
+        } else {
+          navigate("/patient/dashboard");
+        }
+      
+        console.log("Connexion réussie ✅ en tant que", role);
       } else {
         setError("Réponse invalide du serveur");
       }

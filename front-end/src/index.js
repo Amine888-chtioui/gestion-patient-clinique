@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import "./auth-styles.css"; // Import des styles d'authentification
+import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap CSS
+import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Import Bootstrap JS
+import "@fortawesome/fontawesome-free/css/all.min.css"; // Import Font Awesome
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 

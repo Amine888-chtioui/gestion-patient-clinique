@@ -3,11 +3,12 @@ import axios from "../axios";
 
 const Register = () => {
   const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    password_confirmation: "",
-  });
+  name: "",
+  email: "",
+  password: "",
+  password_confirmation: "",
+  role: "patient" // Ajoutez ceci par défaut
+});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 

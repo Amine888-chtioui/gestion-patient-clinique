@@ -29,18 +29,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::middleware('role:medecin')->group(function () {
-    Route::get('/medecin/patients', [MedecinController::class, 'patients']);
-    // زيد هنا المسارات ديال الطبيب
-});   // 👤 Routes pour les patients
-Route::middleware('role:patient')->group(function () {
-    Route::get('/patient/rdvs', [PatientController::class, 'mesRendezVous']);
-    // زيد هنا المسارات ديال المريض
-});
-
-// 👨‍💼 Routes pour les admins
-Route::middleware('auth:sanctum')->get('/admin/dashboard', function (Request $request) {
-    return response()->json(['message' => 'Welcome to the admin dashboard!']);
-});
-
-    // زيد هنا المسارات ديال الأدمن
