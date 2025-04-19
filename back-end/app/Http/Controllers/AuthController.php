@@ -36,7 +36,7 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => $request->role // خاص يكون جاي من React
+                'role' => $request->role //React
             ]);
 
             // Création du token

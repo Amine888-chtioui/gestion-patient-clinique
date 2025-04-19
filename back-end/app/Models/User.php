@@ -21,7 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role', // إضافة حقل الدو
+        'role',
     ];
 
     /**
@@ -43,4 +43,84 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    /**
+     * Check if the user is a patient.
+     */
+    public function isPatient()
+    {
+        return $this->role === 'patient';
+    }
+
+    /**
+     * Check if the user is a doctor.
+     */
+    public function isDoctor()
+    {
+        return $this->role === 'doctor';
+    }
+
+    /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Get the patient profile associated with the user.
+     */
+    public function patientProfile()
+    {
+        return $this->hasOne(PatientProfile::class);
+    }
+
+    /**
+     * Get the appointments for the patient.
+     */
+    public function patientAppointments()
+    {
+        return $this->hasMany(Appointment::class, 'patient_id');
+    }
+
+    /**
+     * Get the appointments for the doctor.
+     */
+    public function doctorAppointments()
+    {
+        return $this->hasMany(Appointment::class, 'doctor_id');
+    }
+
+    /**
+     * Get the medical records for the patient.
+     */
+    public function patientMedicalRecords()
+    {
+        return $this->hasMany(MedicalRecord::class, 'patient_id');
+    }
+
+    /**
+     * Get the medical records created by the doctor.
+     */
+    public function doctorMedicalRecords()
+    {
+        return $this->hasMany(MedicalRecord::class, 'doctor_id');
+    }
+
+    /**
+     * Get the prescriptions for the patient.
+     */
+    public function patientPrescriptions()
+    {
+        return $this->hasMany(Prescription::class, 'patient_id');
+    }
+
+    /**
+     * Get the prescriptions created by the doctor.
+     */
+    public function doctorPrescriptions()
+    {
+        return $this->hasMany(Prescription::class, 'doctor_id');
+    }
 }

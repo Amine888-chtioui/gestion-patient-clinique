@@ -24,18 +24,25 @@ const Login = () => {
       // Stockage du token dans le localStorage
       if (response.data && response.data.token) {
         localStorage.setItem("token", response.data.token);
-      
-        const role = response.data.user?.role;
-      
+
+        const role = response.data.role || response.data.user?.role;
+
+        // Redirection basée sur le rôle de l'utilisateur
         if (role === "admin") {
-          navigate("/admin/dashboard");
-        } else if (role === "doctor") {
-          navigate("/doctor/dashboard");
-        } else {
+          // Pour l'instant, redirection vers le tableau de bord patient
+          // Plus tard, vous pouvez créer un tableau de bord admin dédié
           navigate("/patient/dashboard");
+          console.log("Connexion réussie ✅ en tant qu'administrateur");
+        } else if (role === "doctor") {
+          // Pour l'instant, redirection vers le tableau de bord patient
+          // Plus tard, vous pouvez créer un tableau de bord médecin dédié
+          navigate("/patient/dashboard");
+          console.log("Connexion réussie ✅ en tant que médecin");
+        } else {
+          // Redirection vers le tableau de bord patient
+          navigate("/patient/dashboard");
+          console.log("Connexion réussie ✅ en tant que patient");
         }
-      
-        console.log("Connexion réussie ✅ en tant que", role);
       } else {
         setError("Réponse invalide du serveur");
       }
