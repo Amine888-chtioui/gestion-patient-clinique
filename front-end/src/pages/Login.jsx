@@ -25,7 +25,11 @@ const Login = () => {
       if (response.data && response.data.token) {
         localStorage.setItem("token", response.data.token);
 
+        // Récupérer le rôle de l'utilisateur depuis la réponse
         const role = response.data.role || response.data.user?.role;
+
+        // Stocker le rôle pour les vérifications de route protégée
+        localStorage.setItem("userRole", role);
 
         // Redirection basée sur le rôle de l'utilisateur
         if (role === "admin") {
@@ -34,9 +38,8 @@ const Login = () => {
           navigate("/patient/dashboard");
           console.log("Connexion réussie ✅ en tant qu'administrateur");
         } else if (role === "doctor") {
-          // Pour l'instant, redirection vers le tableau de bord patient
-          // Plus tard, vous pouvez créer un tableau de bord médecin dédié
-          navigate("/patient/dashboard");
+          // Redirection vers le tableau de bord médecin
+          navigate("/doctor/dashboard");
           console.log("Connexion réussie ✅ en tant que médecin");
         } else {
           // Redirection vers le tableau de bord patient

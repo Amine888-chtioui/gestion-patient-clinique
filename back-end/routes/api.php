@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\MedecinController;
+use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -50,7 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/profile', [PatientController::class, 'updateProfile']);
         
         // Route pour l'upload de photo de profil
-        Route::post('/profile/photo', [PatientController::class, 'uploadProfilePhoto']); // Nouvelle route
+        Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
         
         // Route pour télécharger des documents
         Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
@@ -58,9 +58,23 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Routes pour les médecins (protégées par le middleware de rôle)
     Route::prefix('doctor')->middleware('role:doctor')->group(function () {
-        // Routes à implémenter ultérieurement
-        Route::get('/patients', [MedecinController::class, 'getPatients']);
-        Route::get('/appointments', [MedecinController::class, 'getAppointments']);
+        // Routes d'accès aux rendez-vous
+        Route::get('/appointments', [DoctorController::class, 'getAppointments']);
+        Route::put('/appointments/{id}', [DoctorController::class, 'updateAppointmentStatus']);
+        
+        // Routes d'accès aux patients
+        Route::get('/patients', [DoctorController::class, 'getPatients']);
+        Route::get('/patients/{id}', [DoctorController::class, 'getPatientDetails']);
+        
+        // Routes pour la gestion des dossiers médicaux
+        Route::post('/medical-records', [DoctorController::class, 'createMedicalRecord']);
+        
+        // Routes pour la gestion des ordonnances
+        Route::post('/prescriptions', [DoctorController::class, 'createPrescription']);
+        
+        // Routes de gestion du profil
+        Route::get('/profile', [DoctorController::class, 'getProfile']);
+        Route::put('/profile', [DoctorController::class, 'updateProfile']);
     });
     
     // Routes pour les administrateurs (protégées par le middleware de rôle)

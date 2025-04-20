@@ -1,0 +1,665 @@
+/* src/components/doctor-dashboard/doctor-dashboard.css */
+/* Ce fichier étend les styles du tableau de bord patient avec des styles spécifiques au médecin */
+
+/* Utilisation des mêmes variables de couleur mais avec une teinte différente pour le médecin */
+.doctor-dashboard {
+    --primary-color: #2a8d8e;
+    --primary-light: #e6f5f5;
+    --primary-dark: #1a6364;
+    --secondary-color: #4ca1a2;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+    --dark-color: #212529;
+    --text-color: #333;
+    --text-light: #6c757d;
+    --text-dark: #343a40;
+    --bg-color: #f8f9fa;
+    --border-color: #dee2e6;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 1rem;
+    --transition: all 0.3s ease;
+  }
+  
+  /* Structure de base comme celle du patient, avec les mêmes classes */
+  .doctor-dashboard {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  /* Badge spécifique au médecin */
+  .badge-doctor {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+  }
+  
+  /* Styles pour les onglets */
+  .tabs {
+    display: flex;
+    margin: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  
+  .tab.active {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+  }
+  
+  .tab:hover:not(.active) {
+    color: var(--text-dark);
+    border-bottom: 2px solid var(--border-color);
+  }
+  
+  /* Styles pour la grille de patients */
+  .patients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .patient-card {
+    background-color: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: var(--transition);
+    border: 1px solid var(--border-color);
+  }
+  
+  .patient-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .patient-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--primary-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .patient-avatar i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+  }
+  
+  .patient-name {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .patient-email {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  
+  .patient-info {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+  
+  .patient-info p {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+  }
+  
+  .patient-info p i {
+    margin-right: 0.5rem;
+    color: var(--primary-color);
+    width: 20px;
+    text-align: center;
+  }
+  
+  .patient-actions {
+    margin-top: auto;
+    width: 100%;
+  }
+  
+  /* Styles pour la vue en liste des patients */
+  .patient-name-cell {
+    display: flex;
+    align-items: center;
+  }
+  
+  .patient-avatar-small {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: var(--primary-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0.75rem;
+  }
+  
+  .patient-avatar-small i {
+    font-size: 1rem;
+    color: var(--primary-color);
+  }
+  
+  /* Styles pour les boutons de vue */
+  .view-options {
+    display: flex;
+  }
+  
+  .view-option {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
+    margin-right: 0.5rem;
+  }
+  
+  .view-option.active {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .view-option:hover:not(.active) {
+    background-color: var(--bg-color);
+  }
+  
+  /* Styles pour les détails du patient */
+  .patient-details-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .patient-header {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    background-color: var(--primary-light);
+    border-radius: var(--radius-md);
+  }
+  
+  .patient-title {
+    flex: 1;
+    margin: 0 1.5rem;
+  }
+  
+  .patient-title h2 {
+    margin-bottom: 0.25rem;
+    color: var(--primary-color);
+  }
+  
+  .patient-title p {
+    color: var(--text-light);
+    margin: 0;
+  }
+  
+  .patient-actions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .patient-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .patient-tab {
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+  }
+  
+  .patient-tab i {
+    margin-right: 0.5rem;
+  }
+  
+  .patient-tab.active {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+  }
+  
+  .patient-tab:hover:not(.active) {
+    color: var(--text-dark);
+    border-bottom: 2px solid var(--border-color);
+  }
+  
+  .patient-content {
+    padding: 1.5rem;
+    background-color: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  /* Styles pour l'onglet d'informations du patient */
+  .patient-info-tab h3 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+  
+  .info-section {
+    margin-bottom: 2rem;
+  }
+  
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .info-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .info-item.full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .info-label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+  }
+  
+  .info-value {
+    color: var(--text-dark);
+  }
+  
+  .info-value-box {
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    min-height: 100px;
+  }
+  
+  /* Styles pour l'historique des dossiers médicaux */
+  .records-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .record-item {
+    display: flex;
+    border-left: 3px solid var(--primary-color);
+    padding-left: 1.5rem;
+  }
+  
+  .record-date {
+    min-width: 100px;
+    padding-right: 1.5rem;
+  }
+  
+  .record-date .date {
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  
+  .record-date .type {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+  }
+  
+  .record-content {
+    flex: 1;
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+  }
+  
+  .record-content h4 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+  }
+  
+  .record-details p {
+    margin-bottom: 0.75rem;
+  }
+  
+  .record-documents {
+    margin-top: 1rem;
+  }
+  
+  .record-documents ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .record-documents li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .record-documents li:last-child {
+    border-bottom: none;
+  }
+  
+  .record-documents a {
+    color: var(--primary-color);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+  
+  .record-documents a i {
+    margin-right: 0.5rem;
+  }
+  
+  /* Styles pour les formulaires de dossier médical et d'ordonnance */
+  .medical-record-form-container,
+  .prescription-form-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+  
+  .form-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-header h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+  }
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .section-header h4 {
+    margin: 0;
+  }
+  
+  .medication-form {
+    background-color: var(--bg-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+  }
+  
+  .medication-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  
+  .medication-header h5 {
+    margin: 0;
+    color: var(--primary-color);
+  }
+  
+  .info-panel {
+    background-color: var(--primary-light);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    align-self: flex-start;
+    position: sticky;
+    top: 2rem;
+  }
+  
+  .info-panel h4 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 0.5rem;
+  }
+  
+  .info-list {
+    margin-bottom: 1.5rem;
+  }
+  
+  .warning-box {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 3px solid var(--warning-color);
+    padding: 1rem;
+    display: flex;
+    align-items: flex-start;
+    border-radius: var(--radius-sm);
+    margin-top: 1.5rem;
+  }
+  
+  .warning-box i {
+    color: var(--warning-color);
+    margin-right: 0.75rem;
+    margin-top: 0.25rem;
+  }
+  
+  .warning-box p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  
+  /* Styles pour les petits états vides */
+  .empty-state.small {
+    padding: 2rem;
+  }
+  
+  .empty-state.small i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .empty-state.small h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Styles pour les fichiers */
+  .file-upload-container {
+    margin-bottom: 1rem;
+  }
+  
+  .file-input {
+    display: none;
+  }
+  
+  .file-upload-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid var(--primary-color);
+  }
+  
+  .file-upload-label i {
+    margin-right: 0.5rem;
+  }
+  
+  .file-upload-label:hover {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .selected-files {
+    margin-top: 1rem;
+  }
+  
+  .files-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: white;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border-color);
+  }
+  
+  .file-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .file-info i {
+    margin-right: 0.75rem;
+    color: var(--primary-color);
+  }
+  
+  .file-name {
+    margin-right: 0.5rem;
+  }
+  
+  .file-size {
+    color: var(--text-light);
+    font-size: 0.8rem;
+  }
+  
+  /* Autres styles utilitaires */
+  .text-right {
+    text-align: right;
+  }
+  
+  .no-data {
+    color: var(--text-light);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .no-content {
+    color: var(--text-light);
+    font-style: italic;
+  }
+  
+  .btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Styles pour les expériences et formations */
+  .bio-content,
+  .education-content,
+  .experience-content {
+    background-color: var(--bg-color);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+  }
+  
+  .bio-content p,
+  .education-content p,
+  .experience-content p {
+    margin: 0;
+  }
+  
+  /* Media queries */
+  @media (max-width: 992px) {
+    .medical-record-form-container,
+    .prescription-form-container {
+      grid-template-columns: 1fr;
+    }
+    
+    .info-panel {
+      position: static;
+    }
+    
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .patient-header {
+      flex-direction: column;
+      text-align: center;
+    }
+    
+    .patient-title {
+      margin: 1rem 0;
+    }
+    
+    .patient-actions {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .patient-tabs {
+      flex-wrap: wrap;
+    }
+    
+    .patient-tab {
+      flex: 1;
+      min-width: 120px;
+      justify-content: center;
+      padding: 0.75rem;
+    }
+    
+    .record-item {
+      flex-direction: column;
+    }
+    
+    .record-date {
+      margin-bottom: 1rem;
+      padding-right: 0;
+    }
+  }
