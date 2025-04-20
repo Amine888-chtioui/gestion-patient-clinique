@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Appointment;
@@ -13,6 +14,7 @@ use App\Models\Document;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Log; // Ajoutez cette ligne
 use Exception;
 
 class PatientController extends Controller
@@ -146,6 +148,50 @@ class PatientController extends Controller
     }
 
     /**
+     * Récupérer un dossier médical spécifique
+     */
+    public function getMedicalRecord($id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Récupérer le dossier médical avec les informations du médecin et les documents
+        $record = MedicalRecord::where('id', $id)
+            ->where('patient_id', $user->id)
+            ->with(['doctor:id,name', 'documents'])
+            ->first();
+        
+        if (!$record) {
+            return response()->json(['message' => 'Dossier médical non trouvé'], 404);
+        }
+        
+        // Formater les données pour la réponse
+        $formattedRecord = [
+            'id' => $record->id,
+            'date' => $record->date,
+            'type' => $record->type,
+            'doctor' => $record->doctor->name,
+            'diagnosis' => $record->diagnosis,
+            'notes' => $record->notes,
+            'documents' => $record->documents->map(function ($document) {
+                return [
+                    'id' => $document->id,
+                    'name' => $document->name,
+                    'type' => $document->type,
+                ];
+            })->toArray(),
+        ];
+        
+        return response()->json([
+            'medicalRecord' => $formattedRecord
+        ]);
+    }
+
+    /**
      * Récupérer les ordonnances du patient
      */
     public function getPrescriptions()
@@ -187,6 +233,70 @@ class PatientController extends Controller
     }
 
     /**
+     * Récupérer une ordonnance spécifique
+     */
+    public function getPrescription($id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Récupérer l'ordonnance avec les informations du médecin et les médicaments
+        $prescription = Prescription::where('id', $id)
+            ->where('patient_id', $user->id)
+            ->with(['doctor:id,name', 'medications'])
+            ->first();
+        
+        if (!$prescription) {
+            return response()->json(['message' => 'Ordonnance non trouvée'], 404);
+        }
+        
+        // Formater les données pour la réponse
+        $formattedPrescription = [
+            'id' => $prescription->id,
+            'date' => $prescription->date,
+            'doctor' => $prescription->doctor->name,
+            'notes' => $prescription->notes,
+            'medications' => $prescription->medications->map(function ($medication) {
+                return [
+                    'name' => $medication->name,
+                    'dosage' => $medication->dosage,
+                    'frequency' => $medication->frequency,
+                    'duration' => $medication->duration,
+                    'instructions' => $medication->instructions,
+                ];
+            })->toArray(),
+        ];
+        
+        return response()->json([
+            'prescription' => $formattedPrescription
+        ]);
+    }
+
+    /**
+     * Télécharger une ordonnance au format PDF
+     */
+    public function downloadPrescription($id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // À implémenter: Générer un PDF de l'ordonnance
+        // Cette fonction nécessite l'intégration d'une bibliothèque de génération de PDF comme DOMPDF
+        
+        return response()->json([
+            'message' => 'Fonctionnalité en cours de développement'
+        ]);
+    }
+
+    /**
      * Récupérer le profil du patient
      */
     public function getProfile()
@@ -215,7 +325,7 @@ class PatientController extends Controller
             'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
             'emergencyContact' => $profile->emergency_contact,
             'medicalHistory' => $profile->medical_history,
-            'photoUrl' => $profile->photo_path ? Storage::url($profile->photo_path) : null,
+            'photoUrl' => $profile->profile_photo ? asset('uploads/profiles/' . $profile->profile_photo) : null,
         ];
         
         return response()->json([
@@ -312,7 +422,7 @@ class PatientController extends Controller
             'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
             'emergencyContact' => $profile->emergency_contact,
             'medicalHistory' => $profile->medical_history,
-            'photoUrl' => $profile->photo_path ? Storage::url($profile->photo_path) : null,
+            'photoUrl' => $profile->profile_photo ? asset('uploads/profiles/' . $profile->profile_photo) : null,
         ];
         
         return response()->json([
@@ -323,8 +433,11 @@ class PatientController extends Controller
     
     /**
      * Télécharger et mettre à jour la photo de profil du patient
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function updateProfilePhoto(Request $request)
+    public function uploadProfilePhoto(Request $request)
     {
         $user = Auth::user();
         
@@ -333,47 +446,86 @@ class PatientController extends Controller
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
         
-        $validatedData = $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+        // Validation de la requête
+        $request->validate([
+            'profile_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB max
         ]);
         
         try {
-            // Récupérer le profil du patient, ou créer un profil vide s'il n'existe pas
-            $profile = $user->patientProfile ?? new PatientProfile(['user_id' => $user->id]);
+            Log::info('Début de la fonction uploadProfilePhoto');
             
-            // Supprimer l'ancienne photo si elle existe
-            if ($profile->photo_path && Storage::exists('public/' . $profile->photo_path)) {
-                Storage::delete('public/' . $profile->photo_path);
-            }
-            
-            // Générer un nom de fichier unique
-            $fileName = time() . '_' . uniqid() . '.' . $request->file('photo')->getClientOriginalExtension();
-            $path = 'profile-photos/' . $fileName;
-            
-            // Redimensionner l'image
-            $img = Image::make($request->file('photo')->getRealPath())
-                ->fit(400, 400, function ($constraint) {
-                    $constraint->aspectRatio();
-                })
-                ->encode();
+            // Vérifier si une image a été envoyée
+            if ($request->hasFile('profile_photo')) {
+                Log::info('Photo reçue avec succès');
+                $image = $request->file('profile_photo');
                 
-            // Enregistrer l'image redimensionnée
-            Storage::disk('public')->put($path, $img);
+                // Récupérer le profil du patient, ou créer un profil s'il n'existe pas
+                $profile = $user->patientProfile ?? new PatientProfile(['user_id' => $user->id]);
+                Log::info('Profil patient récupéré/créé');
+                
+                // Supprimer l'ancienne photo si elle existe
+                if ($profile->profile_photo && file_exists(public_path('uploads/profiles/' . $profile->profile_photo))) {
+                    unlink(public_path('uploads/profiles/' . $profile->profile_photo));
+                    Log::info('Ancienne photo supprimée');
+                }
+                
+                // Générer un nom unique pour l'image
+                $fileName = time() . '.' . $image->getClientOriginalExtension();
+                Log::info('Nom de fichier généré: ' . $fileName);
+                
+                // Créer le dossier s'il n'existe pas
+                $uploadPath = public_path('uploads/profiles');
+                if (!file_exists($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                    Log::info('Dossier créé: ' . $uploadPath);
+                } else {
+                    Log::info('Dossier existe déjà: ' . $uploadPath);
+                }
+                
+                try {
+                    // Version sans Intervention Image
+                    $image->move($uploadPath, $fileName);
+                    Log::info('Image déplacée avec succès');
+                    
+                    /* Version avec Intervention Image (commentée)
+                    $img = Image::make($image->getRealPath());
+                    $img->fit(300, 300, function ($constraint) {
+                        $constraint->aspectRatio();
+                    })->save($uploadPath . '/' . $fileName);
+                    Log::info('Image redimensionnée et enregistrée');
+                    */
+                    
+                    // Mettre à jour le chemin de la photo dans le profil
+                    $profile->profile_photo = $fileName;
+                    Log::info('Chemin de la photo mis à jour dans le modèle');
+                    
+                    // Sauvegarder le profil
+                    $user->patientProfile()->save($profile);
+                    Log::info('Profil sauvegardé en base de données');
+                    
+                    // Générer l'URL publique de la photo
+                    $photoUrl = asset('uploads/profiles/' . $fileName);
+                    Log::info('URL générée: ' . $photoUrl);
+                    
+                    return response()->json([
+                        'message' => 'Photo de profil mise à jour avec succès',
+                        'photo_url' => $photoUrl
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Erreur lors du traitement de l\'image: ' . $e->getMessage());
+                    Log::error($e->getTraceAsString());
+                    throw $e; // Relancer l'exception pour être capturée par le bloc externe
+                }
+            } else {
+                Log::warning('Aucune image n\'a été envoyée');
+                return response()->json([
+                    'message' => 'Aucune image n\'a été envoyée',
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'upload de photo: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             
-            // Mettre à jour le chemin de la photo dans le profil
-            $profile->photo_path = $path;
-            
-            // Sauvegarder le profil
-            $user->patientProfile()->save($profile);
-            
-            // Générer l'URL publique de la photo
-            $photoUrl = Storage::url($path);
-            
-            return response()->json([
-                'message' => 'Photo de profil mise à jour avec succès',
-                'photoUrl' => $photoUrl
-            ]);
-        } catch (Exception $e) {
             return response()->json([
                 'message' => 'Erreur lors de la mise à jour de la photo de profil',
                 'error' => $e->getMessage()
@@ -452,6 +604,76 @@ class PatientController extends Controller
                 'id' => $appointment->id,
                 'date' => $appointment->date,
                 'time' => $appointment->time,
+                'status' => $appointment->status,
+            ]
+        ]);
+    }
+
+    /**
+     * Mettre à jour un rendez-vous
+     */
+    public function updateAppointment(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Récupérer le rendez-vous
+        $appointment = Appointment::where('id', $id)
+            ->where('patient_id', $user->id)
+            ->first();
+        
+        if (!$appointment) {
+            return response()->json(['message' => 'Rendez-vous non trouvé'], 404);
+        }
+        
+        // Vérifier que le rendez-vous n'est pas déjà passé ou annulé
+        if ($appointment->status === 'annulé') {
+            return response()->json(['message' => 'Impossible de modifier un rendez-vous annulé'], 400);
+        }
+        
+        if ($appointment->date < now()->toDateString() || 
+            ($appointment->date == now()->toDateString() && $appointment->time < now()->toTimeString())) {
+            return response()->json(['message' => 'Impossible de modifier un rendez-vous passé'], 400);
+        }
+        
+        // Valider les données de la requête
+        $validatedData = $request->validate([
+            'date' => 'sometimes|required|date|after:today',
+            'time' => 'sometimes|required',
+            'reason' => 'sometimes|required|string|max:500',
+        ]);
+        
+        // Mettre à jour les champs du rendez-vous
+        if (isset($validatedData['date'])) {
+            $appointment->date = $validatedData['date'];
+        }
+        
+        if (isset($validatedData['time'])) {
+            $appointment->time = $validatedData['time'];
+        }
+        
+        if (isset($validatedData['reason'])) {
+            $appointment->reason = $validatedData['reason'];
+        }
+        
+        // Réinitialiser le statut du rendez-vous à "en attente" si la date ou l'heure a été modifiée
+        if (isset($validatedData['date']) || isset($validatedData['time'])) {
+            $appointment->status = 'en attente';
+        }
+        
+        $appointment->save();
+        
+        return response()->json([
+            'message' => 'Rendez-vous mis à jour avec succès',
+            'appointment' => [
+                'id' => $appointment->id,
+                'date' => $appointment->date,
+                'time' => $appointment->time,
+                'reason' => $appointment->reason,
                 'status' => $appointment->status,
             ]
         ]);

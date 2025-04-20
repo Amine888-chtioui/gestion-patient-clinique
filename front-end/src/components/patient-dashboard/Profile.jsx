@@ -1,21 +1,38 @@
 // src/components/patient-dashboard/Profile.jsx
 import React, { useState } from "react";
 import EditProfileForm from "./EditProfileForm";
+import PhotoUpload from "./PhotoUpload";
 
-const Profile = ({ user, profile, updateProfile, actionLoading }) => {
+const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isChangingPhoto, setIsChangingPhoto] = useState(false);
 
   const handleEditClick = () => {
     setIsEditing(true);
+    setIsChangingPhoto(false);
+  };
+
+  const handlePhotoClick = () => {
+    setIsChangingPhoto(true);
+    setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
   };
 
+  const handleCancelPhotoChange = () => {
+    setIsChangingPhoto(false);
+  };
+
   const handleSaveProfile = (updatedProfile) => {
     updateProfile(updatedProfile);
     setIsEditing(false);
+  };
+
+  const handleSavePhoto = (photoFile) => {
+    updatePhoto(photoFile);
+    setIsChangingPhoto(false);
   };
 
   if (isEditing) {
@@ -43,12 +60,30 @@ const Profile = ({ user, profile, updateProfile, actionLoading }) => {
     );
   }
 
+  if (isChangingPhoto) {
+    return (
+      <div className="profile-container">
+        <div className="profile-info-card">
+          <PhotoUpload 
+            onSave={handleSavePhoto} 
+            onCancel={handleCancelPhotoChange} 
+            actionLoading={actionLoading}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="profile-container">
       <div className="profile-info-card">
         <div className="profile-header">
           <div className="profile-avatar">
-            <i className="fas fa-user-circle"></i>
+            {profile?.photoUrl ? (
+              <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+            ) : (
+              <i className="fas fa-user-circle"></i>
+            )}
           </div>
           <div className="profile-title">
             <h3>{user?.name}</h3>
@@ -56,7 +91,7 @@ const Profile = ({ user, profile, updateProfile, actionLoading }) => {
           </div>
           <button
             className="btn-outline"
-            onClick={() => alert("Fonctionnalité en cours de développement")}
+            onClick={handlePhotoClick}
             disabled={actionLoading}
           >
             <i className="fas fa-camera"></i> Changer la photo

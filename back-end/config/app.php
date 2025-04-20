@@ -57,8 +57,6 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
-
     'asset_url' => env('ASSET_URL'),
 
     /*
@@ -143,7 +141,7 @@ return [
 
     'maintenance' => [
         'driver' => 'file',
-        // 'store' => 'redis',
+        // 'store'  => 'redis',
     ],
 
     /*
@@ -161,13 +159,14 @@ return [
         /*
          * Package Service Providers...
          */
-
+        Intervention\Image\ImageServiceProvider::class,
+        
         /*
          * Application Service Providers...
          */
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
-        // App\Providers\BroadcastServiceProvider::class,
+        App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
     ])->toArray(),
@@ -185,6 +184,7 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
+        'Image' => Intervention\Image\Facades\Image::class,
     ])->toArray(),
 
 ];

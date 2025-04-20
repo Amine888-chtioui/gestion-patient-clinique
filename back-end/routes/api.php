@@ -50,7 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/profile', [PatientController::class, 'updateProfile']);
         
         // Route pour l'upload de photo de profil
-        Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
+        Route::post('/profile/photo', [PatientController::class, 'uploadProfilePhoto']); // Nouvelle route
         
         // Route pour télécharger des documents
         Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);

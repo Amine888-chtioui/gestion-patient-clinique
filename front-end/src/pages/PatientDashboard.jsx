@@ -259,7 +259,7 @@ const PatientDashboard = () => {
     try {
       // Créer un objet FormData pour envoyer le fichier
       const formData = new FormData();
-      formData.append("photo", photoFile);
+      formData.append("profile_photo", photoFile);
 
       const response = await axios.post(
         "/api/patient/profile/photo",
@@ -276,7 +276,7 @@ const PatientDashboard = () => {
       // Mettre à jour les données du profil avec la nouvelle photo
       setProfile({
         ...profile,
-        photoUrl: response.data.photoUrl,
+        photoUrl: response.data.photo_url,
       });
 
       setActionSuccess("Photo de profil mise à jour avec succès!");

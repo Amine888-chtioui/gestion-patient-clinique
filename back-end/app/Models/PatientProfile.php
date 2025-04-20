@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class PatientProfile extends Model
 {
@@ -20,7 +19,7 @@ class PatientProfile extends Model
         'chronic_diseases',
         'emergency_contact',
         'medical_history',
-        'photo_path', // Ajout du champ pour le chemin de la photo
+        'profile_photo', // Ajout du champ pour la photo de profil
     ];
 
     /**
@@ -36,8 +35,8 @@ class PatientProfile extends Model
      */
     public function getPhotoUrlAttribute()
     {
-        if ($this->photo_path) {
-            return Storage::url($this->photo_path);
+        if ($this->profile_photo) {
+            return asset('uploads/profiles/' . $this->profile_photo);
         }
         
         return null;
