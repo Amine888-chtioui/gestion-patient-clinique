@@ -48,6 +48,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Routes de gestion du profil
         Route::get('/profile', [PatientController::class, 'getProfile']);
         Route::put('/profile', [PatientController::class, 'updateProfile']);
+        
+        // Route pour l'upload de photo de profil
+        Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
+        
+        // Route pour télécharger des documents
+        Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
     });
     
     // Routes pour les médecins (protégées par le middleware de rôle)
@@ -63,4 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [AdminController::class, 'getUsers']);
         Route::get('/statistics', [AdminController::class, 'getStatistics']);
     });
+    
+    // Route pour obtenir la liste des médecins (accessible par tous les utilisateurs authentifiés)
+    Route::get('/doctors', [AuthController::class, 'getDoctors']);
 });

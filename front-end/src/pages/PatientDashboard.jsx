@@ -212,6 +212,94 @@ const PatientDashboard = () => {
     }
   };
 
+  const handleUpdateProfile = async (updatedProfile) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const response = await axios.put(
+        "/api/patient/profile",
+        updatedProfile,
+        getAuthHeaders()
+      );
+
+      // Mettre à jour les données utilisateur et profil
+      setUser({
+        ...user,
+        name: updatedProfile.name,
+        email: updatedProfile.email,
+      });
+
+      setProfile(response.data.profile || updatedProfile);
+
+      setActionSuccess("Profil mis à jour avec succès!");
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour du profil:", err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        setActionError(
+          err.response?.data?.message ||
+            "Impossible de mettre à jour le profil. Veuillez réessayer plus tard."
+        );
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdatePhoto = async (photoFile) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      // Créer un objet FormData pour envoyer le fichier
+      const formData = new FormData();
+      formData.append("photo", photoFile);
+
+      const response = await axios.post(
+        "/api/patient/profile/photo",
+        formData,
+        {
+          ...getAuthHeaders(),
+          headers: {
+            ...getAuthHeaders().headers,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // Mettre à jour les données du profil avec la nouvelle photo
+      setProfile({
+        ...profile,
+        photoUrl: response.data.photoUrl,
+      });
+
+      setActionSuccess("Photo de profil mise à jour avec succès!");
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      console.error(
+        "Erreur lors de la mise à jour de la photo de profil:",
+        err
+      );
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        setActionError(
+          err.response?.data?.message ||
+            "Impossible de mettre à jour la photo. Veuillez réessayer plus tard."
+        );
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDownloadDocument = async (id) => {
     try {
       setActionLoading(true);
@@ -333,6 +421,8 @@ const PatientDashboard = () => {
             <Profile
               user={user}
               profile={profile}
+              updateProfile={handleUpdateProfile}
+              updatePhoto={handleUpdatePhoto}
               actionLoading={actionLoading}
             />
           )}

@@ -12,6 +12,8 @@ use App\Models\Medication;
 use App\Models\Document;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Facades\Image;
+use Exception;
 
 class PatientController extends Controller
 {
@@ -213,6 +215,7 @@ class PatientController extends Controller
             'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
             'emergencyContact' => $profile->emergency_contact,
             'medicalHistory' => $profile->medical_history,
+            'photoUrl' => $profile->photo_path ? Storage::url($profile->photo_path) : null,
         ];
         
         return response()->json([
@@ -295,23 +298,87 @@ class PatientController extends Controller
         // Sauvegarder le profil
         $user->patientProfile()->save($profile);
         
+        // Préparer la réponse avec le profil mis à jour
+        $formattedProfile = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'phone' => $profile->phone,
+            'address' => $profile->address,
+            'dateOfBirth' => $profile->date_of_birth,
+            'bloodType' => $profile->blood_type,
+            'allergies' => $profile->allergies ? explode(',', $profile->allergies) : [],
+            'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
+            'emergencyContact' => $profile->emergency_contact,
+            'medicalHistory' => $profile->medical_history,
+            'photoUrl' => $profile->photo_path ? Storage::url($profile->photo_path) : null,
+        ];
+        
         return response()->json([
             'message' => 'Profil mis à jour avec succès',
-            'profile' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'phone' => $profile->phone,
-                'address' => $profile->address,
-                'dateOfBirth' => $profile->date_of_birth,
-                'bloodType' => $profile->blood_type,
-                'allergies' => $profile->allergies ? explode(',', $profile->allergies) : [],
-                'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
-                'emergencyContact' => $profile->emergency_contact,
-                'medicalHistory' => $profile->medical_history,
-            ]
+            'profile' => $formattedProfile
         ]);
+    }
+    
+    /**
+     * Télécharger et mettre à jour la photo de profil du patient
+     */
+    public function updateProfilePhoto(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        $validatedData = $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB max
+        ]);
+        
+        try {
+            // Récupérer le profil du patient, ou créer un profil vide s'il n'existe pas
+            $profile = $user->patientProfile ?? new PatientProfile(['user_id' => $user->id]);
+            
+            // Supprimer l'ancienne photo si elle existe
+            if ($profile->photo_path && Storage::exists('public/' . $profile->photo_path)) {
+                Storage::delete('public/' . $profile->photo_path);
+            }
+            
+            // Générer un nom de fichier unique
+            $fileName = time() . '_' . uniqid() . '.' . $request->file('photo')->getClientOriginalExtension();
+            $path = 'profile-photos/' . $fileName;
+            
+            // Redimensionner l'image
+            $img = Image::make($request->file('photo')->getRealPath())
+                ->fit(400, 400, function ($constraint) {
+                    $constraint->aspectRatio();
+                })
+                ->encode();
+                
+            // Enregistrer l'image redimensionnée
+            Storage::disk('public')->put($path, $img);
+            
+            // Mettre à jour le chemin de la photo dans le profil
+            $profile->photo_path = $path;
+            
+            // Sauvegarder le profil
+            $user->patientProfile()->save($profile);
+            
+            // Générer l'URL publique de la photo
+            $photoUrl = Storage::url($path);
+            
+            return response()->json([
+                'message' => 'Photo de profil mise à jour avec succès',
+                'photoUrl' => $photoUrl
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Erreur lors de la mise à jour de la photo de profil',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
     
     /**
