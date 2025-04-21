@@ -14,7 +14,7 @@ use App\Models\Document;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
-use Illuminate\Support\Facades\Log; // Ajoutez cette ligne
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class PatientController extends Controller
@@ -79,6 +79,20 @@ class PatientController extends Controller
         $doctor = User::find($validatedData['doctor_id']);
         if (!$doctor || !$doctor->isDoctor()) {
             return response()->json(['message' => 'Médecin non trouvé'], 404);
+        }
+        
+        // Vérifier si le médecin a déjà un rendez-vous à cette date et heure
+        $existingAppointment = Appointment::where('doctor_id', $validatedData['doctor_id'])
+            ->where('date', $validatedData['date'])
+            ->where('time', $validatedData['time'])
+            ->where('status', '!=', 'annulé') // Ignorer les rendez-vous annulés
+            ->first();
+        
+        // Si un rendez-vous existe déjà, renvoyer une erreur
+        if ($existingAppointment) {
+            return response()->json([
+                'message' => 'Ce créneau horaire n\'est pas disponible. Veuillez choisir une autre date ou heure.'
+            ], 422);
         }
         
         // Créer le rendez-vous
@@ -646,6 +660,27 @@ class PatientController extends Controller
             'time' => 'sometimes|required',
             'reason' => 'sometimes|required|string|max:500',
         ]);
+        
+        // Vérifier la disponibilité uniquement si la date ou l'heure change
+        if (isset($validatedData['date']) || isset($validatedData['time'])) {
+            $date = $validatedData['date'] ?? $appointment->date;
+            $time = $validatedData['time'] ?? $appointment->time;
+            
+            // Vérifier si le médecin a déjà un rendez-vous à cette date et heure (en excluant le rendez-vous actuel)
+            $existingAppointment = Appointment::where('doctor_id', $appointment->doctor_id)
+                ->where('date', $date)
+                ->where('time', $time)
+                ->where('status', '!=', 'annulé')
+                ->where('id', '!=', $appointment->id) // Exclure le rendez-vous en cours de modification
+                ->first();
+            
+            // Si un rendez-vous existe déjà, renvoyer une erreur
+            if ($existingAppointment) {
+                return response()->json([
+                    'message' => 'Ce créneau horaire n\'est pas disponible. Veuillez choisir une autre date ou heure.'
+                ], 422);
+            }
+        }
         
         // Mettre à jour les champs du rendez-vous
         if (isset($validatedData['date'])) {

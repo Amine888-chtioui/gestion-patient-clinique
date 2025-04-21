@@ -3,87 +3,85 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\NewPasswordController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
 */
 
-// Routes d'authentification
+// Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.email');
+Route::post('/reset-password', [App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.update');
 
-// Routes de réinitialisation de mot de passe (utilisant les contrôleurs Breeze)
-Route::post('/forgot-password', [PasswordResetLinkController::class, 'store']);
-Route::post('/reset-password', [NewPasswordController::class, 'store']);
-
-// Routes protégées
+// Routes protégées nécessitant une authentification
 Route::middleware('auth:sanctum')->group(function () {
+    // Route commune pour récupérer les données utilisateur
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
     
-    // Routes pour le tableau de bord patient
-    Route::prefix('patient')->group(function () {
-        // Routes d'accès aux rendez-vous
-        Route::get('/appointments', [PatientController::class, 'getAppointments']);
-        Route::post('/appointments', [PatientController::class, 'createAppointment']);
-        Route::put('/appointments/{id}', [PatientController::class, 'updateAppointment']);
-        Route::delete('/appointments/{id}', [PatientController::class, 'cancelAppointment']);
-        
-        // Routes d'accès au dossier médical
-        Route::get('/medical-records', [PatientController::class, 'getMedicalRecords']);
-        Route::get('/medical-records/{id}', [PatientController::class, 'getMedicalRecord']);
-        
-        // Routes d'accès aux ordonnances
-        Route::get('/prescriptions', [PatientController::class, 'getPrescriptions']);
-        Route::get('/prescriptions/{id}', [PatientController::class, 'getPrescription']);
-        Route::get('/prescriptions/{id}/download', [PatientController::class, 'downloadPrescription']);
-        
-        // Routes de gestion du profil
-        Route::get('/profile', [PatientController::class, 'getProfile']);
-        Route::put('/profile', [PatientController::class, 'updateProfile']);
-        
-        // Route pour l'upload de photo de profil
-        Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
-        
-        // Route pour télécharger des documents
-        Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
+    // Routes pour obtenir la liste des médecins (pour les patients qui prennent RDV)
+    Route::get('/doctors', function() {
+        // Retourner tous les utilisateurs avec le rôle doctor
+        $doctors = \App\Models\User::where('role', 'doctor')->get(['id', 'name', 'email']);
+        return response()->json($doctors);
     });
+});
+
+// Routes protégées pour les patients
+Route::middleware(['auth:sanctum', 'role:patient'])->prefix('patient')->group(function () {
+    Route::get('/appointments', [PatientController::class, 'getAppointments']);
+    Route::post('/appointments', [PatientController::class, 'createAppointment']);
+    Route::put('/appointments/{id}', [PatientController::class, 'updateAppointment']);
+    Route::delete('/appointments/{id}', [PatientController::class, 'cancelAppointment']);
     
-    // Routes pour les médecins (protégées par le middleware de rôle)
-    Route::prefix('doctor')->middleware('role:doctor')->group(function () {
-        // Routes d'accès aux rendez-vous
-        Route::get('/appointments', [DoctorController::class, 'getAppointments']);
-        Route::put('/appointments/{id}', [DoctorController::class, 'updateAppointmentStatus']);
-        
-        // Routes d'accès aux patients
-        Route::get('/patients', [DoctorController::class, 'getPatients']);
-        Route::get('/patients/{id}', [DoctorController::class, 'getPatientDetails']);
-        
-        // Routes pour la gestion des dossiers médicaux
-        Route::post('/medical-records', [DoctorController::class, 'createMedicalRecord']);
-        
-        // Routes pour la gestion des ordonnances
-        Route::post('/prescriptions', [DoctorController::class, 'createPrescription']);
-        
-        // Routes de gestion du profil
-        Route::get('/profile', [DoctorController::class, 'getProfile']);
-        Route::put('/profile', [DoctorController::class, 'updateProfile']);
-    });
+    Route::get('/medical-records', [PatientController::class, 'getMedicalRecords']);
+    Route::get('/medical-records/{id}', [PatientController::class, 'getMedicalRecord']);
     
-    // Routes pour les administrateurs (protégées par le middleware de rôle)
-    Route::prefix('admin')->middleware('role:admin')->group(function () {
-        // Routes à implémenter ultérieurement
-        Route::get('/users', [AdminController::class, 'getUsers']);
-        Route::get('/statistics', [AdminController::class, 'getStatistics']);
-    });
+    Route::get('/prescriptions', [PatientController::class, 'getPrescriptions']);
+    Route::get('/prescriptions/{id}', [PatientController::class, 'getPrescription']);
+    Route::get('/prescriptions/{id}/download', [PatientController::class, 'downloadPrescription']);
     
-    // Route pour obtenir la liste des médecins (accessible par tous les utilisateurs authentifiés)
-    Route::get('/doctors', [AuthController::class, 'getDoctors']);
+    Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
+    
+    Route::get('/profile', [PatientController::class, 'getProfile']);
+    Route::put('/profile', [PatientController::class, 'updateProfile']);
+    Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
+});
+
+// Routes protégées pour les médecins
+Route::middleware(['auth:sanctum', 'role:doctor'])->prefix('doctor')->group(function () {
+    Route::get('/appointments', [DoctorController::class, 'getAppointments']);
+    Route::put('/appointments/{id}', [DoctorController::class, 'updateAppointmentStatus']);
+    
+    Route::get('/patients', [DoctorController::class, 'getPatients']);
+    Route::get('/patients/{id}', [DoctorController::class, 'getPatientDetails']);
+    
+    Route::post('/medical-records', [DoctorController::class, 'createMedicalRecord']);
+    Route::post('/prescriptions', [DoctorController::class, 'createPrescription']);
+    
+    Route::get('/documents/{id}/download', [DoctorController::class, 'downloadDocument']);
+    
+    Route::get('/profile', [DoctorController::class, 'getProfile']);
+    Route::put('/profile', [DoctorController::class, 'updateProfile']);
+});
+
+// Routes protégées pour les administrateurs
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+    // Ajouter les routes admin ici
+    Route::get('/dashboard', [AdminController::class, 'dashboard']);
 });

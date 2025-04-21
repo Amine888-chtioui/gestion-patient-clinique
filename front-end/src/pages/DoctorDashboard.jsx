@@ -121,17 +121,57 @@ const DoctorDashboard = () => {
     setActionSuccess(null);
   };
 
-  const handlePatientSelect = (patient) => {
-    setSelectedPatient(patient);
-    setActiveSubTab('details');
+  // Fonction mise à jour pour charger les détails complets d'un patient
+  const handlePatientSelect = async (patient) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+    
+    try {
+      // Appeler l'API pour récupérer les détails complets du patient
+      const response = await axios.get(`/api/doctor/patients/${patient.id}`, getAuthHeaders());
+      
+      // Stocker les détails complets du patient
+      setSelectedPatient(response.data.patient);
+      setActiveSubTab('details');
+    } catch (err) {
+      console.error("Erreur lors de la récupération des détails du patient:", err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        setActionError(
+          err.response?.data?.message ||
+          "Impossible de récupérer les détails du patient. Veuillez réessayer plus tard."
+        );
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleAppointmentSelect = (appointment) => {
+  const handleAppointmentSelect = async (appointment) => {
     setSelectedAppointment(appointment);
-    // Trouver le patient correspondant au rendez-vous
-    const patient = patients.find(p => p.id === appointment.patient_id);
-    setSelectedPatient(patient || null);
-    setActiveSubTab('record');
+    setActionLoading(true);
+    
+    try {
+      // Récupérer les détails du patient associé au rendez-vous
+      const response = await axios.get(`/api/doctor/patients/${appointment.patient_id}`, getAuthHeaders());
+      setSelectedPatient(response.data.patient);
+      setActiveSubTab('record');
+    } catch (err) {
+      console.error("Erreur:", err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        setActionError(
+          "Impossible de récupérer les détails du patient. Veuillez réessayer plus tard."
+        );
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleUpdateAppointmentStatus = async (id, status) => {

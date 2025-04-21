@@ -447,6 +447,35 @@ class DoctorController extends Controller
     }
 
     /**
+     * Télécharger un document
+     */
+    public function downloadDocument($id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un médecin
+        if (!$user->isDoctor()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Récupérer le document
+        $document = Document::with('medicalRecord')->findOrFail($id);
+        
+        // Vérifier que le document a été créé par ce médecin
+        if ($document->medicalRecord->doctor_id !== $user->id) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Vérifier que le fichier existe
+        if (!Storage::exists($document->file_path)) {
+            return response()->json(['message' => 'Fichier non trouvé'], 404);
+        }
+        
+        // Retourner le fichier
+        return Storage::download($document->file_path, $document->name);
+    }
+
+    /**
      * Récupérer ou mettre à jour le profil du médecin
      */
     public function getProfile()

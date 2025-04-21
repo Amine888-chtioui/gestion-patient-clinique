@@ -1,16 +1,54 @@
 // src/components/doctor-dashboard/PatientDetails.jsx
 import React, { useState } from "react";
+import axios from "../../axios";
 
 const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   const [activeTab, setActiveTab] = useState("info");
 
-  // Dans un environnement réel, ces données seraient chargées depuis l'API
+  // Utilisation des données réelles récupérées de l'API
   const medicalRecords = patient.medical_records || [];
   const prescriptions = patient.prescriptions || [];
   const appointments = patient.appointments || [];
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+  };
+
+  // Fonction pour télécharger un document
+  const handleDownloadDocument = async (docId) => {
+    try {
+      const response = await axios.get(`/api/doctor/documents/${docId}/download`, {
+        headers: { 
+          Authorization: `Bearer ${localStorage.getItem("token")}` 
+        },
+        responseType: 'blob'
+      });
+      
+      // Création du lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extraction du nom du fichier
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'document.pdf';
+      if (contentDisposition) {
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(contentDisposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Erreur lors du téléchargement:", err);
+      alert("Impossible de télécharger le document. Veuillez réessayer plus tard.");
+    }
   };
 
   return (
@@ -159,8 +197,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                                 <li key={index}>
                                   <a href="#" onClick={(e) => {
                                     e.preventDefault();
-                                    // Fonction pour télécharger le document
-                                    alert("Téléchargement du document " + doc.name);
+                                    handleDownloadDocument(doc.id);
                                   }}>
                                     <i className="fas fa-file-download"></i> {doc.name}
                                   </a>
@@ -190,7 +227,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
             )}
           </div>
         )}
-
+        
         {activeTab === 'prescriptions' && (
           <div className="patient-prescriptions-tab">
             <h3>Ordonnances</h3>
@@ -233,7 +270,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                     <div className="prescription-footer">
                       <button 
                         className="btn-outline"
-                        onClick={() => alert("Imprimer l'ordonnance")}
+                        onClick={() => window.print()}
                         disabled={actionLoading}
                       >
                         <i className="fas fa-print"></i> Imprimer
