@@ -437,7 +437,7 @@ class PatientController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function uploadProfilePhoto(Request $request)
+    public function updateProfilePhoto(Request $request)
     {
         $user = Auth::user();
         
