@@ -28,6 +28,10 @@ Route::post('/reset-password', [App\Http\Controllers\Auth\NewPasswordController:
     ->middleware('guest')
     ->name('password.update');
 
+// Routes publiques pour les disponibilités des médecins
+Route::get('/doctors/{doctor_id}/availability', [DoctorController::class, 'getAvailability']);
+Route::get('/doctors/{doctor_id}/monthly-availability', [DoctorController::class, 'getMonthlyAvailability']);
+
 // Routes protégées nécessitant une authentification
 Route::middleware('auth:sanctum')->group(function () {
     // Route commune pour récupérer les données utilisateur

@@ -4,19 +4,28 @@ import { useNavigate } from "react-router-dom";
 import axios from "../axios";
 import "./PatientDashboard.css";
 
-// Import des composants
+// Import des composants communs
 import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
 import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
 import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
+
+// Import des composants de navigation
 import Sidebar from "../components/patient-dashboard/Sidebar";
 import ContentHeader from "../components/patient-dashboard/ContentHeader";
+import MobileNav from "../components/patient-dashboard/MobileNav";
+
+// Import des composants de contenu
 import Overview from "../components/patient-dashboard/Overview";
 import Appointments from "../components/patient-dashboard/Appointments";
-import BookAppointment from "../components/patient-dashboard/BookAppointment";
 import MedicalRecords from "../components/patient-dashboard/MedicalRecords";
 import Prescriptions from "../components/patient-dashboard/Prescriptions";
 import Profile from "../components/patient-dashboard/Profile";
-import MobileNav from "../components/patient-dashboard/MobileNav";
+
+// Import du nouveau composant de rendez-vous amélioré
+import ImprovedBookAppointment from "../components/patient-dashboard/ImprovedBookAppointment";
+
+// Import des styles pour les rendez-vous
+import "../components/patient-dashboard/appointment-booking.css";
 
 const PatientDashboard = () => {
   const [user, setUser] = useState(null);
@@ -30,14 +39,6 @@ const PatientDashboard = () => {
   const [prescriptions, setPrescriptions] = useState([]);
   const [profile, setProfile] = useState(null);
   const [doctors, setDoctors] = useState([]);
-
-  // État pour le formulaire de rendez-vous
-  const [newAppointment, setNewAppointment] = useState({
-    date: "",
-    time: "",
-    doctor_id: "",
-    reason: "",
-  });
 
   // États pour les actions
   const [actionLoading, setActionLoading] = useState(false);
@@ -140,12 +141,7 @@ const PatientDashboard = () => {
     setActionSuccess(null);
   };
 
-  const handleAppointmentChange = (e) => {
-    setNewAppointment({ ...newAppointment, [e.target.name]: e.target.value });
-  };
-
-  const handleBookAppointment = async (e) => {
-    e.preventDefault();
+  const handleBookAppointment = async (appointmentData) => {
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
@@ -153,12 +149,21 @@ const PatientDashboard = () => {
     try {
       const response = await axios.post(
         "/api/patient/appointments",
-        newAppointment,
+        appointmentData,
         getAuthHeaders()
       );
 
-      setAppointments([response.data.appointment, ...appointments]);
-      setNewAppointment({ date: "", time: "", doctor_id: "", reason: "" });
+      // Ajouter le nouveau rendez-vous à la liste avec des données minimales
+      const newAppointment = {
+        id: response.data.appointment.id,
+        date: appointmentData.date,
+        time: appointmentData.time,
+        doctor: response.data.appointment.doctor || "Dr.", // Utilisez le nom du médecin si disponible
+        status: "en attente",
+        reason: appointmentData.reason,
+      };
+
+      setAppointments([newAppointment, ...appointments]);
       setActionSuccess("Rendez-vous créé avec succès!");
 
       setTimeout(() => {
@@ -392,13 +397,10 @@ const PatientDashboard = () => {
           )}
 
           {activeTab === "book" && (
-            <BookAppointment
-              newAppointment={newAppointment}
-              doctors={doctors}
-              handleAppointmentChange={handleAppointmentChange}
-              handleBookAppointment={handleBookAppointment}
+            <ImprovedBookAppointment
               handleTabChange={handleTabChange}
               actionLoading={actionLoading}
+              onBookAppointment={handleBookAppointment}
             />
           )}
 
