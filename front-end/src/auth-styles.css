@@ -1,30 +1,6 @@
 /* Styles pour les pages d'authentification */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-:root {
-  --primary-color: #1a76d2;
-  --primary-light: #e8f0fe;
-  --primary-dark: #0056b3;
-  --secondary-color: #4a90e2;
-  --success-color: #28a745;
-  --warning-color: #ffc107;
-  --danger-color: #dc3545;
-  --info-color: #17a2b8;
-  --dark-color: #2d3748;
-  --text-color: #333;
-  --text-light: #6c757d;
-  --text-dark: #343a40;
-  --bg-color: #f8f9fa;
-  --border-color: #dee2e6;
-  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 1rem;
-  --transition: all 0.3s ease;
-}
-
 /* Page d'authentification */
 .auth-page {
   display: flex;
@@ -53,7 +29,6 @@
   left: 0;
   right: 0;
   bottom: 0;
-
   opacity: 0.05;
   z-index: 0;
 }
@@ -332,7 +307,7 @@
 }
 
 .auth-button:disabled {
-  background-color: #a9cdf0;
+  background-color: rgba(26, 118, 210, 0.6);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;

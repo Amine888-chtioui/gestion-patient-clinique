@@ -133,29 +133,32 @@ img {
 .top-bar {
   background-color: var(--dark-color);
   color: white;
-  padding: 10px 0;
+  padding: 10px 15px;
   font-size: 0.85rem;
 }
 
 .top-info {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
+  
 }
 
 .info-item {
-  margin-right: 20px;
+  margin-right: 3rem;
   display: flex;
   align-items: center;
 }
 
 .info-item i {
-  margin-right: 8px;
+  margin-right: 20px;
   color: var(--primary-color);
 }
 
 .social-icons a {
   color: white;
   margin-left: 15px;
+  margin: 0 15px;
   font-size: 1rem;
   transition: var(--transition);
 }
@@ -313,43 +316,37 @@ img {
 .hours-card {
   background-color: white;
   border-radius: 10px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
   padding: 30px;
   height: 100%;
-  transition: var(--transition);
 }
 
-.hours-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-lg);
+.hours-icon-title {
+  margin-bottom: 30px;
 }
 
-.hours-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.hours-header i {
-  font-size: 2.5rem;
+.hours-icon-title h3 {
   color: var(--primary-color);
-  margin-right: 20px;
+  font-size: 24px;
+  font-weight: 600;
+  margin-top: 15px;
 }
 
-.hours-header h3 {
-  margin: 0;
+.hours-icon {
+  font-size: 40px;
   color: var(--primary-color);
+  display: block;
+  margin-bottom: 10px;
 }
 
 .hours-table {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .hours-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  position: relative;
 }
 
 .hours-row:last-child {
@@ -357,19 +354,23 @@ img {
 }
 
 .day {
+  display: inline-block;
   font-weight: 500;
+  color: var(--text-dark);
 }
 
 .time {
+  float: right;
   color: var(--primary-color);
+  font-weight: 500;
 }
 
 .hours-note {
   background-color: var(--primary-light);
-  color: var(--primary-color);
   padding: 15px;
-  border-radius: 5px;
   text-align: center;
+  border-radius: 8px;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
@@ -378,7 +379,7 @@ img {
   height: 100%;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
 }
 
 .hours-image img {
@@ -400,7 +401,12 @@ img {
 .hours-caption h3 {
   color: white;
   font-weight: 600;
+  font-size: 24px;
   margin-bottom: 10px;
+}
+
+.hours-caption p {
+  margin-bottom: 20px;
 }
 
 /* About Section */
@@ -623,6 +629,7 @@ img {
 
   .hours-image {
     margin-top: 30px;
+    height: 400px;
   }
 }
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../axios";
-import "./PatientDashboard.css";
+import "../components/patient-dashboard/PatientDashboard.css";
 
 // Import des composants communs
 import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";

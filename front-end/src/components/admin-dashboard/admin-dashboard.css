@@ -3,30 +3,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-:root {
-  --primary-color: #6a1b9a; /* Couleur primaire pour admin (violet) */
-  --primary-light: #f3e5f5;
-  --primary-dark: #4a148c;
-  --secondary-color: #9c27b0;
-  --success-color: #28a745;
-  --warning-color: #ffc107;
-  --danger-color: #dc3545;
-  --info-color: #17a2b8;
-  --dark-color: #212529;
-  --text-color: #333;
-  --text-light: #6c757d;
-  --text-dark: #343a40;
-  --bg-color: #f8f9fa;
-  --border-color: #dee2e6;
-  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 1rem;
-  --transition: all 0.3s ease;
-}
-
 /* Basic Reset */
 * {
   margin: 0;
@@ -609,7 +585,7 @@ body {
 }
 
 .role-badge.admin {
-  background-color: rgba(106, 27, 154, 0.1);
+  background-color: var(--primary-light);
   color: var(--primary-color);
 }
 
