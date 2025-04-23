@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
+import AdminDashboard from "./pages/AdminDashboard"; // Importer le nouveau Dashboard Admin
 
 // Protected route component to ensure authentication
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -32,8 +33,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     } else if (userRole === "doctor") {
       return <Navigate to="/doctor/dashboard" replace />;
     } else if (userRole === "admin") {
-      // Pour l'instant, rediriger vers la page d'accueil, à modifier quand le tableau de bord admin sera créé
-      return <Navigate to="/" replace />;
+      return <Navigate to="/admin/dashboard" replace />;
     }
 
     // Par défaut, rediriger vers la page d'accueil
@@ -55,7 +55,7 @@ function App() {
 
         {/* Routes protégées pour les patients */}
         <Route
-          path="/patient/dashboard"
+          path="/patient/dashboard/*"
           element={
             <ProtectedRoute allowedRoles={["patient", "admin"]}>
               <PatientDashboard />
@@ -65,10 +65,20 @@ function App() {
 
         {/* Routes protégées pour les médecins */}
         <Route
-          path="/doctor/dashboard"
+          path="/doctor/dashboard/*"
           element={
             <ProtectedRoute allowedRoles={["doctor", "admin"]}>
               <DoctorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Routes protégées pour les administrateurs */}
+        <Route
+          path="/admin/dashboard/*"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

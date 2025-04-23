@@ -83,3 +83,32 @@ Route::middleware(['auth:sanctum', 'role:doctor'])->prefix('doctor')->group(func
     Route::get('/profile', [DoctorController::class, 'getProfile']);
     Route::put('/profile', [DoctorController::class, 'updateProfile']);
 });
+
+// Routes protégées pour les administrateurs
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+    Route::get('/statistics', [AdminController::class, 'getStatistics']);
+    
+    // Gestion des patients
+    Route::get('/patients', [AdminController::class, 'getPatients']);
+    Route::post('/patients', [AdminController::class, 'addPatient']);
+    Route::put('/patients/{id}', [AdminController::class, 'updatePatient']);
+    Route::delete('/patients/{id}', [AdminController::class, 'deletePatient']);
+    
+    // Gestion des médecins
+    Route::get('/doctors', [AdminController::class, 'getDoctors']);
+    Route::post('/doctors', [AdminController::class, 'addDoctor']);
+    Route::put('/doctors/{id}', [AdminController::class, 'updateDoctor']);
+    Route::delete('/doctors/{id}', [AdminController::class, 'deleteDoctor']);
+    
+    // Gestion des rendez-vous
+    Route::get('/appointments', [AdminController::class, 'getAppointments']);
+    Route::post('/appointments', [AdminController::class, 'addAppointment']);
+    Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment']);
+    Route::delete('/appointments/{id}', [AdminController::class, 'deleteAppointment']);
+    
+    // Gestion des utilisateurs
+    Route::get('/users', [AdminController::class, 'getUsers']);
+    Route::post('/users', [AdminController::class, 'addUser']);
+    Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+    Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+});

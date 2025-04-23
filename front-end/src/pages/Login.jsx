@@ -35,7 +35,7 @@ const Login = () => {
         if (role === "admin") {
           // Pour l'instant, redirection vers le tableau de bord patient
           // Plus tard, vous pouvez créer un tableau de bord admin dédié
-          navigate("/patient/dashboard");
+          navigate("/admin/dashboard");
           console.log("Connexion réussie ✅ en tant qu'administrateur");
         } else if (role === "doctor") {
           // Redirection vers le tableau de bord médecin

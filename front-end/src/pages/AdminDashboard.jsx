@@ -4,9 +4,17 @@ import { useNavigate } from "react-router-dom";
 import axios from "../axios";
 import "../components/admin-dashboard/admin-dashboard.css";
 
-// Import des composants
+// Import des composants communs
+import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
+import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
+import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
+
+// Import des composants de navigation
 import AdminSidebar from "../components/admin-dashboard/AdminSidebar";
 import ContentHeader from "../components/admin-dashboard/ContentHeader";
+import MobileNav from "../components/admin-dashboard/MobileNav";
+
+// Import des composants de contenu
 import AdminOverview from "../components/admin-dashboard/AdminOverview";
 import PatientsManagement from "../components/admin-dashboard/PatientsManagement";
 import DoctorsManagement from "../components/admin-dashboard/DoctorsManagement";
@@ -14,12 +22,6 @@ import AppointmentsManagement from "../components/admin-dashboard/AppointmentsMa
 import MedicalRecordsManagement from "../components/admin-dashboard/MedicalRecordsManagement";
 import StatisticsView from "../components/admin-dashboard/StatisticsView";
 import UsersManagement from "../components/admin-dashboard/UsersManagement";
-import MobileNav from "../components/admin-dashboard/MobileNav";
-
-// Import des composants communs
-import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
-import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
-import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -81,6 +83,16 @@ const AdminDashboard = () => {
         setAppointments(appointmentsRes.data.appointments || []);
         setStats(statsRes.data || {});
         setUsers(usersRes.data.users || []);
+
+        // Récupérer les dossiers médicaux (cette fonctionnalité pourrait être ajoutée à l'API plus tard)
+        try {
+          const medicalRecordsRes = await axios.get("/api/admin/medical-records", getAuthHeaders());
+          setMedicalRecords(medicalRecordsRes.data.medicalRecords || []);
+        } catch (err) {
+          // Si l'endpoint n'existe pas encore, utilisez une liste vide
+          console.warn("Endpoint des dossiers médicaux non disponible");
+          setMedicalRecords([]);
+        }
 
       } catch (err) {
         console.error("Erreur:", err);
@@ -173,9 +185,6 @@ const AdminDashboard = () => {
   };
 
   const handleDeletePatient = async (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce patient?"))
-      return;
-
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
@@ -246,9 +255,6 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteDoctor = async (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce médecin?"))
-      return;
-
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
@@ -319,9 +325,6 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteAppointment = async (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous?"))
-      return;
-
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
@@ -392,9 +395,6 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (id) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur?"))
-      return;
-
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
