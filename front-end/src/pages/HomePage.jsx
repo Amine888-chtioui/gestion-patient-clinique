@@ -2,12 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./HomePage.css";
-// Importez vos images ici
-// import logo1 from '../assets/favicon.png';
-// import logo2 from '../assets/3.png';
-// import carousel from '../assets/6.jpg';
-// import aboutImage from '../assets/pexels-photo-8326324.jpeg';
-// import aboutImageSmall from '../assets/bg-1.jpg';
 
 const HomePage = () => {
   return (
@@ -35,8 +29,8 @@ const HomePage = () => {
             <div className="col-sm">
               <span>
                 <a href="#">
-                  <i className="fas fa-clock fa-1x"></i> Lun - Ven : 8:00 am -
-                  7:00 pm
+                  <i className="fas fa-clock fa-1x"></i> Lun - Dim : 8:00 am -
+                  11:59 pm
                 </a>
               </span>
             </div>
@@ -65,7 +59,6 @@ const HomePage = () => {
       <nav className="navbar navbar-expand-lg sticky-top">
         <div className="container">
           <Link className="navbar-brand" to="/">
-            {/* Remplacez par vos images réelles */}
             <img className="logo1" src="/images/logo.png" alt="logo" />
             <img className="logo2" src="/images/favicon.png" alt="logo" />
           </Link>
@@ -97,8 +90,8 @@ const HomePage = () => {
                 </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link text-uppercase" href="#">
-                  blog
+                <a className="nav-link text-uppercase" href="#hours">
+                  Horaires
                 </a>
               </li>
               <li className="nav-item">
@@ -124,7 +117,6 @@ const HomePage = () => {
       {/* Carousel/Hero Section */}
       <div className="carousel-inner">
         <div className="carousel-item active c-item">
-          {/* Remplacez par votre image réelle */}
           <img
             src="/images/6.jpg"
             className="d-block w-100 c-img"
@@ -140,7 +132,7 @@ const HomePage = () => {
                 CLINIQUE
               </h1>
               <p className="fs-4 mt-3">
-                Some representative placeholder content for the first slide.
+                Améliorer La Qualité De Votre Vie Grâce À Une Meilleure Santé.
               </p>
               <a className="bane mt-3 d-inline-block" href="#about">
                 à propos de nous
@@ -182,18 +174,75 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Horaires d'ouverture Section */}
+      <div className="section" id="hours">
+        <div className="container-fluid">
+          <div className="hours-section">
+            <h1 className="display-4 text-center mb-5">
+              <i>Nos Horaires d'Ouverture</i>
+            </h1>
+            <div className="row hours-content">
+              <div className="col-md-6">
+                <div className="hours-card">
+                  <div className="hours-header">
+                    <i className="fas fa-clock fa-3x"></i>
+                    <h2>Nous sommes là pour vous 24/7</h2>
+                  </div>
+                  <div className="hours-table">
+                    <div className="day-row">
+                      <span className="day">Lundi</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                    <div className="day-row">
+                      <span className="day">Mardi</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                    <div className="day-row">
+                      <span className="day">Mercredi</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                    <div className="day-row">
+                      <span className="day">Jeudi</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                    <div className="day-row">
+                      <span className="day">Vendredi</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                    <div className="day-row">
+                      <span className="day">Samedi</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                    <div className="day-row">
+                      <span className="day">Dimanche</span>
+                      <span className="hours">00:00 - 23:59</span>
+                    </div>
+                  </div>
+                  <div className="hours-note">
+                    Service d'urgence disponible 24h/24, 7j/7
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className="hours-image">
+                  <img src="/images/jon.jpeg" alt="Horaires" className="img-fluid rounded" />
+                  <div className="hours-caption">
+                    <h3>Des soins quand vous en avez besoin</h3>
+                    <p>Notre équipe médicale est disponible en permanence pour assurer votre bien-être</p>
+                    <Link to="/login" className="btn btn-appointment">
+                      Prendre Rendez-vous <i className="fas fa-arrow-right"></i>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* About Section */}
       <div className="section" id="about">
         <div className="container-fluid">
-          <div className="image">
-            {/* Remplacez par votre image réelle */}
-            <img
-              className="img-fluid"
-              src="/images/jon.jpeg"
-              alt="img"
-              style={{ width: "20%", height: "600px", objectFit: "cover" }}
-            />
-          </div>
           <div className="imageph">
             <h1 className="display-1">
               <i>À propos de nous</i>
@@ -209,7 +258,6 @@ const HomePage = () => {
               nos actions, s'appuyant sur des installations modernes,
               l'excellence clinique et la qualité de service.
             </p>
-            {/* Remplacez par votre image réelle */}
             <img
               className="img-fluid"
               src="/images/bg-1.jpg"
@@ -225,9 +273,7 @@ const HomePage = () => {
         <div className="content">
           <h2>Contactez-nous</h2>
           <p>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Quos
-            nostrum cum asperiores deserunt iste doloribus distinctio ratione
-            voluptas alias?
+            Notre équipe est disponible pour répondre à toutes vos questions et vous aider à prendre rendez-vous avec nos spécialistes.
           </p>
         </div>
         <div className="containere">
@@ -312,7 +358,6 @@ const HomePage = () => {
           <div className="row">
             <div className="col-md-4 text-center">
               <div className="info">
-                {/* Remplacez par votre image réelle */}
                 <img src="/images/logo.png" alt="" className="mb-4" />
               </div>
             </div>

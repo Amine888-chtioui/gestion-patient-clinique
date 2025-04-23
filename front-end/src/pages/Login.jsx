@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../axios";
+import "../auth-styles.css";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -33,18 +34,11 @@ const Login = () => {
 
         // Redirection basée sur le rôle de l'utilisateur
         if (role === "admin") {
-          // Pour l'instant, redirection vers le tableau de bord patient
-          // Plus tard, vous pouvez créer un tableau de bord admin dédié
           navigate("/admin/dashboard");
-          console.log("Connexion réussie ✅ en tant qu'administrateur");
         } else if (role === "doctor") {
-          // Redirection vers le tableau de bord médecin
           navigate("/doctor/dashboard");
-          console.log("Connexion réussie ✅ en tant que médecin");
         } else {
-          // Redirection vers le tableau de bord patient
           navigate("/patient/dashboard");
-          console.log("Connexion réussie ✅ en tant que patient");
         }
       } else {
         setError("Réponse invalide du serveur");
@@ -74,50 +68,107 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <h2>Connexion</h2>
-
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="Email"
-            required
-          />
+    <div className="auth-page">
+      <div className="auth-left-panel">
+        <div className="auth-logo">
+          <img src="/images/logo.png" alt="Logo" />
         </div>
-
-        <div className="form-group">
-          <label htmlFor="password">Mot de passe</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="Mot de passe"
-            required
-          />
+        <div className="auth-info">
+          <h2>Bienvenue sur notre plateforme médicale</h2>
+          <p>
+            Accédez à vos informations médicales, prenez rendez-vous avec nos médecins 
+            et suivez votre dossier de santé en toute sécurité.
+          </p>
+          <div className="auth-features">
+            <div className="auth-feature">
+              <i className="fas fa-calendar-check"></i>
+              <span>Prise de rendez-vous facilitée</span>
+            </div>
+            <div className="auth-feature">
+              <i className="fas fa-file-medical"></i>
+              <span>Accès à votre dossier médical</span>
+            </div>
+            <div className="auth-feature">
+              <i className="fas fa-user-md"></i>
+              <span>Communication directe avec nos médecins</span>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="forgot-password-link">
-          <Link to="/forgot-password">Mot de passe oublié ?</Link>
+      <div className="auth-right-panel">
+        <div className="auth-form-container">
+          <h1>Connexion</h1>
+          <p className="auth-subtitle">Connectez-vous pour accéder à votre espace personnel</p>
+
+          {error && <div className="auth-alert auth-alert-danger">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="auth-form-group">
+              <label htmlFor="email">Adresse email</label>
+              <div className="auth-input-group">
+                <i className="fas fa-envelope"></i>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="Entrez votre email"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="auth-form-group">
+              <div className="auth-label-group">
+                <label htmlFor="password">Mot de passe</label>
+                <Link to="/forgot-password" className="auth-forgot-link">
+                  Mot de passe oublié?
+                </Link>
+              </div>
+              <div className="auth-input-group">
+                <i className="fas fa-lock"></i>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Entrez votre mot de passe"
+                  required
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="auth-button" disabled={loading}>
+              {loading ? (
+                <>
+                  <i className="fas fa-spinner fa-spin"></i> Connexion en cours...
+                </>
+              ) : (
+                "Se connecter"
+              )}
+            </button>
+          </form>
+
+          <div className="auth-separator">
+            <span>OU</span>
+          </div>
+
+          <div className="auth-links">
+            <p>Vous n'avez pas de compte?</p>
+            <Link to="/register" className="auth-register-link">
+              Créer un compte
+            </Link>
+          </div>
+
+          <div className="auth-home-link">
+            <Link to="/">
+              <i className="fas fa-arrow-left"></i> Retour à l'accueil
+            </Link>
+          </div>
         </div>
-
-        <button type="submit" className="btn-submit" disabled={loading}>
-          {loading ? "Connexion en cours..." : "Se connecter"}
-        </button>
-      </form>
-
-      <div className="auth-links">
-        <p>Vous n'avez pas de compte ?</p>
-        <Link to="/register">S'inscrire</Link>
       </div>
     </div>
   );

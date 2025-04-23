@@ -1614,3 +1614,172 @@ textarea:focus {
   background-color: var(--primary-color);
   border: 1px solid var(--primary-dark);
 }
+/* Styles pour la section des horaires */
+.hours-section {
+  padding: 60px 0;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  margin: 40px 0;
+}
+
+.hours-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hours-card {
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.hours-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.hours-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  color: #1a76d2;
+}
+
+.hours-header i {
+  margin-right: 20px;
+}
+
+.hours-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.hours-table {
+  margin: 25px 0;
+}
+
+.day-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.day-row:last-child {
+  border-bottom: none;
+}
+
+.day {
+  font-weight: 600;
+  color: #333;
+}
+
+.hours {
+  color: #1a76d2;
+  font-weight: 500;
+}
+
+.hours-note {
+  background-color: #e8f0fe;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  color: #1a76d2;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.hours-image {
+  position: relative;
+  height: 100%;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.hours-image img {
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.8);
+}
+
+.hours-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 30px 20px;
+  color: white;
+}
+
+.hours-caption h3 {
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.btn-appointment {
+  background-color: #1a76d2;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-weight: 500;
+  margin-top: 15px;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.btn-appointment:hover {
+  background-color: #0056b3;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  color: white;
+}
+
+.btn-appointment i {
+  margin-left: 5px;
+}
+
+@media (max-width: 768px) {
+  .hours-content {
+    flex-direction: column;
+  }
+  
+  .hours-card, .hours-image {
+    margin-bottom: 30px;
+  }
+}
+
+/* Modification de la section about pour plus de cohérence */
+.imageph h1 {
+  color: #1a76d2;
+  margin-bottom: 30px;
+  font-weight: 700;
+}
+
+/* Amélioration de la section de contact */
+.contact {
+  background-color: #f8f9fa;
+}
+
+.contact .content h2 {
+  color: #1a76d2;
+}
+
+.contact-info .icon {
+  background-color: #1a76d2;
+}
+
+.inputBox input[type="submit"] {
+  background-color: #1a76d2;
+}
+
+.inputBox input[type="submit"]:hover {
+  background-color: #0056b3;
+}
