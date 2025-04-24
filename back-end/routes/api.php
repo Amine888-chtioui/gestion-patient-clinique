@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -82,6 +82,19 @@ Route::middleware(['auth:sanctum', 'role:doctor'])->prefix('doctor')->group(func
     
     Route::get('/profile', [DoctorController::class, 'getProfile']);
     Route::put('/profile', [DoctorController::class, 'updateProfile']);
+});
+
+// Ajoutez ces routes dans le fichier routes/api.php
+// à l'intérieur du groupe de middleware 'auth:sanctum'
+
+// Routes pour les notifications (communes à tous les utilisateurs)
+Route::prefix('notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'getNotifications']);
+    Route::get('/unread', [NotificationController::class, 'getUnreadNotifications']);
+    Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/{id}', [NotificationController::class, 'delete']);
+    Route::delete('/read/all', [NotificationController::class, 'deleteAllRead']);
 });
 
 // Routes protégées pour les administrateurs

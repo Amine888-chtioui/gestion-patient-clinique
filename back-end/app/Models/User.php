@@ -123,4 +123,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(Prescription::class, 'doctor_id');
     }
+    // Ajoutez cette méthode dans le modèle User.php
+
+/**
+ * Get the notifications for the user.
+ */
+public function notifications()
+{
+    return $this->hasMany(Notification::class);
+}
 }
