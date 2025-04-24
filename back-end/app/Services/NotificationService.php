@@ -98,7 +98,14 @@ class NotificationService
     {
         $title = '';
         $message = '';
-        $link = '/patient/dashboard?tab=appointments';
+        $link = '';
+        
+        // Déterminer le lien en fonction du rôle de l'utilisateur
+        if ($user->role === 'patient') {
+            $link = '/patient/dashboard?tab=appointments';
+        } elseif ($user->role === 'doctor') {
+            $link = '/doctor/dashboard?tab=appointments';
+        }
         
         switch ($action) {
             case 'created':
@@ -133,7 +140,9 @@ class NotificationService
     {
         $title = 'Nouveau dossier médical';
         $message = "Un nouveau dossier médical a été créé suite à votre consultation du {$recordDetails['date']}.";
-        $link = '/patient/dashboard?tab=medicalRecords';
+        $link = $user->role === 'patient' 
+            ? '/patient/dashboard?tab=medicalRecords' 
+            : '/doctor/dashboard?tab=patients';
         
         return $this->sendNotification($user, $title, $message, 'medical', $link);
     }
@@ -149,8 +158,65 @@ class NotificationService
     {
         $title = 'Nouvelle ordonnance';
         $message = "Une nouvelle ordonnance a été créée pour vous le {$prescriptionDetails['date']}.";
-        $link = '/patient/dashboard?tab=prescriptions';
+        $link = $user->role === 'patient' 
+            ? '/patient/dashboard?tab=prescriptions'
+            : '/doctor/dashboard?tab=patients';
         
         return $this->sendNotification($user, $title, $message, 'prescription', $link);
+    }
+
+    /**
+     * Envoyer une notification spécifique au médecin concernant un patient
+     *
+     * @param User $doctor
+     * @param array $patientDetails
+     * @param string $action
+     * @return Notification
+     */
+    public function sendDoctorPatientNotification(User $doctor, array $patientDetails, string $action): Notification
+    {
+        if ($doctor->role !== 'doctor') {
+            throw new \InvalidArgumentException("L'utilisateur doit être un médecin");
+        }
+
+        $title = '';
+        $message = '';
+        $link = '/doctor/dashboard?tab=patients';
+
+        switch ($action) {
+            case 'new_patient':
+                $title = 'Nouveau patient assigné';
+                $message = "Un nouveau patient, {$patientDetails['name']}, vous a été assigné.";
+                break;
+            case 'updated_profile':
+                $title = 'Profil patient mis à jour';
+                $message = "Le profil du patient {$patientDetails['name']} a été mis à jour.";
+                break;
+            case 'medical_info':
+                $title = 'Informations médicales mises à jour';
+                $message = "Des informations médicales importantes ont été ajoutées pour {$patientDetails['name']}.";
+                break;
+        }
+
+        return $this->sendNotification($doctor, $title, $message, 'patient', $link);
+    }
+
+    /**
+     * Envoyer une notification concernant des résultats d'analyses
+     *
+     * @param User $user
+     * @param array $testDetails
+     * @return Notification
+     */
+    public function sendTestResultsNotification(User $user, array $testDetails): Notification
+    {
+        $title = 'Résultats d\'analyses disponibles';
+        $message = "Les résultats de vos analyses du {$testDetails['date']} sont disponibles.";
+        $link = $user->role === 'patient' 
+            ? '/patient/dashboard?tab=medicalRecords' 
+            : '/doctor/dashboard?tab=patients';
+        $type = $user->role === 'patient' ? 'medical' : 'patient';
+
+        return $this->sendNotification($user, $title, $message, $type, $link);
     }
 }

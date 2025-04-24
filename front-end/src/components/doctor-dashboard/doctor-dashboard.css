@@ -1,4 +1,7 @@
 /* src/components/doctor-dashboard/doctor-dashboard.css */
+/* Importer le fichier CSS des notifications */
+@import url('../patient-dashboard/notification.css');
+
 /* Ce fichier étend les styles du tableau de bord patient avec des styles spécifiques au médecin */
 
 /* Utilisation des mêmes variables de couleur mais avec une teinte différente pour le médecin */
@@ -24,7 +27,34 @@
     --radius-md: 0.5rem;
     --radius-lg: 1rem;
     --transition: all 0.3s ease;
-  }
+}
+
+/* Personnalisation des couleurs des notifications pour le dashboard médecin */
+.doctor-dashboard .notification-item.unread {
+  background-color: rgba(42, 141, 142, 0.05);
+}
+
+.doctor-dashboard .notification-item.unread:hover {
+  background-color: rgba(42, 141, 142, 0.1);
+}
+
+.doctor-dashboard .notification-icon {
+  background-color: var(--primary-light);
+}
+
+.doctor-dashboard .unread-dot {
+  background-color: var(--primary-color);
+}
+
+.doctor-dashboard .notifications-header {
+  background-color: var(--primary-light);
+}
+
+.doctor-dashboard .notifications-header h3 {
+  color: var(--primary-color);
+}
+
+/* Le reste du CSS reste inchangé */
   
   /* Structure de base comme celle du patient, avec les mêmes classes */
   .doctor-dashboard {

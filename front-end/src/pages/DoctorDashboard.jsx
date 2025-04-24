@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../axios";
 import "../components/doctor-dashboard/doctor-dashboard.css";
+import "../components/doctor-dashboard/doctor-notification.css"; // Import du CSS des notifications
 
 // Import des composants
 import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";

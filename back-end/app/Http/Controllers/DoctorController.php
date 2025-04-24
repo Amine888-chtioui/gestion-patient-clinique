@@ -9,14 +9,32 @@ use App\Models\MedicalRecord;
 use App\Models\Prescription;
 use App\Models\Medication;
 use App\Models\Document;
-use App\Models\PatientProfile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Exception;
+use App\Services\NotificationService;
 
 class DoctorController extends Controller
 {
+    /**
+     * Le service de notification.
+     *
+     * @var \App\Services\NotificationService
+     */
+    protected $notificationService;
+
+    /**
+     * Créer une nouvelle instance du contrôleur.
+     *
+     * @param  \App\Services\NotificationService  $notificationService
+     * @return void
+     */
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Récupérer les rendez-vous du médecin
      */
@@ -75,7 +93,11 @@ class DoctorController extends Controller
         // Récupérer le rendez-vous
         $appointment = Appointment::where('id', $id)
             ->where('doctor_id', $user->id)
+            ->with('patient') // Charger les informations du patient
             ->firstOrFail();
+        
+        // Mémoriser l'ancien statut pour les notifications
+        $oldStatus = $appointment->status;
         
         // Mettre à jour le statut et les notes
         $appointment->status = $validatedData['status'];
@@ -85,6 +107,31 @@ class DoctorController extends Controller
         }
         
         $appointment->save();
+        
+        // Envoyer une notification au patient UNIQUEMENT lorsque le statut devient "confirmé"
+        if ($validatedData['status'] === 'confirmé' && $oldStatus !== 'confirmé') {
+            $this->notificationService->sendAppointmentNotification(
+                $appointment->patient,
+                [
+                    'date' => $appointment->date,
+                    'time' => $appointment->time,
+                    'doctor' => $user->name
+                ],
+                'confirmed'
+            );
+        } 
+        // Aussi notifier si le rendez-vous est annulé
+        else if ($validatedData['status'] === 'annulé' && $oldStatus !== 'annulé') {
+            $this->notificationService->sendAppointmentNotification(
+                $appointment->patient,
+                [
+                    'date' => $appointment->date,
+                    'time' => $appointment->time,
+                    'doctor' => $user->name
+                ],
+                'cancelled'
+            );
+        }
         
         return response()->json([
             'message' => 'Statut du rendez-vous mis à jour avec succès',
@@ -333,7 +380,6 @@ class DoctorController extends Controller
         $medicalRecord->save();
         
         // Traiter les documents si présents
-        // Note: Dans une implémentation réelle, il faudrait gérer l'upload des fichiers
         if (isset($validatedData['documents']) && is_array($validatedData['documents'])) {
             foreach ($validatedData['documents'] as $docData) {
                 $document = new Document([
@@ -353,6 +399,8 @@ class DoctorController extends Controller
             $appointment->status = 'confirmé';
             $appointment->save();
         }
+        
+        // Pas de notification envoyée ici, conformément aux instructions
         
         return response()->json([
             'message' => 'Dossier médical créé avec succès',
@@ -435,6 +483,8 @@ class DoctorController extends Controller
             
             $medication->save();
         }
+        
+        // Pas de notification envoyée ici, conformément aux instructions
         
         return response()->json([
             'message' => 'Ordonnance créée avec succès',
@@ -561,6 +611,8 @@ class DoctorController extends Controller
         }
         
         $user->save();
+        
+        // Pas de notification envoyée ici, conformément aux instructions
         
         return response()->json([
             'message' => 'Profil mis à jour avec succès',
