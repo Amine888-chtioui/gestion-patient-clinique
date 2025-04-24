@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Appointment;
@@ -16,9 +15,28 @@ use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use App\Services\NotificationService;
 
 class PatientController extends Controller
 {
+    /**
+     * Le service de notification.
+     *
+     * @var \App\Services\NotificationService
+     */
+    protected $notificationService;
+
+    /**
+     * Créer une nouvelle instance du contrôleur.
+     *
+     * @param  \App\Services\NotificationService  $notificationService
+     * @return void
+     */
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Récupérer les rendez-vous du patient
      */
@@ -106,6 +124,26 @@ class PatientController extends Controller
         ]);
         
         $appointment->save();
+        
+        // Envoyer une notification au patient
+        $this->notificationService->sendAppointmentNotification(
+            $user,
+            [
+                'date' => $appointment->date,
+                'time' => $appointment->time,
+                'doctor' => $doctor->name
+            ],
+            'created'
+        );
+
+        // Envoyer une notification au médecin
+        $this->notificationService->sendNotification(
+            $doctor,
+            'Nouvelle demande de rendez-vous',
+            "Un nouveau rendez-vous a été demandé par {$user->name} pour le {$appointment->date} à {$appointment->time}.",
+            'appointment',
+            '/doctor/dashboard?tab=appointments'
+        );
         
         return response()->json([
             'message' => 'Rendez-vous créé avec succès',
@@ -422,6 +460,15 @@ class PatientController extends Controller
         // Sauvegarder le profil
         $user->patientProfile()->save($profile);
         
+        // Envoyer une notification de mise à jour du profil
+        $this->notificationService->sendNotification(
+            $user,
+            'Profil mis à jour',
+            'Vos informations personnelles ont été mises à jour avec succès.',
+            'success',
+            '/patient/dashboard?tab=profile'
+        );
+        
         // Préparer la réponse avec le profil mis à jour
         $formattedProfile = [
             'id' => $user->id,
@@ -521,6 +568,15 @@ class PatientController extends Controller
                     $photoUrl = asset('uploads/profiles/' . $fileName);
                     Log::info('URL générée: ' . $photoUrl);
                     
+                    // Envoyer une notification
+                    $this->notificationService->sendNotification(
+                        $user,
+                        'Photo de profil mise à jour',
+                        'Votre photo de profil a été mise à jour avec succès.',
+                        'success',
+                        '/patient/dashboard?tab=profile'
+                    );
+                    
                     return response()->json([
                         'message' => 'Photo de profil mise à jour avec succès',
                         'photo_url' => $photoUrl
@@ -612,6 +668,29 @@ class PatientController extends Controller
         $appointment->status = 'annulé';
         $appointment->save();
         
+        // Récupérer le médecin
+        $doctor = User::find($appointment->doctor_id);
+        
+        // Envoyer une notification au patient
+        $this->notificationService->sendAppointmentNotification(
+            $user,
+            [
+                'date' => $appointment->date,
+                'time' => $appointment->time,
+                'doctor' => $doctor->name
+            ],
+            'cancelled'
+        );
+        
+        // Envoyer une notification au médecin
+        $this->notificationService->sendNotification(
+            $doctor,
+            'Rendez-vous annulé',
+            "Le rendez-vous du {$appointment->date} à {$appointment->time} avec {$user->name} a été annulé par le patient.",
+            'appointment',
+            '/doctor/dashboard?tab=appointments'
+        );
+        
         return response()->json([
             'message' => 'Rendez-vous annulé avec succès',
             'appointment' => [
@@ -682,6 +761,10 @@ class PatientController extends Controller
             }
         }
         
+        // Récupérer l'ancien rendez-vous pour la notification
+        $oldDate = $appointment->date;
+        $oldTime = $appointment->time;
+        
         // Mettre à jour les champs du rendez-vous
         if (isset($validatedData['date'])) {
             $appointment->date = $validatedData['date'];
@@ -701,6 +784,27 @@ class PatientController extends Controller
         }
         
         $appointment->save();
+        
+        // Récupérer le médecin
+        $doctor = User::find($appointment->doctor_id);
+        
+        // Envoyer une notification au patient
+        $this->notificationService->sendNotification(
+            $user,
+            'Rendez-vous modifié',
+            "Votre rendez-vous initialement prévu le {$oldDate} à {$oldTime} a été modifié pour le {$appointment->date} à {$appointment->time}.",
+            'appointment',
+            '/patient/dashboard?tab=appointments'
+        );
+        
+        // Envoyer une notification au médecin
+        $this->notificationService->sendNotification(
+            $doctor,
+            'Rendez-vous modifié',
+            "Le rendez-vous avec {$user->name} initialement prévu le {$oldDate} à {$oldTime} a été modifié pour le {$appointment->date} à {$appointment->time}.",
+            'appointment',
+            '/doctor/dashboard?tab=appointments'
+        );
         
         return response()->json([
             'message' => 'Rendez-vous mis à jour avec succès',

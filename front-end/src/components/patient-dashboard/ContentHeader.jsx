@@ -1,5 +1,6 @@
-// src/components/patient-dashboard/ContentHeader.jsx
+// src/components/patient-dashboard/ContentHeader.jsx - version mise à jour
 import React from "react";
+import NotificationButton from "./NotificationButton";
 
 const ContentHeader = ({ activeTab }) => (
   <header className="content-header">
@@ -12,10 +13,7 @@ const ContentHeader = ({ activeTab }) => (
       {activeTab === "profile" && "Mon profil"}
     </h1>
     <div className="header-actions">
-      <button className="btn-secondary">
-        <i className="fas fa-bell"></i>
-        <span className="notification-badge">2</span>
-      </button>
+      <NotificationButton />
       <button className="btn-secondary">
         <i className="fas fa-cog"></i>
       </button>

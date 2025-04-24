@@ -44,6 +44,16 @@ Route::middleware('auth:sanctum')->group(function () {
         $doctors = \App\Models\User::where('role', 'doctor')->get(['id', 'name', 'email']);
         return response()->json($doctors);
     });
+    
+    // Routes pour les notifications (communes à tous les utilisateurs)
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'getNotifications']);
+        Route::get('/unread', [NotificationController::class, 'getUnreadNotifications']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'delete']);
+        Route::delete('/read/all', [NotificationController::class, 'deleteAllRead']);
+    });
 });
 
 // Routes protégées pour les patients
@@ -82,19 +92,6 @@ Route::middleware(['auth:sanctum', 'role:doctor'])->prefix('doctor')->group(func
     
     Route::get('/profile', [DoctorController::class, 'getProfile']);
     Route::put('/profile', [DoctorController::class, 'updateProfile']);
-});
-
-// Ajoutez ces routes dans le fichier routes/api.php
-// à l'intérieur du groupe de middleware 'auth:sanctum'
-
-// Routes pour les notifications (communes à tous les utilisateurs)
-Route::prefix('notifications')->group(function () {
-    Route::get('/', [NotificationController::class, 'getNotifications']);
-    Route::get('/unread', [NotificationController::class, 'getUnreadNotifications']);
-    Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
-    Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
-    Route::delete('/{id}', [NotificationController::class, 'delete']);
-    Route::delete('/read/all', [NotificationController::class, 'deleteAllRead']);
 });
 
 // Routes protégées pour les administrateurs
