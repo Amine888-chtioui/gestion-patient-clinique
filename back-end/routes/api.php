@@ -1,11 +1,13 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SimpleInvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,118 +23,88 @@ use App\Http\Controllers\NotificationController;
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
-    ->middleware('guest')
-    ->name('password.email');
-Route::post('/reset-password', [App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
-    ->middleware('guest')
-    ->name('password.update');
 
-// Routes publiques pour les disponibilités des médecins
-Route::get('/doctors/{doctor_id}/availability', [DoctorController::class, 'getAvailability']);
-Route::get('/doctors/{doctor_id}/monthly-availability', [DoctorController::class, 'getMonthlyAvailability']);
-
-// Routes protégées nécessitant une authentification
+// Routes protégées par authentification
 Route::middleware('auth:sanctum')->group(function () {
-    // Route commune pour récupérer les données utilisateur
+    // Route pour récupérer l'utilisateur connecté
     Route::get('/user', [AuthController::class, 'user']);
+    
+    // Route pour la déconnexion
     Route::post('/logout', [AuthController::class, 'logout']);
     
-    // Routes pour obtenir la liste des médecins (pour les patients qui prennent RDV)
-    Route::get('/doctors', function() {
-        // Retourner tous les utilisateurs avec le rôle doctor
-        $doctors = \App\Models\User::where('role', 'doctor')->get(['id', 'name', 'email']);
-        return response()->json($doctors);
+    // Routes pour les patients
+    Route::prefix('patient')->group(function () {
+        Route::get('/appointments', [PatientController::class, 'getAppointments']);
+        Route::post('/appointments', [PatientController::class, 'createAppointment']);
+        Route::delete('/appointments/{id}', [PatientController::class, 'cancelAppointment']);
+        Route::put('/appointments/{id}', [PatientController::class, 'updateAppointment']);
+        Route::get('/medical-records', [PatientController::class, 'getMedicalRecords']);
+        Route::get('/medical-records/{id}', [PatientController::class, 'getMedicalRecord']);
+        Route::get('/prescriptions', [PatientController::class, 'getPrescriptions']);
+        Route::get('/prescriptions/{id}', [PatientController::class, 'getPrescription']);
+        Route::get('/prescriptions/{id}/download', [PatientController::class, 'downloadPrescription']);
+        Route::get('/profile', [PatientController::class, 'getProfile']);
+        Route::put('/profile', [PatientController::class, 'updateProfile']);
+        Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
+        Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
+        Route::get('/invoices', [PatientController::class, 'getInvoices']);
+        Route::get('/invoices/{id}', [PatientController::class, 'getInvoice']);
+        Route::get('/invoices/{id}/download', [PatientController::class, 'downloadInvoicePdf']);
     });
     
-    // Routes pour les notifications (communes à tous les utilisateurs)
+    // Routes pour les médecins
+    Route::prefix('doctor')->group(function () {
+        Route::get('/appointments', [DoctorController::class, 'getAppointments']);
+        Route::put('/appointments/{id}/status', [DoctorController::class, 'updateAppointmentStatus']);
+        Route::get('/patients', [DoctorController::class, 'getPatients']);
+        Route::get('/patients/{id}', [DoctorController::class, 'getPatientDetails']);
+        Route::post('/medical-records', [DoctorController::class, 'createMedicalRecord']);
+        Route::post('/prescriptions', [DoctorController::class, 'createPrescription']);
+        Route::get('/documents/{id}/download', [DoctorController::class, 'downloadDocument']);
+        Route::get('/profile', [DoctorController::class, 'getProfile']);
+        Route::put('/profile', [DoctorController::class, 'updateProfile']);
+    });
+    
+    // Routes pour les admins
+    Route::prefix('admin')->group(function () {
+        Route::get('/statistics', [AdminController::class, 'getStatistics']);
+        Route::get('/patients', [AdminController::class, 'getPatients']);
+        Route::post('/patients', [AdminController::class, 'addPatient']);
+        Route::put('/patients/{id}', [AdminController::class, 'updatePatient']);
+        Route::delete('/patients/{id}', [AdminController::class, 'deletePatient']);
+        Route::get('/doctors', [AdminController::class, 'getDoctors']);
+        Route::post('/doctors', [AdminController::class, 'addDoctor']);
+        Route::put('/doctors/{id}', [AdminController::class, 'updateDoctor']);
+        Route::delete('/doctors/{id}', [AdminController::class, 'deleteDoctor']);
+        Route::get('/appointments', [AdminController::class, 'getAppointments']);
+        Route::post('/appointments', [AdminController::class, 'addAppointment']);
+        Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment']);
+        Route::delete('/appointments/{id}', [AdminController::class, 'deleteAppointment']);
+        Route::get('/users', [AdminController::class, 'getUsers']);
+        Route::post('/users', [AdminController::class, 'addUser']);
+        Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+    });
+    
+    // Routes pour les notifications
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'getNotifications']);
         Route::get('/unread', [NotificationController::class, 'getUnreadNotifications']);
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
         Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/{id}', [NotificationController::class, 'delete']);
-        Route::delete('/read/all', [NotificationController::class, 'deleteAllRead']);
+        Route::delete('/read', [NotificationController::class, 'deleteAllRead']);
     });
-});
-
-// Routes protégées pour les patients
-Route::middleware(['auth:sanctum', 'role:patient'])->prefix('patient')->group(function () {
-    Route::get('/appointments', [PatientController::class, 'getAppointments']);
-    Route::post('/appointments', [PatientController::class, 'createAppointment']);
-    Route::put('/appointments/{id}', [PatientController::class, 'updateAppointment']);
-    Route::delete('/appointments/{id}', [PatientController::class, 'cancelAppointment']);
     
-    Route::get('/medical-records', [PatientController::class, 'getMedicalRecords']);
-    Route::get('/medical-records/{id}', [PatientController::class, 'getMedicalRecord']);
+    // Routes pour les médecins (accès public pour les patients)
+    Route::get('/doctors/{doctor_id}/availability', [DoctorController::class, 'getAvailability']);
+    Route::get('/doctors/{doctor_id}/monthly-availability', [DoctorController::class, 'getMonthlyAvailability']);
     
-    Route::get('/prescriptions', [PatientController::class, 'getPrescriptions']);
-    Route::get('/prescriptions/{id}', [PatientController::class, 'getPrescription']);
-    Route::get('/prescriptions/{id}/download', [PatientController::class, 'downloadPrescription']);
-    
-    Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
-    
-    Route::get('/profile', [PatientController::class, 'getProfile']);
-    Route::put('/profile', [PatientController::class, 'updateProfile']);
-    Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
-    Route::get('/invoices', [PatientController::class, 'getInvoices']);
-    Route::get('/invoices/{id}', [PatientController::class, 'getInvoice']);
-    Route::get('/invoices/{id}/pdf', [PatientController::class, 'downloadInvoicePdf']);
-});
-
-// Routes protégées pour les médecins
-Route::middleware(['auth:sanctum', 'role:doctor'])->prefix('doctor')->group(function () {
-    Route::get('/appointments', [DoctorController::class, 'getAppointments']);
-    Route::put('/appointments/{id}', [DoctorController::class, 'updateAppointmentStatus']);
-    
-    Route::get('/patients', [DoctorController::class, 'getPatients']);
-    Route::get('/patients/{id}', [DoctorController::class, 'getPatientDetails']);
-    
-    Route::post('/medical-records', [DoctorController::class, 'createMedicalRecord']);
-    Route::post('/prescriptions', [DoctorController::class, 'createPrescription']);
-    
-    Route::get('/documents/{id}/download', [DoctorController::class, 'downloadDocument']);
-    
-    Route::get('/profile', [DoctorController::class, 'getProfile']);
-    Route::put('/profile', [DoctorController::class, 'updateProfile']);
-});
-
-// Routes protégées pour les administrateurs
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
-    Route::get('/statistics', [AdminController::class, 'getStatistics']);
-    
-    // Gestion des patients
-    Route::get('/patients', [AdminController::class, 'getPatients']);
-    Route::post('/patients', [AdminController::class, 'addPatient']);
-    Route::put('/patients/{id}', [AdminController::class, 'updatePatient']);
-    Route::delete('/patients/{id}', [AdminController::class, 'deletePatient']);
-    
-    // Routes pour les factures
-    Route::get('/invoices', [InvoiceController::class, 'index']);
-    Route::post('/invoices', [InvoiceController::class, 'store']);
-    Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
-    Route::put('/invoices/{id}', [InvoiceController::class, 'update']);
-    Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy']);
-    Route::post('/invoices/{id}/mark-as-paid', [InvoiceController::class, 'markAsPaid']);
-    Route::post('/invoices/{id}/send-email', [InvoiceController::class, 'sendByEmail']);
-    Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'generatePdf']);
-    Route::get('/invoice-statistics', [InvoiceController::class, 'getStatistics']);
-
-    // Gestion des médecins
-    Route::get('/doctors', [AdminController::class, 'getDoctors']);
-    Route::post('/doctors', [AdminController::class, 'addDoctor']);
-    Route::put('/doctors/{id}', [AdminController::class, 'updateDoctor']);
-    Route::delete('/doctors/{id}', [AdminController::class, 'deleteDoctor']);
-    
-    // Gestion des rendez-vous
-    Route::get('/appointments', [AdminController::class, 'getAppointments']);
-    Route::post('/appointments', [AdminController::class, 'addAppointment']);
-    Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment']);
-    Route::delete('/appointments/{id}', [AdminController::class, 'deleteAppointment']);
-    
-    // Gestion des utilisateurs
-    Route::get('/users', [AdminController::class, 'getUsers']);
-    Route::post('/users', [AdminController::class, 'addUser']);
-    Route::put('/users/{id}', [AdminController::class, 'updateUser']);
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+    // Routes pour la gestion des factures (version simplifiée)
+    Route::get('/invoices', [SimpleInvoiceController::class, 'index']);
+    Route::get('/invoices/{id}', [SimpleInvoiceController::class, 'show']);
+    Route::post('/invoices', [SimpleInvoiceController::class, 'store']);
+    Route::put('/invoices/{id}', [SimpleInvoiceController::class, 'update']);
+    Route::delete('/invoices/{id}', [SimpleInvoiceController::class, 'destroy']);
+    Route::post('/invoices/{id}/pay', [SimpleInvoiceController::class, 'markAsPaid']);
 });

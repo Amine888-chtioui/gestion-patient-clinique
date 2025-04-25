@@ -16,6 +16,9 @@ import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard"; // Importer le Dashboard Admin
 import "./theme-variables.css"; // Importer les variables de thème
+import InvoiceList from "./components/invoices/InvoiceList";
+import InvoiceDetails from "./components/invoices/InvoiceDetails";
+import InvoiceForm from "./components/invoices/InvoiceForm";
 
 // Composant pour gérer l'application des thèmes
 const ThemeManager = ({ children }) => {
@@ -112,6 +115,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+            <Route path="/invoices" element={<InvoiceList />} />
+            <Route path="/invoices/:id" element={<InvoiceDetails />} />
+            <Route path="/invoices/create" element={<InvoiceForm />} />
+            <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
+            
         </Routes>
       </ThemeManager>
     </Router>

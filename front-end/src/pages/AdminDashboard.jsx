@@ -22,10 +22,8 @@ import AppointmentsManagement from "../components/admin-dashboard/AppointmentsMa
 import MedicalRecordsManagement from "../components/admin-dashboard/MedicalRecordsManagement";
 import StatisticsView from "../components/admin-dashboard/StatisticsView";
 import UsersManagement from "../components/admin-dashboard/UsersManagement";
+import "../components/admin-dashboard/admin-dashboard.css";
 
-import InvoicesManagement from "../components/admin-dashboard/InvoicesManagement";
-import InvoiceStatistics from "../components/admin-dashboard/invoices/InvoiceStatistics";
-import "../components/admin-dashboard/invoices/invoices.css";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -521,22 +519,6 @@ const AdminDashboard = () => {
               handleUpdateUser={handleUpdateUser}
               handleDeleteUser={handleDeleteUser}
               actionLoading={actionLoading}
-            />
-          )}
-          {activeTab === "invoices" && (
-            <InvoicesManagement
-              actionLoading={actionLoading}
-              setActionLoading={setActionLoading}
-              setActionError={setActionError}
-              setActionSuccess={setActionSuccess}
-            />
-          )}
-
-          {activeTab === "invoice-statistics" && (
-            <InvoiceStatistics
-              actionLoading={actionLoading}
-              setActionLoading={setActionLoading}
-              setActionError={setActionError}
             />
           )}
         </div>
