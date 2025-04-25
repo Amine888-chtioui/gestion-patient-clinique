@@ -26,16 +26,19 @@ const InvoiceForm = () => {
     }
   }, [id]);
 
-  const fetchPatients = async () => {
-    try {
-      const response = await axios.get("/api/patients", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      setPatients(response.data.patients || []);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des patients:", err);
-    }
-  };
+ 
+
+const fetchPatients = async () => {
+  try {
+    const response = await axios.get("/api/admin/patients", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    });
+    
+    setPatients(response.data.patients || []);
+  } catch (err) {
+    console.error("Erreur lors de la récupération des patients:", err);
+  }
+};
 
   const fetchInvoiceData = async () => {
     try {

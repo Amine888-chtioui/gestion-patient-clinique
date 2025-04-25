@@ -1,0 +1,178 @@
+/* src/components/patient-dashboard/patient-invoice-details.css */
+
+.invoice-details-container {
+    padding: 1.5rem;
+    background-color: var(--bg-color);
+    min-height: calc(100vh - 60px);
+  }
+  
+  .invoice-details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .invoice-details-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: var(--primary-color);
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .invoice-status-banner {
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .payment-info {
+    font-size: 1rem;
+    color: var(--text-light);
+  }
+  
+  .invoice-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .invoice-info-card {
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .invoice-info-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  
+  .info-label {
+    font-weight: 500;
+    color: var(--text-light);
+  }
+  
+  .info-value {
+    color: var(--text-dark);
+  }
+  
+  .invoice-items-section {
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .invoice-items-section h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+  }
+  
+  .invoice-items-table-container {
+    overflow-x: auto;
+  }
+  
+  .data-table tfoot {
+    border-top: 2px solid var(--border-color);
+  }
+  
+  .data-table tfoot tr td {
+    padding: 0.75rem 1rem;
+  }
+  
+  .data-table .text-right {
+    text-align: right;
+    font-weight: 500;
+  }
+  
+  .data-table .total-row {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  
+  .invoice-notes {
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .invoice-notes h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-dark);
+  }
+  
+  .notes-content {
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  
+  .payment-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .payment-actions .btn-primary {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .invoice-details-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .header-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .invoice-status-banner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .info-row {
+      flex-direction: column;
+      margin-bottom: 1rem;
+    }
+    
+    .info-label {
+      margin-bottom: 0.25rem;
+    }
+  }

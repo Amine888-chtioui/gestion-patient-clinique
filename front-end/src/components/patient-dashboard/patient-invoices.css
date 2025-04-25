@@ -1,0 +1,134 @@
+/* src/components/patient-dashboard/patient-invoices.css */
+
+.patient-invoices-container {
+    padding: 1.5rem;
+    background-color: var(--bg-color);
+    min-height: calc(100vh - 60px);
+  }
+  
+  .invoices-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
+  }
+  
+  .invoices-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: var(--primary-color);
+  }
+  
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .invoice-summary-card {
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+  }
+  
+  .summary-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    color: var(--text-light);
+  }
+  
+  .summary-title i {
+    font-size: 1.5rem;
+    margin-right: 0.75rem;
+    color: var(--primary-color);
+  }
+  
+  .summary-title h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+  
+  .summary-amount {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+  
+  .summary-count {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+  
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    gap: 1rem;
+  }
+  
+  .date-filters {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .date-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .date-filter label {
+    font-weight: 500;
+    color: var(--text-dark);
+  }
+  
+  .date-filter input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+  }
+  
+  .filter-bar select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: white;
+    min-width: 150px;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .invoices-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .filter-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .date-filters {
+      flex-direction: column;
+    }
+    
+    .date-filter {
+      width: 100%;
+    }
+    
+    .date-filter input {
+      flex: 1;
+    }
+  }

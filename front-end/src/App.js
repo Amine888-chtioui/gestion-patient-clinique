@@ -15,6 +15,8 @@ import ResetPassword from "./pages/ResetPassword";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard"; // Importer le Dashboard Admin
+import PatientInvoicesPage from "./pages/PatientInvoicesPage"; // Import des pages de factures patient
+import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
 import "./theme-variables.css"; // Importer les variables de thème
 import InvoiceList from "./components/invoices/InvoiceList";
 import InvoiceDetails from "./components/invoices/InvoiceDetails";
@@ -115,11 +117,30 @@ function App() {
               </ProtectedRoute>
             }
           />
-            <Route path="/invoices" element={<InvoiceList />} />
-            <Route path="/invoices/:id" element={<InvoiceDetails />} />
-            <Route path="/invoices/create" element={<InvoiceForm />} />
-            <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
-            
+
+          {/* Routes pour les factures patient */}
+          <Route
+            path="/patient-invoices"
+            element={
+              <ProtectedRoute allowedRoles={["patient", "admin"]}>
+                <PatientInvoicesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient-invoices/:id"
+            element={
+              <ProtectedRoute allowedRoles={["patient", "admin"]}>
+                <PatientInvoiceDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Routes pour l'administration des factures */}
+          <Route path="/invoices" element={<InvoiceList />} />
+          <Route path="/invoices/:id" element={<InvoiceDetails />} />
+          <Route path="/invoices/create" element={<InvoiceForm />} />
+          <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
         </Routes>
       </ThemeManager>
     </Router>
