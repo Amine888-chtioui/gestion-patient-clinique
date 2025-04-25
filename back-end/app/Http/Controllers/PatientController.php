@@ -10,6 +10,7 @@ use App\Models\Prescription;
 use App\Models\PatientProfile;
 use App\Models\Medication;
 use App\Models\Document;
+use App\Models\Invoice;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Facades\Image;
@@ -891,6 +892,68 @@ public function createPrescription(Request $request)
         ]);
     }
 
+    /**
+ * Get all invoices for the authenticated patient.
+ */
+public function getInvoices(Request $request)
+{
+    $patientId = auth()->id();
+    
+    $query = Invoice::where('patient_id', $patientId)
+        ->with(['appointment'])
+        ->orderBy('created_at', 'desc');
+    
+    // Apply filters
+    if ($request->has('status')) {
+        $query->where('status', $request->status);
+    }
+    
+    if ($request->has('date_from')) {
+        $query->whereDate('date', '>=', $request->date_from);
+    }
+    
+    if ($request->has('date_to')) {
+        $query->whereDate('date', '<=', $request->date_to);
+    }
+    
+    $invoices = $query->paginate(10);
+    
+    return response()->json([
+        'invoices' => $invoices,
+        'unpaid_total' => Invoice::where('patient_id', $patientId)
+                            ->where('status', 'unpaid')
+                            ->sum('total_amount'),
+    ]);
+}
+
+/**
+ * Get a specific invoice for the authenticated patient.
+ */
+public function getInvoice($id)
+{
+    $patientId = auth()->id();
+    
+    $invoice = Invoice::with(['items', 'appointment'])
+                ->where('patient_id', $patientId)
+                ->findOrFail($id);
+    
+    return response()->json(['invoice' => $invoice]);
+}
+
+/**
+ * Download a PDF of the invoice.
+ */
+public function downloadInvoicePdf($id)
+{
+    $patientId = auth()->id();
+    
+    $invoice = Invoice::where('patient_id', $patientId)->findOrFail($id);
+    
+    // Here you would generate and download the PDF
+    // For demonstration purposes, we'll just return a success message
+    
+    return response()->json(['message' => 'Le PDF de la facture sera téléchargé.', 'invoice_id' => $id]);
+}
     /**
      * Mettre à jour un rendez-vous
      */

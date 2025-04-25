@@ -1,7 +1,13 @@
 // src/components/admin-dashboard/AdminSidebar.jsx
 import React from "react";
 
-const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading }) => (
+const AdminSidebar = ({
+  user,
+  activeTab,
+  handleTabChange,
+  handleLogout,
+  actionLoading,
+}) => (
   <aside className="sidebar">
     <div className="sidebar-header">
       <img src="/images/logo.png" alt="Logo Clinique" className="logo" />
@@ -24,10 +30,20 @@ const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLo
           { id: "patients", icon: "user-injured", label: "Patients" },
           { id: "doctors", icon: "user-md", label: "Médecins" },
           { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
-          { id: "medicalRecords", icon: "file-medical-alt", label: "Dossiers médicaux" },
+          { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
+          {
+            id: "invoice-statistics",
+            icon: "chart-line",
+            label: "Statistiques financières",
+          },
+          {
+            id: "medicalRecords",
+            icon: "file-medical-alt",
+            label: "Dossiers médicaux",
+          },
           { id: "statistics", icon: "chart-bar", label: "Statistiques" },
-          { id: "users", icon: "users-cog", label: "Utilisateurs" }
-        ].map(item => (
+          { id: "users", icon: "users-cog", label: "Utilisateurs" },
+        ].map((item) => (
           <li key={item.id} className={activeTab === item.id ? "active" : ""}>
             <button onClick={() => handleTabChange(item.id)}>
               <i className={`fas fa-${item.icon}`}></i> {item.label}
@@ -38,9 +54,17 @@ const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLo
     </nav>
 
     <div className="sidebar-footer">
-      <button onClick={handleLogout} className="logout-btn" disabled={actionLoading}>
-        {actionLoading ? "Chargement..." : (
-          <><i className="fas fa-sign-out-alt"></i> Déconnexion</>
+      <button
+        onClick={handleLogout}
+        className="logout-btn"
+        disabled={actionLoading}
+      >
+        {actionLoading ? (
+          "Chargement..."
+        ) : (
+          <>
+            <i className="fas fa-sign-out-alt"></i> Déconnexion
+          </>
         )}
       </button>
     </div>

@@ -75,6 +75,9 @@ Route::middleware(['auth:sanctum', 'role:patient'])->prefix('patient')->group(fu
     Route::get('/profile', [PatientController::class, 'getProfile']);
     Route::put('/profile', [PatientController::class, 'updateProfile']);
     Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
+    Route::get('/invoices', [PatientController::class, 'getInvoices']);
+    Route::get('/invoices/{id}', [PatientController::class, 'getInvoice']);
+    Route::get('/invoices/{id}/pdf', [PatientController::class, 'downloadInvoicePdf']);
 });
 
 // Routes protégées pour les médecins
@@ -104,6 +107,17 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::put('/patients/{id}', [AdminController::class, 'updatePatient']);
     Route::delete('/patients/{id}', [AdminController::class, 'deletePatient']);
     
+    // Routes pour les factures
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::post('/invoices', [InvoiceController::class, 'store']);
+    Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::put('/invoices/{id}', [InvoiceController::class, 'update']);
+    Route::delete('/invoices/{id}', [InvoiceController::class, 'destroy']);
+    Route::post('/invoices/{id}/mark-as-paid', [InvoiceController::class, 'markAsPaid']);
+    Route::post('/invoices/{id}/send-email', [InvoiceController::class, 'sendByEmail']);
+    Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'generatePdf']);
+    Route::get('/invoice-statistics', [InvoiceController::class, 'getStatistics']);
+
     // Gestion des médecins
     Route::get('/doctors', [AdminController::class, 'getDoctors']);
     Route::post('/doctors', [AdminController::class, 'addDoctor']);
