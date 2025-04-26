@@ -14,10 +14,10 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
-import AdminDashboard from "./pages/AdminDashboard"; // Importer le Dashboard Admin
-import PatientInvoicesPage from "./pages/PatientInvoicesPage"; // Import des pages de factures patient
+import AdminDashboard from "./pages/AdminDashboard";
+import PatientInvoicesPage from "./pages/PatientInvoicesPage";
 import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
-import "./theme-variables.css"; // Importer les variables de thème
+import "./theme-variables.css";
 import InvoiceList from "./components/invoices/InvoiceList";
 import InvoiceDetails from "./components/invoices/InvoiceDetails";
 import InvoiceForm from "./components/invoices/InvoiceForm";
@@ -118,7 +118,7 @@ function App() {
             }
           />
 
-          {/* Routes pour les factures patient */}
+          {/* Routes pour les factures patient (accessibles depuis le dashboard ou directement) */}
           <Route
             path="/patient-invoices"
             element={
@@ -137,10 +137,38 @@ function App() {
           />
 
           {/* Routes pour l'administration des factures */}
-          <Route path="/invoices" element={<InvoiceList />} />
-          <Route path="/invoices/:id" element={<InvoiceDetails />} />
-          <Route path="/invoices/create" element={<InvoiceForm />} />
-          <Route path="/invoices/edit/:id" element={<InvoiceForm />} />
+          <Route 
+            path="/invoices" 
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <InvoiceList />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/invoices/:id" 
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <InvoiceDetails />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/invoices/create" 
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <InvoiceForm />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/invoices/edit/:id" 
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <InvoiceForm />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </ThemeManager>
     </Router>

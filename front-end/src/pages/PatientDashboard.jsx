@@ -27,7 +27,7 @@ import ImprovedBookAppointment from "../components/patient-dashboard/ImprovedBoo
 
 // Import des styles pour les rendez-vous
 import "../components/patient-dashboard/appointment-booking.css";
-
+import Invoices from "../components/patient-dashboard/Invoices";
 const PatientDashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +45,7 @@ const PatientDashboard = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
+  
 
   const navigate = useNavigate();
 
@@ -416,6 +417,11 @@ const PatientDashboard = () => {
           {activeTab === "prescriptions" && (
             <Prescriptions
               prescriptions={prescriptions}
+              actionLoading={actionLoading}
+            />
+          )}
+           {activeTab === "invoices" && (
+            <Invoices
               actionLoading={actionLoading}
             />
           )}
