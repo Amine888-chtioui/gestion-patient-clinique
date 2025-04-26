@@ -9,7 +9,18 @@ const Sidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading
 
   return (
     <aside className="sidebar">
-      {/* ... */}
+        <div className="sidebar-header">
+        <img src="/images/logo.png" alt="Logo Clinique" className="logo" />
+        <h2>Espace Patient</h2>
+      </div>
+
+      <div className="user-info">
+        <div className="avatar">
+          <i className="fas fa-user-circle"></i>
+        </div>
+        <h3>{user?.name}</h3>
+        <p>{user?.email}</p>
+      </div>
 
       <nav className="sidebar-nav">
         <ul>
@@ -29,16 +40,22 @@ const Sidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading
             </li>
           ))}
           {/* Supprimer ou garder cette partie selon votre choix */}
-          {/* <li className="sidebar-divider"></li>
+          <li className="sidebar-divider"></li>
           <li>
             <button onClick={() => navigate("/patient-invoices")}>
               <i className="fas fa-file-invoice-dollar"></i> Mes factures
             </button>
-          </li> */}
+          </li>
         </ul>
       </nav>
 
-      {/* ... */}
+      <div className="sidebar-footer">
+        <button onClick={handleLogout} className="logout-btn" disabled={actionLoading}>
+          {actionLoading ? "Chargement..." : (
+            <><i className="fas fa-sign-out-alt"></i> Déconnexion</>
+          )}
+        </button>
+      </div>
     </aside>
   );
 };
