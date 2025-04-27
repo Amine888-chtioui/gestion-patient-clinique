@@ -8,6 +8,8 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SimpleInvoiceController;
+use App\Http\Controllers\PaymentMethodController;
+use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +25,9 @@ use App\Http\Controllers\SimpleInvoiceController;
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Webhook (non authentifié)
+Route::post('/payments/webhook', [PaymentController::class, 'handlePaymentWebhook']);
 
 // Routes protégées par authentification
 Route::middleware('auth:sanctum')->group(function () {
@@ -50,6 +55,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/invoices', [PatientController::class, 'getInvoices']);
         Route::get('/invoices/{id}', [PatientController::class, 'getInvoice']);
         Route::get('/invoices/{id}/download', [PatientController::class, 'downloadInvoicePdf']);
+        // Nouvelles routes pour les paiements
+        Route::get('/payment-methods', [PaymentController::class, 'getPaymentMethods']);
+        Route::post('/invoices/{id}/payment/initialize', [PaymentController::class, 'initializePayment']);
+        Route::post('/payments/process', [PaymentController::class, 'processPayment']);
     });
     
     // Routes pour les médecins
@@ -84,16 +93,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users', [AdminController::class, 'addUser']);
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
-    });
-    
-    // Routes pour les notifications
-    Route::prefix('notifications')->group(function () {
-        Route::get('/', [NotificationController::class, 'getNotifications']);
-        Route::get('/unread', [NotificationController::class, 'getUnreadNotifications']);
-        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
-        Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
-        Route::delete('/{id}', [NotificationController::class, 'delete']);
-        Route::delete('/read', [NotificationController::class, 'deleteAllRead']);
+        
+        // Routes pour les méthodes de paiement
+        Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
+        Route::post('/payment-methods', [PaymentMethodController::class, 'store']);
+        Route::get('/payment-methods/{id}', [PaymentMethodController::class, 'show']);
+        Route::put('/payment-methods/{id}', [PaymentMethodController::class, 'update']);
+        Route::delete('/payment-methods/{id}', [PaymentMethodController::class, 'destroy']);
+        Route::post('/payment-methods/{id}/set-default', [PaymentMethodController::class, 'setDefault']);
+        
+        // Routes pour surveiller les paiements
+        Route::get('/payments', [PaymentController::class, 'index']);
     });
     
     // Routes pour les médecins (accès public pour les patients)

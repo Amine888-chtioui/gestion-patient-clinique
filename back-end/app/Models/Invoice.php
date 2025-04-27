@@ -12,6 +12,7 @@ class Invoice extends Model
     protected $fillable = [
         'patient_id',
         'appointment_id',
+        'payment_method_id',
         'number',
         'date',
         'due_date',
@@ -54,6 +55,14 @@ class Invoice extends Model
     public function appointment()
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * Get the payment method used for this invoice.
+     */
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 
     /**
@@ -116,13 +125,38 @@ class Invoice extends Model
     /**
      * Mark the invoice as paid.
      */
-    public function markAsPaid($paymentMethod = null, $paymentDate = null)
+    public function markAsPaid($paymentMethodId = null, $paymentDate = null)
     {
         $this->status = 'paid';
-        $this->payment_method = $paymentMethod ?? $this->payment_method;
+        $this->payment_method_id = $paymentMethodId ?? $this->payment_method_id;
         $this->payment_date = $paymentDate ?? now();
         
         return $this;
+    }
+
+    /**
+     * Process payment for this invoice
+     */
+    public function processPayment($paymentMethodId, $paymentData = [])
+    {
+        // Get the payment method
+        $paymentMethod = PaymentMethod::findOrFail($paymentMethodId);
+        
+        // Here would typically be the integration with payment gateways
+        // For now, we'll simply mark the invoice as paid
+        
+        $this->payment_method_id = $paymentMethod->id;
+        $this->payment_method = $paymentMethod->name;
+        $this->markAsPaid();
+        $this->save();
+        
+        // In a real implementation, you would:
+        // 1. Initialize the payment gateway based on the payment method config
+        // 2. Process the payment
+        // 3. Handle the response
+        // 4. Update the invoice status based on the payment result
+        
+        return true;
     }
 
     /**
