@@ -92,7 +92,7 @@ const PatientInvoiceDetails = () => {
     // Pour l'instant, on simule juste avec un message de succès
     setActionSuccess("Redirection vers la page de paiement...");
     setTimeout(() => {
-      navigate("/payment-gateway"); // À remplacer par la page réelle de paiement
+      navigate(`/payment/${invoice.id}`); // À remplacer par la page réelle de paiement
     }, 1500);
   };
 

@@ -41,6 +41,7 @@ const AdminSidebar = ({
             },
             { id: "statistics", icon: "chart-bar", label: "Statistiques" },
             { id: "users", icon: "users-cog", label: "Utilisateurs" },
+            { id: "paymentMethods", icon: "credit-card", label: "Méthodes de paiement" },
           ].map((item) => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
               <button onClick={() => handleTabChange(item.id)}>

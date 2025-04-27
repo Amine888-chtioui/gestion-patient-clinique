@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PatientInvoicesPage from "./pages/PatientInvoicesPage";
 import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
 import "./theme-variables.css";
+import PaymentPage from "./pages/PaymentPage";
 import InvoiceList from "./components/invoices/InvoiceList";
 import InvoiceDetails from "./components/invoices/InvoiceDetails";
 import InvoiceForm from "./components/invoices/InvoiceForm";
@@ -168,6 +169,14 @@ function App() {
                 <InvoiceForm />
               </ProtectedRoute>
             } 
+          />
+          <Route
+           path="/payment/:id"
+           element={
+             <ProtectedRoute allowedRoles={["patient", "admin"]}>
+               <PaymentPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </ThemeManager>

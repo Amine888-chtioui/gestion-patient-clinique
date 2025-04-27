@@ -23,6 +23,7 @@ import MedicalRecordsManagement from "../components/admin-dashboard/MedicalRecor
 import StatisticsView from "../components/admin-dashboard/StatisticsView";
 import UsersManagement from "../components/admin-dashboard/UsersManagement";
 import "../components/admin-dashboard/admin-dashboard.css";
+import PaymentMethodsManagement from "../components/admin-dashboard/PaymentMethodsManagement";
 
 
 const AdminDashboard = () => {
