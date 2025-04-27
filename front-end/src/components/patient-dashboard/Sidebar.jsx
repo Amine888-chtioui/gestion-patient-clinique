@@ -41,11 +41,6 @@ const Sidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading
           ))}
           {/* Supprimer ou garder cette partie selon votre choix */}
           <li className="sidebar-divider"></li>
-          <li>
-            <button onClick={() => navigate("/patient-invoices")}>
-              <i className="fas fa-file-invoice-dollar"></i> Mes factures
-            </button>
-          </li>
         </ul>
       </nav>
 
