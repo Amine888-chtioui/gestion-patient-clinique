@@ -1,7 +1,7 @@
 // src/components/invoices/InvoiceList.jsx
 import React, { useState, useEffect } from "react";
-import axios from "../../axios";
 import { useNavigate } from "react-router-dom";
+import axios from "../../axios";
 
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
@@ -45,11 +45,11 @@ const InvoiceList = () => {
   };
 
   const handleViewInvoice = (id) => {
-    navigate(`/invoices/${id}`);
+    navigate(`/admin/dashboard/invoices/${id}`);
   };
 
   const handleCreateInvoice = () => {
-    navigate("/invoices/create");
+    navigate("/admin/dashboard/invoices/create");
   };
 
   // Formater un montant en devise
@@ -168,6 +168,25 @@ const InvoiceList = () => {
                       onClick={() => handleViewInvoice(invoice.id)}
                     >
                       <i className="fas fa-eye"></i>
+                    </button>
+                    <button
+                      className="btn-icon"
+                      title="Modifier"
+                      onClick={() => navigate(`/admin/dashboard/invoices/edit/${invoice.id}`)}
+                    >
+                      <i className="fas fa-edit"></i>
+                    </button>
+                    <button
+                      className="btn-icon danger"
+                      title="Supprimer"
+                      onClick={() => {
+                        if (window.confirm("Êtes-vous sûr de vouloir supprimer cette facture?")) {
+                          // Implémenter la suppression ici
+                          alert("Fonctionnalité à implémenter");
+                        }
+                      }}
+                    >
+                      <i className="fas fa-trash-alt"></i>
                     </button>
                   </td>
                 </tr>

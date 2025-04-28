@@ -176,3 +176,28 @@
       margin-bottom: 0.25rem;
     }
   }
+  /* Styles pour le bouton de paiement */
+.btn-payment {
+  margin-top: 20px;
+  padding: 12px 24px;
+  font-size: 16px;
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.btn-payment:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.payment-icon i {
+  color: #28a745;
+}
+
+.payment-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}

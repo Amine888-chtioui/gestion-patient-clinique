@@ -26,19 +26,17 @@ const InvoiceForm = () => {
     }
   }, [id]);
 
- 
-
-const fetchPatients = async () => {
-  try {
-    const response = await axios.get("/api/admin/patients", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    
-    setPatients(response.data.patients || []);
-  } catch (err) {
-    console.error("Erreur lors de la récupération des patients:", err);
-  }
-};
+  const fetchPatients = async () => {
+    try {
+      const response = await axios.get("/api/admin/patients", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      
+      setPatients(response.data.patients || []);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des patients:", err);
+    }
+  };
 
   const fetchInvoiceData = async () => {
     try {
@@ -140,7 +138,8 @@ const fetchPatients = async () => {
         }
       );
 
-      navigate(`/invoices/${response.data.data.id}`);
+      // Rediriger vers le tableau des factures dans le dashboard administrateur
+      navigate("/admin/dashboard/invoices");
     } catch (err) {
       console.error("Erreur lors de l'enregistrement de la facture:", err);
       setError("Impossible d'enregistrer la facture. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
@@ -156,7 +155,7 @@ const fetchPatients = async () => {
     <div className="invoice-form-container">
       <div className="form-header">
         <h2>{isEditMode ? "Modifier la facture" : "Créer une nouvelle facture"}</h2>
-        <button className="btn-secondary" onClick={() => navigate("/invoices")}>
+        <button className="btn-secondary" onClick={() => navigate("/admin/dashboard/invoices")}>
           <i className="fas fa-times"></i> Annuler
         </button>
       </div>
@@ -320,7 +319,7 @@ const fetchPatients = async () => {
               <span><i className="fas fa-save"></i> {isEditMode ? "Mettre à jour" : "Créer la facture"}</span>
             )}
           </button>
-          <button type="button" className="btn-secondary" onClick={() => navigate("/invoices")}>
+          <button type="button" className="btn-secondary" onClick={() => navigate("/admin/dashboard/invoices")}>
             Annuler
           </button>
         </div>

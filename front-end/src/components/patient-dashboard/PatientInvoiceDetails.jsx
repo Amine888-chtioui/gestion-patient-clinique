@@ -86,14 +86,9 @@ const PatientInvoiceDetails = () => {
     window.print();
   };
 
-  // Payer la facture (simulation)
+  // Payer la facture
   const handlePayInvoice = () => {
-    // Cette fonction pourrait rediriger vers une page de paiement
-    // Pour l'instant, on simule juste avec un message de succès
-    setActionSuccess("Redirection vers la page de paiement...");
-    setTimeout(() => {
-      navigate(`/payment/${invoice.id}`); // À remplacer par la page réelle de paiement
-    }, 1500);
+    navigate(`/payment/${invoice.id}`);
   };
 
   // Formater un montant en euros
@@ -118,6 +113,7 @@ const PatientInvoiceDetails = () => {
       case 'paid':
         return 'status-badge confirmed';
       case 'unpaid':
+      case 'pending':
         return 'status-badge pending';
       case 'overdue':
         return 'status-badge cancelled';
@@ -132,6 +128,7 @@ const PatientInvoiceDetails = () => {
       case 'paid':
         return 'Payée';
       case 'unpaid':
+      case 'pending':
         return 'Non payée';
       case 'draft':
         return 'Brouillon';
@@ -281,10 +278,10 @@ const PatientInvoiceDetails = () => {
         </div>
       )}
 
-      {invoice.status === 'unpaid' && (
+      {(invoice.status === 'unpaid' || invoice.status === 'pending') && (
         <div className="payment-actions">
-          <button className="btn-primary" onClick={handlePayInvoice}>
-            <i className="fas fa-credit-card"></i> Payer maintenant
+          <button className="btn-primary btn-payment" onClick={handlePayInvoice}>
+            <i className="fas fa-credit-card"></i> Payer maintenant {formatAmount(invoice.total_amount)}
           </button>
         </div>
       )}

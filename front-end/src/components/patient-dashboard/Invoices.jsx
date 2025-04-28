@@ -88,6 +88,7 @@ const Invoices = ({ actionLoading }) => {
       case 'paid':
         return 'status-badge confirmed';
       case 'unpaid':
+      case 'pending':
         return 'status-badge pending';
       case 'overdue':
         return 'status-badge cancelled';
@@ -102,6 +103,7 @@ const Invoices = ({ actionLoading }) => {
       case 'paid':
         return 'Payée';
       case 'unpaid':
+      case 'pending':
         return 'Non payée';
       case 'draft':
         return 'Brouillon';
@@ -110,6 +112,11 @@ const Invoices = ({ actionLoading }) => {
       default:
         return status;
     }
+  };
+
+  // Payer une facture
+  const handlePayInvoice = (id) => {
+    navigate(`/payment/${id}`);
   };
 
   if (loading) {
@@ -188,6 +195,17 @@ const Invoices = ({ actionLoading }) => {
                     >
                       <i className="fas fa-download"></i>
                     </button>
+                    {/* Bouton pour payer les factures non payées */}
+                    {(invoice.status === 'unpaid' || invoice.status === 'pending') && (
+                      <button 
+                        className="btn-icon payment-icon" 
+                        title="Payer cette facture" 
+                        onClick={() => handlePayInvoice(invoice.id)}
+                        disabled={actionLoading}
+                      >
+                        <i className="fas fa-credit-card"></i>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

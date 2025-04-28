@@ -93,6 +93,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users', [AdminController::class, 'addUser']);
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+
+
         
         // Routes pour les méthodes de paiement
         Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
@@ -106,10 +108,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments', [PaymentController::class, 'index']);
     });
     
+
     // Routes pour les médecins (accès public pour les patients)
+    Route::get('/doctors', [DoctorController::class, 'getAllDoctors']);
     Route::get('/doctors/{doctor_id}/availability', [DoctorController::class, 'getAvailability']);
     Route::get('/doctors/{doctor_id}/monthly-availability', [DoctorController::class, 'getMonthlyAvailability']);
-    
+        
     // Routes pour la gestion des factures (version simplifiée)
     Route::get('/invoices', [SimpleInvoiceController::class, 'index']);
     Route::get('/invoices/{id}', [SimpleInvoiceController::class, 'show']);

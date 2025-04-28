@@ -19,9 +19,6 @@ import PatientInvoicesPage from "./pages/PatientInvoicesPage";
 import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
 import "./theme-variables.css";
 import PaymentPage from "./pages/PaymentPage";
-import InvoiceList from "./components/invoices/InvoiceList";
-import InvoiceDetails from "./components/invoices/InvoiceDetails";
-import InvoiceForm from "./components/invoices/InvoiceForm";
 
 // Composant pour gérer l'application des thèmes
 const ThemeManager = ({ children }) => {
@@ -137,39 +134,7 @@ function App() {
             }
           />
 
-          {/* Routes pour l'administration des factures */}
-          <Route 
-            path="/invoices" 
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <InvoiceList />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/invoices/:id" 
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <InvoiceDetails />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/invoices/create" 
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <InvoiceForm />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/invoices/edit/:id" 
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <InvoiceForm />
-              </ProtectedRoute>
-            } 
-          />
+          {/* Route pour la page de paiement */}
           <Route
            path="/payment/:id"
            element={
@@ -178,6 +143,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Redirection des anciennes routes d'invoices vers le dashboard admin */}
+          <Route path="/invoices" element={<Navigate to="/admin/dashboard/invoices" replace />} />
+          <Route path="/invoices/:id" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/invoices/create" element={<Navigate to="/admin/dashboard/invoices/create" replace />} />
+          <Route path="/invoices/edit/:id" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
       </ThemeManager>
     </Router>

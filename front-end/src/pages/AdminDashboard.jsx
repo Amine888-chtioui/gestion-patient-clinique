@@ -1,8 +1,9 @@
 // src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
 import "../components/admin-dashboard/admin-dashboard.css";
+import "../styles/invoices.css";
 
 // Import des composants communs
 import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
@@ -24,7 +25,14 @@ import StatisticsView from "../components/admin-dashboard/StatisticsView";
 import UsersManagement from "../components/admin-dashboard/UsersManagement";
 import "../components/admin-dashboard/admin-dashboard.css";
 import PaymentMethodsManagement from "../components/admin-dashboard/PaymentMethodsManagement";
+import "../components/admin-dashboard/payment-status-viewer.css";
+import "../components/admin-dashboard/admin-payment-methods.css";
 
+// Import des composants de factures
+import InvoiceList from "../components/invoices/InvoiceList";
+import InvoiceDetails from "../components/invoices/InvoiceDetails";
+import InvoiceForm from "../components/invoices/InvoiceForm";
+import PaymentStatusViewer from "../components/admin-dashboard/PaymentStatusViewer";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -44,8 +52,40 @@ const AdminDashboard = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
+  
+  // États pour les fonctionnalités de factures
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [invoiceMode, setInvoiceMode] = useState("list"); // peut être "list", "details", "create", "edit"
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Vérifier si la route contient des informations sur l'onglet ou l'invoice
+  useEffect(() => {
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    
+    // Si nous sommes dans la section dashboard
+    if (pathSegments.length >= 2 && pathSegments[0] === 'admin' && pathSegments[1] === 'dashboard') {
+      // Vérifier s'il y a un onglet spécifié
+      if (pathSegments.length >= 3) {
+        const tab = pathSegments[2];
+        setActiveTab(tab);
+        
+        // Si nous sommes dans la section invoices
+        if (tab === 'invoices' && pathSegments.length >= 4) {
+          if (pathSegments[3] === 'create') {
+            setInvoiceMode('create');
+          } else if (pathSegments.length >= 5 && pathSegments[3] === 'edit') {
+            setInvoiceMode('edit');
+            setSelectedInvoiceId(pathSegments[4]);
+          } else {
+            setInvoiceMode('details');
+            setSelectedInvoiceId(pathSegments[3]);
+          }
+        }
+      }
+    }
+  }, [location]);
 
   // Fonction utilitaire pour les en-têtes d'autorisation
   const getAuthHeaders = () => ({
@@ -134,6 +174,32 @@ const AdminDashboard = () => {
     setActiveTab(tab);
     setActionError(null);
     setActionSuccess(null);
+    
+    // Si on change d'onglet, réinitialiser l'état des factures
+    if (tab !== 'invoices') {
+      setInvoiceMode('list');
+      setSelectedInvoiceId(null);
+    }
+    
+    // Mise à jour de l'URL
+    navigate(`/admin/dashboard/${tab}`);
+  };
+  
+  // Gestion de la navigation dans les factures
+  const handleInvoiceAction = (action, id = null) => {
+    setInvoiceMode(action);
+    setSelectedInvoiceId(id);
+    
+    // Mise à jour de l'URL en fonction de l'action
+    if (action === 'list') {
+      navigate('/admin/dashboard/invoices');
+    } else if (action === 'details' && id) {
+      navigate(`/admin/dashboard/invoices/${id}`);
+    } else if (action === 'create') {
+      navigate('/admin/dashboard/invoices/create');
+    } else if (action === 'edit' && id) {
+      navigate(`/admin/dashboard/invoices/edit/${id}`);
+    }
   };
 
   // Gestion des patients
@@ -439,6 +505,21 @@ const AdminDashboard = () => {
     return <ErrorDisplay error={error} />;
   }
 
+  // Rendu du contenu pour les factures
+  const renderInvoiceContent = () => {
+    switch (invoiceMode) {
+      case 'details':
+        return <InvoiceDetails />;
+      case 'create':
+        return <InvoiceForm />;
+      case 'edit':
+        return <InvoiceForm />;
+      case 'list':
+      default:
+        return <InvoiceList />;
+    }
+  };
+
   // Affichage du tableau de bord
   return (
     <div className="admin-dashboard">
@@ -521,6 +602,20 @@ const AdminDashboard = () => {
               handleDeleteUser={handleDeleteUser}
               actionLoading={actionLoading}
             />
+          )}
+          
+          {activeTab === "invoices" && renderInvoiceContent()}
+          
+          {activeTab === "payments" && (
+            <div>
+              <PaymentStatusViewer />
+              <PaymentMethodsManagement 
+                actionLoading={actionLoading}
+                setActionLoading={setActionLoading}
+                setActionError={setActionError}
+                setActionSuccess={setActionSuccess}
+              />
+            </div>
           )}
         </div>
       </main>

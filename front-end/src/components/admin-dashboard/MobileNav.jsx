@@ -16,22 +16,22 @@ const MobileNav = ({ activeTab, handleTabChange }) => (
       <i className="fas fa-user-injured"></i>
     </div>
     <div
-      className={`mobile-nav-item ${activeTab === "doctors" ? "active" : ""}`}
-      onClick={() => handleTabChange("doctors")}
-    >
-      <i className="fas fa-user-md"></i>
-    </div>
-    <div
       className={`mobile-nav-item ${activeTab === "appointments" ? "active" : ""}`}
       onClick={() => handleTabChange("appointments")}
     >
       <i className="fas fa-calendar-alt"></i>
     </div>
     <div
-      className={`mobile-nav-item ${activeTab === "users" ? "active" : ""}`}
-      onClick={() => handleTabChange("users")}
+      className={`mobile-nav-item ${activeTab === "invoices" ? "active" : ""}`}
+      onClick={() => handleTabChange("invoices")}
     >
-      <i className="fas fa-users-cog"></i>
+      <i className="fas fa-file-invoice-dollar"></i>
+    </div>
+    <div
+      className={`mobile-nav-item ${activeTab === "settings" ? "active" : ""}`}
+      onClick={() => handleTabChange("settings")}
+    >
+      <i className="fas fa-cog"></i>
     </div>
   </nav>
 );

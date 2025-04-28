@@ -142,6 +142,18 @@ class DoctorController extends Controller
             ]
         ]);
     }
+    /**
+ * Récupérer la liste des médecins disponibles
+ */
+public function getAllDoctors()
+{
+    // Récupérer tous les utilisateurs avec le rôle de médecin
+    $doctors = User::where('role', 'doctor')
+        ->select('id', 'name', 'email')
+        ->get();
+    
+    return response()->json($doctors);
+}
 
     /**
      * Récupérer la liste des patients du médecin

@@ -22,7 +22,9 @@ const ImprovedBookAppointment = ({
     const fetchDoctors = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('/api/doctors');
+        const response = await axios.get('/api/doctors', {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
         setDoctors(response.data || []);
       } catch (err) {
         console.error("Erreur lors de la récupération des médecins:", err);

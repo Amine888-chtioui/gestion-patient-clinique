@@ -1,6 +1,6 @@
 // src/components/invoices/InvoiceDetails.jsx
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "../../axios";
 
 const InvoiceDetails = () => {
@@ -14,16 +14,20 @@ const InvoiceDetails = () => {
   });
 
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  
+  // Extraire l'ID de l'URL si non fourni par les params
+  const invoiceId = id || location.pathname.split('/').pop();
 
   useEffect(() => {
     fetchInvoiceDetails();
-  }, [id]);
+  }, [invoiceId]);
 
   const fetchInvoiceDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/invoices/${id}`, {
+      const response = await axios.get(`/api/invoices/${invoiceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       setInvoice(response.data.data);
@@ -36,17 +40,17 @@ const InvoiceDetails = () => {
   };
 
   const handleEditInvoice = () => {
-    navigate(`/invoices/edit/${id}`);
+    navigate(`/admin/dashboard/invoices/edit/${invoiceId}`);
   };
 
   const handleDeleteInvoice = async () => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette facture ?")) return;
 
     try {
-      await axios.delete(`/api/invoices/${id}`, {
+      await axios.delete(`/api/invoices/${invoiceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      navigate("/invoices");
+      navigate("/admin/dashboard/invoices");
     } catch (err) {
       console.error("Erreur lors de la suppression de la facture:", err);
       alert("Impossible de supprimer la facture. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
@@ -61,7 +65,7 @@ const InvoiceDetails = () => {
     e.preventDefault();
     try {
       await axios.post(
-        `/api/invoices/${id}/pay`,
+        `/api/invoices/${invoiceId}/pay`,
         paymentData,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -129,7 +133,7 @@ const InvoiceDetails = () => {
   return (
     <div className="invoice-details-container">
       <div className="details-header">
-        <button className="btn-secondary" onClick={() => navigate("/invoices")}>
+        <button className="btn-secondary" onClick={() => navigate("/admin/dashboard/invoices")}>
           <i className="fas fa-arrow-left"></i> Retour
         </button>
         <h2>Facture {invoice.number}</h2>

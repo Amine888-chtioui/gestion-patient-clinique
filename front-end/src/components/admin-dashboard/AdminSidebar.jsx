@@ -2,29 +2,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const AdminSidebar = ({
-  user,
-  activeTab,
-  handleTabChange,
-  handleLogout,
-  actionLoading,
-}) => {
+const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading }) => {
   const navigate = useNavigate();
 
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <img src="/images/logo.png" alt="Logo Clinique" className="logo" />
-        <h2>Espace Administrateur</h2>
+        <h2>Administration</h2>
       </div>
 
       <div className="user-info">
         <div className="avatar">
-          <i className="fas fa-user-shield"></i>
+          <i className="fas fa-user-circle"></i>
         </div>
         <h3>{user?.name}</h3>
         <p>{user?.email}</p>
-        <span className="badge badge-admin">Administrateur</span>
       </div>
 
       <nav className="sidebar-nav">
@@ -34,43 +27,27 @@ const AdminSidebar = ({
             { id: "patients", icon: "user-injured", label: "Patients" },
             { id: "doctors", icon: "user-md", label: "Médecins" },
             { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
-            {
-              id: "medicalRecords",
-              icon: "file-medical-alt",
-              label: "Dossiers médicaux",
-            },
+            { id: "medicalRecords", icon: "file-medical", label: "Dossiers médicaux" },
+            { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
+            { id: "payments", icon: "credit-card", label: "Paiements" },
             { id: "statistics", icon: "chart-bar", label: "Statistiques" },
-            { id: "users", icon: "users-cog", label: "Utilisateurs" },
-            { id: "paymentMethods", icon: "credit-card", label: "Méthodes de paiement" },
-          ].map((item) => (
+            { id: "users", icon: "users", label: "Utilisateurs" }
+          ].map(item => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
               <button onClick={() => handleTabChange(item.id)}>
                 <i className={`fas fa-${item.icon}`}></i> {item.label}
               </button>
             </li>
           ))}
-          {/* Lien pour la gestion des factures */}
-          <li className="sidebar-divider"></li>
-          <li>
-            <button onClick={() => navigate("/invoices")}>
-              <i className="fas fa-file-invoice-dollar"></i> Gestion des factures
-            </button>
-          </li>
         </ul>
       </nav>
 
       <div className="sidebar-footer">
-        <button
-          onClick={handleLogout}
-          className="logout-btn"
-          disabled={actionLoading}
-        >
+        <button onClick={handleLogout} className="logout-btn" disabled={actionLoading}>
           {actionLoading ? (
-            "Chargement..."
+            <span><i className="fas fa-circle-notch fa-spin"></i> Déconnexion...</span>
           ) : (
-            <>
-              <i className="fas fa-sign-out-alt"></i> Déconnexion
-            </>
+            <><i className="fas fa-sign-out-alt"></i> Déconnexion</>
           )}
         </button>
       </div>
