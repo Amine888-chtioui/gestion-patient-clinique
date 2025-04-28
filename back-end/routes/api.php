@@ -107,7 +107,21 @@ Route::middleware('auth:sanctum')->group(function () {
         // Routes pour surveiller les paiements
         Route::get('/payments', [PaymentController::class, 'index']);
     });
-    
+    // Routes pour les notifications
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'getNotifications']);
+        Route::get('/unread', [NotificationController::class, 'getUnreadNotifications']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'delete']);
+        Route::delete('/read', [NotificationController::class, 'deleteAllRead']);
+        
+        // Routes spécifiques à l'admin
+        Route::post('/create', [NotificationController::class, 'createNotification']);
+        Route::post('/notify-role', [NotificationController::class, 'notifyRole']);
+        Route::get('/system', [NotificationController::class, 'getSystemNotifications']);
+        Route::get('/user/{userId}', [NotificationController::class, 'getUserNotifications']);
+    });
 
     // Routes pour les médecins (accès public pour les patients)
     Route::get('/doctors', [DoctorController::class, 'getAllDoctors']);

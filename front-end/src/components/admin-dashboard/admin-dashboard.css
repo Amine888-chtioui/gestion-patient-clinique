@@ -149,6 +149,22 @@ body {
   color: var(--primary-color);
 }
 
+/* Règles spécifiques pour assurer la cohérence du thème admin */
+.admin-dashboard .sidebar-nav li.active button {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border-left: 3px solid var(--primary-color);
+  font-weight: 500;
+}
+
+/* Règle spécifique pour l'élément Médecins */
+.admin-dashboard .sidebar-nav li.active button[data-tab="doctors"],
+.admin-dashboard .sidebar-nav li.active button i.fas.fa-user-md {
+  background-color: var(--primary-light) !important;
+  color: var(--primary-color) !important;
+  border-left: 3px solid var(--primary-color) !important;
+}
+
 .sidebar-footer {
   padding: 1.5rem;
   border-top: 1px solid var(--border-color);

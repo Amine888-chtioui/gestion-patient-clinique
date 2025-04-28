@@ -17,17 +17,20 @@ const NotificationList = ({ onClose, onCountUpdate }) => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
+      setError(null); // Réinitialiser l'erreur avant de charger
+      
       const response = await axios.get("/api/notifications", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
       setNotifications(response.data.notifications || []);
       if (onCountUpdate) {
-        onCountUpdate(response.data.unread_count);
+        onCountUpdate(response.data.unread_count || 0);
       }
     } catch (err) {
-      console.error("Erreur lors de la récupération des notifications:", err);
-      setError("Impossible de charger les notifications");
+      console.error("Erreur détaillée lors de la récupération des notifications:", 
+                   err.response?.data || err.message);
+      setError("Impossible de charger les notifications. Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
     }

@@ -1,23 +1,30 @@
-// src/components/patient-dashboard/NotificationButton.jsx
+// src/components/admin-dashboard/AdminNotificationButton.jsx
 import React, { useState, useEffect, useRef } from "react";
-import NotificationList from "./NotificationList";
+import AdminNotificationList from "./AdminNotificationList";
 import axios from "../../axios";
 
-const NotificationButton = () => {
+const AdminNotificationButton = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [systemStats, setSystemStats] = useState(null);
   const notificationsPanelRef = useRef(null);
   
   // Récupérer le nombre de notifications non lues au chargement
   useEffect(() => {
     fetchUnreadCount();
+    fetchSystemStats();
     
     // Configurer un intervalle pour vérifier périodiquement les nouvelles notifications
-    const interval = setInterval(fetchUnreadCount, 60000); // Toutes les minutes
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+      if (showNotifications) {
+        fetchSystemStats();
+      }
+    }, 60000); // Toutes les minutes
     
     // Nettoyer l'intervalle lorsque le composant est démonté
     return () => clearInterval(interval);
-  }, []);
+  }, [showNotifications]);
   
   // Ajouter un écouteur d'événements pour fermer le panneau de notifications lors d'un clic à l'extérieur
   useEffect(() => {
@@ -42,15 +49,29 @@ const NotificationButton = () => {
       
       setUnreadCount(response.data.unread_count);
     } catch (err) {
-      console.error("Erreur détaillée:", err.response?.data || err.message);
-      // Ne pas afficher d'erreur ici, juste garder le compteur à 0
-      setUnreadCount(0);
+      console.error("Erreur lors de la récupération des notifications non lues:", err);
+    }
+  };
+
+  // Fonction pour récupérer les statistiques système (admin uniquement)
+  const fetchSystemStats = async () => {
+    try {
+      const response = await axios.get("/api/notifications/system", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      setSystemStats(response.data.stats);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des statistiques des notifications:", err);
     }
   };
   
   // Basculer l'affichage du panneau de notifications
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
+    if (!showNotifications && !systemStats) {
+      fetchSystemStats();
+    }
   };
   
   // Fermer le panneau de notifications
@@ -77,10 +98,11 @@ const NotificationButton = () => {
       </button>
       
       {showNotifications && (
-        <div className="notifications-panel">
-          <NotificationList 
+        <div className="notifications-panel admin-notifications-panel">
+          <AdminNotificationList 
             onClose={closeNotifications} 
-            onCountUpdate={updateUnreadCount} 
+            onCountUpdate={updateUnreadCount}
+            systemStats={systemStats}
           />
         </div>
       )}
@@ -88,4 +110,4 @@ const NotificationButton = () => {
   );
 };
 
-export default NotificationButton;
+export default AdminNotificationButton;

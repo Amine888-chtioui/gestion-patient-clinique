@@ -20,7 +20,8 @@ import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
 import "./theme-variables.css";
 import PaymentPage from "./pages/PaymentPage";
 
-// Composant pour gérer l'application des thèmes
+// Remplacez le composant ThemeManager existant par celui-ci:
+
 const ThemeManager = ({ children }) => {
   const location = useLocation();
   
@@ -29,17 +30,18 @@ const ThemeManager = ({ children }) => {
     document.body.classList.remove('patient-theme', 'doctor-theme', 'admin-theme', 'auth-theme');
     
     // Appliquer la classe de thème appropriée en fonction de la route
-    if (location.pathname.includes('/patient')) {
+    if (location.pathname.includes('/admin')) {
+      // Pour tout chemin contenant /admin, appliquer le thème admin
+      document.body.classList.add('admin-theme');
+    } else if (location.pathname.includes('/patient')) {
       document.body.classList.add('patient-theme');
     } else if (location.pathname.includes('/doctor')) {
       document.body.classList.add('doctor-theme');
-    } else if (location.pathname.includes('/admin')) {
-      document.body.classList.add('admin-theme');
     } else if (['/login', '/register', '/forgot-password', '/reset-password'].some(path => 
       location.pathname === path)) {
       document.body.classList.add('auth-theme');
     } else {
-      // Par défaut, la page d'accueil utilise le thème auth (bleu)
+      // Par défaut, la page d'accueil utilise le thème auth
       document.body.classList.add('auth-theme');
     }
   }, [location]);

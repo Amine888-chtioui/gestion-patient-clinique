@@ -1,0 +1,234 @@
+/* src/components/admin-dashboard/admin-notification.css */
+
+/* Étend les styles de base des notifications avec des styles spécifiques pour l'admin */
+.admin-notifications-panel {
+    width: 400px;
+    max-height: 600px;
+  }
+  
+  .admin-notifications-list .notifications-header {
+    background-color: #6a1b9a;
+    color: white;
+  }
+  
+  .admin-notifications-list .notifications-header h3 {
+    color: white;
+  }
+  
+  .view-selector {
+    display: flex;
+    gap: 5px;
+    margin-right: 10px;
+  }
+  
+  .view-selector .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .notifications-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: #f8f9fa;
+  }
+  
+  .system-stats {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .stats-item {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .stats-value {
+    font-weight: bold;
+    color: #6a1b9a;
+  }
+  
+  .system-notifications .notification-item {
+    border-left: 3px solid transparent;
+  }
+  
+  .system-notifications .notification-item.unread {
+    border-left-color: #6a1b9a;
+  }
+  
+  .notification-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+  
+  .notification-recipient {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .recipient-name {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .role-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .role-badge.admin {
+    background-color: rgba(106, 27, 154, 0.1);
+    color: #6a1b9a;
+  }
+  
+  .role-badge.doctor {
+    background-color: rgba(25, 118, 210, 0.1);
+    color: #1976d2;
+  }
+  
+  .role-badge.patient {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
+  }
+  
+  /* Formulaire de notification */
+  .notify-form {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 0.5rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .notify-form h4 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: #333;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 0.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #6a1b9a;
+    box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.1);
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  /* Styles pour les boutons */
+  .btn-primary {
+    background-color: #6a1b9a;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .btn-primary:hover {
+    background-color: #581b87;
+  }
+  
+  .btn-primary:disabled {
+    background-color: #b39ddb;
+    cursor: not-allowed;
+  }
+  
+  .btn-secondary {
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #ced4da;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #e9ecef;
+  }
+  
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Responsive */
+  @media (max-width: 576px) {
+    .admin-notifications-panel {
+      width: 100%;
+      max-width: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 0;
+      max-height: 100%;
+    }
+    
+    .view-selector {
+      flex-grow: 1;
+    }
+    
+    .system-stats {
+      display: none;
+    }
+    
+    .notifications-body {
+      max-height: calc(100vh - 110px);
+    }
+  }

@@ -1,5 +1,6 @@
-// src/components/admin-dashboard/ContentHeader.jsx
+// src/components/admin-dashboard/ContentHeader.jsx - version améliorée
 import React from "react";
+import AdminNotificationButton from "./AdminNotificationButton";
 
 const ContentHeader = ({ activeTab }) => {
   const getTabTitle = () => {
@@ -31,10 +32,7 @@ const ContentHeader = ({ activeTab }) => {
     <header className="content-header">
       <h1>{getTabTitle()}</h1>
       <div className="header-actions">
-        <button className="btn-secondary">
-          <i className="fas fa-bell"></i>
-          <span className="notification-badge">3</span>
-        </button>
+        <AdminNotificationButton />
         <button className="btn-secondary">
           <i className="fas fa-cog"></i>
         </button>

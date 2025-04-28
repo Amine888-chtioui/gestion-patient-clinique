@@ -1,4 +1,5 @@
-// src/components/admin-dashboard/AdminSidebar.jsx
+// Modifiez le fichier front-end/src/components/admin-dashboard/AdminSidebar.jsx
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -34,7 +35,10 @@ const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLo
             { id: "users", icon: "users", label: "Utilisateurs" }
           ].map(item => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
-              <button onClick={() => handleTabChange(item.id)}>
+              <button 
+                onClick={() => handleTabChange(item.id)}
+                data-tab={item.id} /* Ajout de l'attribut data-tab pour cibler en CSS */
+              >
                 <i className={`fas fa-${item.icon}`}></i> {item.label}
               </button>
             </li>
