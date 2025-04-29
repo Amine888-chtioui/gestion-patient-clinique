@@ -42,16 +42,16 @@
   --transition: all 0.3s ease;
 }
 
-/* Thème Patient - Couleur principale verte */
+/* Thème Patient - Couleur principale bleue (modifiée de vert à bleu) */
 .patient-theme {
   --bg-color: #f5f5f5;
   --text-color: #333;
   --text-light: #777;
   --text-dark: #222;
-  --primary-color: #00796b; /* Vert-bleu */
-  --primary-light: rgba(0, 121, 107, 0.1);
-  --primary-dark: #00695c;
-  --secondary-color: #00695c;
+  --primary-color: #1976d2; /* Changé de #00796b (vert-bleu) à #1976d2 (bleu) */
+  --primary-light: rgba(25, 118, 210, 0.1); /* Adapté pour le bleu */
+  --primary-dark: #1565c0; /* Changé de #00695c à #1565c0 (bleu foncé) */
+  --secondary-color: #0d47a1; /* Changé de #00695c à #0d47a1 (bleu plus foncé) */
   --border-color: #e0e0e0;
   --success-color: #28a745;
   --danger-color: #dc3545;
