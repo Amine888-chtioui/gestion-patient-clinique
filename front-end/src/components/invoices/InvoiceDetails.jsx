@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "../../axios";
 
-const InvoiceDetails = () => {
+const InvoiceDetails = ({ onInvoiceAction }) => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,7 +40,11 @@ const InvoiceDetails = () => {
   };
 
   const handleEditInvoice = () => {
-    navigate(`/admin/dashboard/invoices/edit/${invoiceId}`);
+    if (onInvoiceAction) {
+      onInvoiceAction('edit', invoiceId);
+    } else {
+      navigate(`/admin/dashboard/invoices/edit/${invoiceId}`);
+    }
   };
 
   const handleDeleteInvoice = async () => {
@@ -50,10 +54,23 @@ const InvoiceDetails = () => {
       await axios.delete(`/api/invoices/${invoiceId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      navigate("/admin/dashboard/invoices");
+      
+      if (onInvoiceAction) {
+        onInvoiceAction('list');
+      } else {
+        navigate("/admin/dashboard/invoices");
+      }
     } catch (err) {
       console.error("Erreur lors de la suppression de la facture:", err);
       alert("Impossible de supprimer la facture. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
+    }
+  };
+
+  const handleBackToList = () => {
+    if (onInvoiceAction) {
+      onInvoiceAction('list');
+    } else {
+      navigate("/admin/dashboard/invoices");
     }
   };
 
@@ -133,7 +150,7 @@ const InvoiceDetails = () => {
   return (
     <div className="invoice-details-container">
       <div className="details-header">
-        <button className="btn-secondary" onClick={() => navigate("/admin/dashboard/invoices")}>
+        <button className="btn-secondary" onClick={handleBackToList}>
           <i className="fas fa-arrow-left"></i> Retour
         </button>
         <h2>Facture {invoice.number}</h2>

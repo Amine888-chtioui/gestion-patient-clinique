@@ -559,6 +559,49 @@ class AdminController extends Controller
             'appointments' => $formattedAppointments
         ]);
     }
+    /**
+ * Récupérer la liste des dossiers médicaux
+ */
+public function getMedicalRecords()
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer tous les dossiers médicaux avec les informations du patient et du médecin
+    $medicalRecords = MedicalRecord::with(['patient:id,name,email', 'doctor:id,name,email', 'documents'])
+        ->orderBy('date', 'desc')
+        ->get();
+    
+    // Formater les données pour la réponse
+    $formattedRecords = $medicalRecords->map(function ($record) {
+        return [
+            'id' => $record->id,
+            'date' => $record->date,
+            'type' => $record->type,
+            'patient_id' => $record->patient_id,
+            'patient_name' => $record->patient->name,
+            'doctor_id' => $record->doctor_id,
+            'doctor_name' => $record->doctor->name,
+            'diagnosis' => $record->diagnosis,
+            'notes' => $record->notes,
+            'documents' => $record->documents->map(function ($document) {
+                return [
+                    'id' => $document->id,
+                    'name' => $document->name,
+                    'type' => $document->type,
+                ];
+            })->toArray(),
+        ];
+    });
+    
+    return response()->json([
+        'medicalRecords' => $formattedRecords
+    ]);
+}
 
     /**
      * Ajouter un nouveau rendez-vous

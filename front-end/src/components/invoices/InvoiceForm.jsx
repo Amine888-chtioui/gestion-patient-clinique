@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../axios";
 
-const InvoiceForm = () => {
+const InvoiceForm = ({ onInvoiceAction }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
@@ -16,7 +16,7 @@ const InvoiceForm = () => {
     date: new Date().toISOString().split("T")[0],
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     notes: "",
-    items: [{ description: "", quantity: 1, unit_price: 0 }],
+    items: [{ description: "", quantity: 1, unit_price: "" }], // Initialiser avec une chaîne vide au lieu de 0
   });
 
   useEffect(() => {
@@ -56,9 +56,9 @@ const InvoiceForm = () => {
               id: item.id,
               description: item.description,
               quantity: item.quantity,
-              unit_price: item.unit_price
+              unit_price: item.unit_price.toString() // Convertir en chaîne
             }))
-          : [{ description: "", quantity: 1, unit_price: 0 }],
+          : [{ description: "", quantity: 1, unit_price: "" }], // Initialiser avec une chaîne vide
       });
     } catch (err) {
       console.error("Erreur lors de la récupération des données de la facture:", err);
@@ -75,8 +75,15 @@ const InvoiceForm = () => {
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
-    const parsedValue = field === "quantity" || field === "unit_price" 
-      ? parseFloat(value) || 0 
+    
+    // Si le champ est unit_price, laisser vide si la valeur est 0
+    if (field === "unit_price" && value === "0") {
+      value = "";
+    }
+    
+    // Pour quantity et unit_price, convertir en nombre seulement pour le calcul
+    const parsedValue = (field === "quantity" || field === "unit_price") && value !== ""
+      ? parseFloat(value) || "" 
       : value;
     
     updatedItems[index] = { ...updatedItems[index], [field]: parsedValue };
@@ -86,7 +93,7 @@ const InvoiceForm = () => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { description: "", quantity: 1, unit_price: 0 }],
+      items: [...formData.items, { description: "", quantity: 1, unit_price: "" }], // Initialiser avec une chaîne vide
     });
   };
 
@@ -98,11 +105,21 @@ const InvoiceForm = () => {
   };
 
   const calculateItemTotal = (item) => {
-    return item.quantity * item.unit_price;
+    const quantity = parseFloat(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
+    return quantity * unitPrice;
   };
 
   const calculateTotal = () => {
     return formData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+  };
+
+  const handleCancel = () => {
+    if (onInvoiceAction) {
+      onInvoiceAction('list');
+    } else {
+      navigate('/admin/dashboard/invoices');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -118,11 +135,21 @@ const InvoiceForm = () => {
         return;
       }
 
-      if (!formData.items.every(item => item.description && item.quantity > 0)) {
+      if (!formData.items.every(item => item.description && item.quantity > 0 && item.unit_price)) {
         alert("Veuillez compléter tous les champs des éléments de facture");
         setLoading(false);
         return;
       }
+
+      // Préparer les données pour l'envoi
+      const dataToSend = {
+        ...formData,
+        items: formData.items.map(item => ({
+          ...item,
+          unit_price: parseFloat(item.unit_price) || 0,
+          quantity: parseFloat(item.quantity) || 0
+        }))
+      };
 
       const endpoint = isEditMode 
         ? `/api/invoices/${id}` 
@@ -132,14 +159,18 @@ const InvoiceForm = () => {
 
       const response = await axios[method](
         endpoint,
-        formData,
+        dataToSend,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
 
-      // Rediriger vers le tableau des factures dans le dashboard administrateur
-      navigate("/admin/dashboard/invoices");
+      // Redirection vers la liste des factures
+      if (onInvoiceAction) {
+        onInvoiceAction('list');
+      } else {
+        navigate('/admin/dashboard/invoices');
+      }
     } catch (err) {
       console.error("Erreur lors de l'enregistrement de la facture:", err);
       setError("Impossible d'enregistrer la facture. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
@@ -155,7 +186,7 @@ const InvoiceForm = () => {
     <div className="invoice-form-container">
       <div className="form-header">
         <h2>{isEditMode ? "Modifier la facture" : "Créer une nouvelle facture"}</h2>
-        <button className="btn-secondary" onClick={() => navigate("/admin/dashboard/invoices")}>
+        <button className="btn-secondary" onClick={handleCancel}>
           <i className="fas fa-times"></i> Annuler
         </button>
       </div>
@@ -280,6 +311,7 @@ const InvoiceForm = () => {
                         min="0"
                         step="0.01"
                         required
+                        placeholder="Entrez le prix unitaire"
                       />
                     </div>
                     
@@ -319,7 +351,7 @@ const InvoiceForm = () => {
               <span><i className="fas fa-save"></i> {isEditMode ? "Mettre à jour" : "Créer la facture"}</span>
             )}
           </button>
-          <button type="button" className="btn-secondary" onClick={() => navigate("/admin/dashboard/invoices")}>
+          <button type="button" className="btn-secondary" onClick={handleCancel}>
             Annuler
           </button>
         </div>

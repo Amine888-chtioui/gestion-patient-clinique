@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/appointments', [AdminController::class, 'addAppointment']);
         Route::put('/appointments/{id}', [AdminController::class, 'updateAppointment']);
         Route::delete('/appointments/{id}', [AdminController::class, 'deleteAppointment']);
+        Route::get('/medical-records', [AdminController::class, 'getMedicalRecords']);
         Route::get('/users', [AdminController::class, 'getUsers']);
         Route::post('/users', [AdminController::class, 'addUser']);
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);

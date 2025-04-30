@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../../axios";
 
-const InvoiceList = () => {
+const InvoiceList = ({ onInvoiceAction }) => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,7 +30,7 @@ const InvoiceList = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      setInvoices(response.data.data);
+      setInvoices(response.data.data || []);
     } catch (err) {
       console.error("Erreur lors de la récupération des factures:", err);
       setError("Impossible de charger les factures. Veuillez réessayer plus tard.");
@@ -45,11 +45,19 @@ const InvoiceList = () => {
   };
 
   const handleViewInvoice = (id) => {
-    navigate(`/admin/dashboard/invoices/${id}`);
+    if (onInvoiceAction) {
+      onInvoiceAction('details', id);
+    } else {
+      navigate(`/admin/dashboard/invoices/${id}`);
+    }
   };
 
   const handleCreateInvoice = () => {
-    navigate("/admin/dashboard/invoices/create");
+    if (onInvoiceAction) {
+      onInvoiceAction('create');
+    } else {
+      navigate("/admin/dashboard/invoices/create");
+    }
   };
 
   // Formater un montant en devise
@@ -172,7 +180,7 @@ const InvoiceList = () => {
                     <button
                       className="btn-icon"
                       title="Modifier"
-                      onClick={() => navigate(`/admin/dashboard/invoices/edit/${invoice.id}`)}
+                      onClick={() => onInvoiceAction ? onInvoiceAction('edit', invoice.id) : navigate(`/admin/dashboard/invoices/edit/${invoice.id}`)}
                     >
                       <i className="fas fa-edit"></i>
                     </button>

@@ -665,7 +665,7 @@ const AdminDashboard = () => {
         return <InvoiceForm />;
       case 'list':
       default:
-        return <InvoiceList />;
+        return <InvoiceList onInvoiceAction={handleInvoiceAction} />;
     }
   };
 
