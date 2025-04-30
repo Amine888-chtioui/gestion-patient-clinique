@@ -33,6 +33,8 @@ import InvoiceDetails from "../components/invoices/InvoiceDetails";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import PaymentStatusViewer from "../components/admin-dashboard/PaymentStatusViewer";
 import AdminProfile from "../components/admin-dashboard/AdminProfile";
+import "../components/admin-dashboard/admin-profile.css";
+import "../components/admin-dashboard/admin-dashboard.css";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);

@@ -43,9 +43,6 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
 
       setActionSuccess("Profil mis à jour avec succès!");
       setEditMode(false);
-
-      // Update the local user data (this would typically be handled by the parent component)
-      // In a real implementation, you would want to update the user state in the parent component
       
       setTimeout(() => {
         setActionSuccess(null);
@@ -118,57 +115,65 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
 
   return (
     <div className="profile-container">
-      <div className="profile-header">
-        <h2>Mon Profil Administrateur</h2>
-        {!editMode && (
+      <div className="profile-info-card">
+        <div className="profile-header">
+          <div className="profile-avatar">
+            {photoPreview ? (
+              <img src={photoPreview} alt="Prévisualisation" className="profile-photo" />
+            ) : user?.photoUrl ? (
+              <img src={user.photoUrl} alt={user.name} className="profile-photo" />
+            ) : (
+              <i className="fas fa-user-circle"></i>
+            )}
+          </div>
+          <div className="profile-title">
+            <h3>{user?.name}</h3>
+            <p>Administrateur depuis {new Date().getFullYear()}</p>
+          </div>
           <button
-            className="btn-primary"
-            onClick={() => setEditMode(true)}
+            className="btn-outline"
+            onClick={handlePhotoClick}
             disabled={actionLoading}
           >
-            <i className="fas fa-edit"></i> Modifier le profil
+            <i className="fas fa-camera"></i> Changer la photo
           </button>
-        )}
-      </div>
-
-      <div className="profile-content">
-        <div className="profile-photo-section">
-          <div className="profile-photo" onClick={handlePhotoClick}>
-            {photoPreview ? (
-              <img src={photoPreview} alt="Prévisualisation" />
-            ) : user?.photoUrl ? (
-              <img src={user.photoUrl} alt={user.name} />
-            ) : (
-              <div className="no-photo">
-                <i className="fas fa-user"></i>
-              </div>
-            )}
-            <div className="photo-overlay">
-              <i className="fas fa-camera"></i>
-              <span>Changer</span>
-            </div>
-          </div>
           <input
             type="file"
             ref={fileInputRef}
             onChange={handlePhotoChange}
             style={{ display: "none" }}
-            accept="image/*"
+            accept="image/jpeg, image/png, image/jpg"
           />
-          {photoFile && (
+        </div>
+
+        {photoFile && (
+          <div className="photo-actions" style={{ textAlign: 'center', margin: '1rem 0' }}>
             <button
-              className="btn-primary photo-upload-btn"
+              className="btn-primary"
               onClick={handlePhotoUpload}
               disabled={actionLoading}
             >
-              <i className="fas fa-upload"></i> Mettre à jour la photo
+              {actionLoading ? "Enregistrement..." : "Enregistrer la nouvelle photo"}
             </button>
-          )}
-        </div>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setPhotoFile(null);
+                setPhotoPreview(null);
+              }}
+              disabled={actionLoading}
+              style={{ marginLeft: '10px' }}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
 
-        <div className="profile-details">
-          {editMode ? (
-            <form onSubmit={handleProfileUpdate}>
+        {editMode ? (
+          <form onSubmit={handleProfileUpdate} className="edit-profile-form">
+            <div className="form-section">
+              <h4>Informations personnelles</h4>
+              
               <div className="form-group">
                 <label htmlFor="name">Nom complet</label>
                 <input
@@ -183,7 +188,7 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">Adresse e-mail</label>
+                <label htmlFor="email">Email</label>
                 <input
                   type="email"
                   id="email"
@@ -195,18 +200,24 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="phone">Téléphone</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  disabled={actionLoading}
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="phone">Téléphone</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    disabled={actionLoading}
+                  />
+                </div>
               </div>
-
+            </div>
+            
+            <div className="form-section">
+              <h4>Informations professionnelles</h4>
+              
               <div className="form-group">
                 <label htmlFor="bio">Biographie</label>
                 <textarea
@@ -216,99 +227,117 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
                   onChange={handleChange}
                   rows="4"
                   disabled={actionLoading}
+                  placeholder="Décrivez votre expérience et votre rôle..."
                 ></textarea>
               </div>
+            </div>
 
-              <div className="form-section">
-                <h3>Changer le mot de passe</h3>
-                <p className="form-info">
-                  Laissez ces champs vides si vous ne souhaitez pas modifier votre mot de passe
-                </p>
-
-                <div className="form-group">
-                  <label htmlFor="password">Nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    disabled={actionLoading}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="password_confirmation">Confirmer le mot de passe</label>
-                  <input
-                    type="password"
-                    id="password_confirmation"
-                    name="password_confirmation"
-                    value={formData.password_confirmation}
-                    onChange={handleChange}
-                    disabled={actionLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <button
-                  type="submit"
-                  className="btn-primary"
+            <div className="form-section">
+              <h4>Modifier le mot de passe</h4>
+              <p style={{ color: '#6c757d', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                Laissez ces champs vides si vous ne souhaitez pas modifier votre mot de passe
+              </p>
+              
+              <div className="form-group">
+                <label htmlFor="password">Nouveau mot de passe</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
                   disabled={actionLoading}
-                >
-                  {actionLoading ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin"></i> Mise à jour...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-save"></i> Enregistrer
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setEditMode(false)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password_confirmation">Confirmer le mot de passe</label>
+                <input
+                  type="password"
+                  id="password_confirmation"
+                  name="password_confirmation"
+                  value={formData.password_confirmation}
+                  onChange={handleChange}
                   disabled={actionLoading}
-                >
-                  Annuler
-                </button>
+                />
               </div>
-            </form>
-          ) : (
-            <div className="profile-info">
-              <div className="info-item">
-                <div className="info-label">Nom complet</div>
-                <div className="info-value">{user?.name}</div>
-              </div>
+            </div>
 
-              <div className="info-item">
-                <div className="info-label">Adresse e-mail</div>
-                <div className="info-value">{user?.email}</div>
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Enregistrement..." : "Enregistrer les modifications"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setEditMode(false)}
+                disabled={actionLoading}
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="profile-details">
+            <div className="detail-group">
+              <h4>Informations personnelles</h4>
+              <div className="detail-row">
+                <div className="detail-label">Nom complet</div>
+                <div className="detail-value">{user?.name}</div>
               </div>
-
-              <div className="info-item">
-                <div className="info-label">Rôle</div>
-                <div className="info-value role-badge admin">Administrateur</div>
+              <div className="detail-row">
+                <div className="detail-label">Email</div>
+                <div className="detail-value">{user?.email}</div>
               </div>
-
-              <div className="info-item">
-                <div className="info-label">Téléphone</div>
-                <div className="info-value">
+              <div className="detail-row">
+                <div className="detail-label">Téléphone</div>
+                <div className="detail-value">
                   {user?.phone || "Non renseigné"}
                 </div>
               </div>
-
-              <div className="info-item">
-                <div className="info-label">Biographie</div>
-                <div className="info-value">
-                  {user?.bio || "Aucune biographie"}
+              <div className="detail-row">
+                <div className="detail-label">Rôle</div>
+                <div className="detail-value">
+                  <span className="role-badge admin">Administrateur</span>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="detail-group">
+              <h4>Informations professionnelles</h4>
+              <div className="detail-row">
+                <div className="detail-label">Biographie</div>
+                <div className="detail-value">
+                  {user?.bio || "Non renseignée"}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!editMode && (
+          <div className="profile-actions">
+            <button
+              className="btn-primary"
+              onClick={() => setEditMode(true)}
+              disabled={actionLoading}
+            >
+              <i className="fas fa-edit"></i> Modifier le profil
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="privacy-notice">
+        <h4>Sécurité du compte administrateur</h4>
+        <p>
+          En tant qu'administrateur, vous avez accès à des données sensibles de la clinique.
+          Veillez à maintenir votre mot de passe sécurisé et à ne jamais partager vos identifiants.
+          Toutes vos actions sont enregistrées dans le système pour des raisons de sécurité.
+        </p>
       </div>
     </div>
   );
