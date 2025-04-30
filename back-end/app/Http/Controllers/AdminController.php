@@ -867,6 +867,150 @@ public function getMedicalRecords()
             ]
         ], 201);
     }
+    /**
+ * Get the admin's profile
+ */
+public function getProfile()
+{
+    $user = Auth::user();
+    
+    // Verify the user is an admin
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Unauthorized access'], 403);
+    }
+    
+    return response()->json([
+        'profile' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'phone' => $user->phone ?? null,
+            'bio' => $user->bio ?? null,
+            'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
+        ]
+    ]);
+}
+
+/**
+ * Update the admin's profile
+ */
+public function updateProfile(Request $request)
+{
+    $user = Auth::user();
+    
+    // Verify the user is an admin
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Unauthorized access'], 403);
+    }
+    
+    $validatedData = $request->validate([
+        'name' => 'sometimes|required|string|max:255',
+        'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+        'password' => 'nullable|string|min:8|confirmed',
+        'phone' => 'nullable|string|max:20',
+        'bio' => 'nullable|string',
+    ]);
+    
+    // Update user information
+    if (isset($validatedData['name'])) {
+        $user->name = $validatedData['name'];
+    }
+    
+    if (isset($validatedData['email'])) {
+        $user->email = $validatedData['email'];
+    }
+    
+    if (isset($validatedData['password']) && $validatedData['password']) {
+        $user->password = Hash::make($validatedData['password']);
+    }
+    
+    if (isset($validatedData['phone'])) {
+        $user->phone = $validatedData['phone'];
+    }
+    
+    if (isset($validatedData['bio'])) {
+        $user->bio = $validatedData['bio'];
+    }
+    
+    $user->save();
+    
+    return response()->json([
+        'message' => 'Profile updated successfully',
+        'profile' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'phone' => $user->phone,
+            'bio' => $user->bio,
+            'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
+        ]
+    ]);
+}
+
+/**
+ * Update the admin's profile photo
+ */
+public function updateProfilePhoto(Request $request)
+{
+    $user = Auth::user();
+    
+    // Verify the user is an admin
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Unauthorized access'], 403);
+    }
+    
+    // Validate the request
+    $request->validate([
+        'profile_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB max
+    ]);
+    
+    try {
+        // Check if an image was sent
+        if ($request->hasFile('profile_photo')) {
+            $image = $request->file('profile_photo');
+            
+            // Delete old photo if it exists
+            if ($user->profile_photo && file_exists(public_path('uploads/profiles/' . $user->profile_photo))) {
+                unlink(public_path('uploads/profiles/' . $user->profile_photo));
+            }
+            
+            // Generate a unique name for the image
+            $fileName = time() . '.' . $image->getClientOriginalExtension();
+            
+            // Create directory if it doesn't exist
+            $uploadPath = public_path('uploads/profiles');
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+            
+            // Move the uploaded file
+            $image->move($uploadPath, $fileName);
+            
+            // Update the photo path in the user model
+            $user->profile_photo = $fileName;
+            $user->save();
+            
+            // Generate the public URL of the photo
+            $photoUrl = asset('uploads/profiles/' . $fileName);
+            
+            return response()->json([
+                'message' => 'Profile photo updated successfully',
+                'photo_url' => $photoUrl
+            ]);
+        } else {
+            return response()->json([
+                'message' => 'No image was sent',
+            ], 400);
+        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Error updating profile photo',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 
     /**
      * Mettre à jour un utilisateur existant

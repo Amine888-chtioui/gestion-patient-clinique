@@ -32,6 +32,7 @@ import InvoiceList from "../components/invoices/InvoiceList";
 import InvoiceDetails from "../components/invoices/InvoiceDetails";
 import InvoiceForm from "../components/invoices/InvoiceForm";
 import PaymentStatusViewer from "../components/admin-dashboard/PaymentStatusViewer";
+import AdminProfile from "../components/admin-dashboard/AdminProfile";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -48,7 +49,8 @@ const AdminDashboard = () => {
     users: false,
     statistics: false,
     payments: false,
-    invoices: false
+    invoices: false,
+    profile: false  // Added this line
   });
 
   // États pour stocker les données
@@ -809,6 +811,23 @@ const AdminDashboard = () => {
               )}
             </>
           )}
+          {activeTab === "profile" && (
+              <>
+                {loadingStates.profile ? (
+                  <div className="section-loader">
+                    <div className="loader-indicator"></div>
+                  </div>
+                ) : (
+                  <AdminProfile
+                    user={user}
+                    actionLoading={actionLoading}
+                    setActionLoading={setActionLoading}
+                    setActionError={setActionError}
+                    setActionSuccess={setActionSuccess}
+                  />
+                )}
+              </>
+            )}
           
           {activeTab === "invoices" && renderInvoiceContent()}
           

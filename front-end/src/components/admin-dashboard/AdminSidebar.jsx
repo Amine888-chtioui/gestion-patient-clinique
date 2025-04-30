@@ -32,6 +32,7 @@ const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLo
             { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
             { id: "payments", icon: "credit-card", label: "Paiements" },
             { id: "statistics", icon: "chart-bar", label: "Statistiques" },
+            { id: "profile", icon: "user-cog", label: "Mon profil" },
             { id: "users", icon: "users", label: "Utilisateurs" }
           ].map(item => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
