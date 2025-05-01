@@ -1783,3 +1783,27 @@ textarea:focus {
 .inputBox input[type="submit"]:hover {
   background-color: #0056b3;
 }
+/* Ajouter à PatientDashboard.css */
+
+/* Indicateur de chargement spécifique aux sections */
+.section-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  min-height: 200px;
+}
+
+.loader-indicator {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(26, 118, 210, 0.2);
+  border-radius: 50%;
+  border-top-color: #1a76d2;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

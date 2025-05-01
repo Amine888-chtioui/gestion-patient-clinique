@@ -15,10 +15,7 @@ const AdminSidebar = ({
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <img src="/images/logo.png" alt="Logo Clinique" className="logo" />
-        <h2>Administration</h2>
-      </div>
+      
 
       <div className="user-info">
         <div className="avatar">
