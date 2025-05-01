@@ -18,7 +18,7 @@
     display: flex;
     align-items: center;
     padding: 2rem;
-    background-color: #e3f2fd;
+    background-color: #e6f5f5; /* Modifié: anciennement #e3f2fd */
     position: relative;
   }
   
@@ -38,7 +38,7 @@
   
   .profile-avatar i {
     font-size: 3rem;
-    color: #1976d2;
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
   }
   
   .profile-photo {
@@ -102,8 +102,8 @@
   }
   
   .role-badge.doctor {
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: #e6f5f5; /* Modifié: anciennement #e3f2fd */
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
   }
   
   .profile-actions {
@@ -114,14 +114,14 @@
   }
   
   .privacy-notice {
-    background-color: #e3f2fd;
+    background-color: #e6f5f5; /* Modifié: anciennement #e3f2fd */
     border-radius: 8px;
     padding: 1.5rem;
   }
   
   .privacy-notice h4 {
     font-size: 1rem;
-    color: #1976d2;
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
     margin-bottom: 0.5rem;
   }
   
@@ -175,8 +175,8 @@
   .edit-profile-form select:focus,
   .edit-profile-form textarea:focus {
     outline: none;
-    border-color: #1976d2;
-    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    border-color: #2a8d8e; /* Modifié: anciennement #1976d2 */
+    box-shadow: 0 0 0 3px rgba(42, 141, 142, 0.1); /* Modifié: anciennement rgba(25, 118, 210, 0.1) */
   }
   
   .edit-profile-form textarea {
@@ -206,7 +206,7 @@
   
   /* Boutons */
   .btn-primary {
-    background-color: #1976d2;
+    background-color: #2a8d8e; /* Modifié: anciennement #1976d2 */
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -217,11 +217,11 @@
   }
   
   .btn-primary:hover {
-    background-color: #1565c0;
+    background-color: #1a6364; /* Modifié: anciennement #1565c0 */
   }
   
   .btn-primary:disabled {
-    background-color: #90caf9;
+    background-color: #4ca1a2; /* Modifié: anciennement #90caf9 */
     cursor: not-allowed;
   }
   
@@ -247,8 +247,8 @@
   
   .btn-outline {
     background-color: transparent;
-    color: #1976d2;
-    border: 1px solid #1976d2;
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
+    border: 1px solid #2a8d8e; /* Modifié: anciennement #1976d2 */
     padding: 0.75rem 1.5rem;
     border-radius: 4px;
     font-weight: 500;
@@ -257,7 +257,7 @@
   }
   
   .btn-outline:hover {
-    background-color: rgba(25, 118, 210, 0.1);
+    background-color: rgba(42, 141, 142, 0.1); /* Modifié: anciennement rgba(25, 118, 210, 0.1) */
   }
   
   .btn-outline:disabled {
@@ -276,7 +276,7 @@
   .photo-upload-container h3 {
     font-size: 1.25rem;
     margin-bottom: 1.5rem;
-    color: #1976d2;
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
     text-align: center;
   }
   
@@ -289,7 +289,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 3px solid #e3f2fd;
+    border: 3px solid #e6f5f5; /* Modifié: anciennement #e3f2fd */
     background-color: #f8f9fa;
   }
   
@@ -310,7 +310,7 @@
   
   .photo-placeholder i {
     font-size: 3rem;
-    color: #1976d2;
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
     margin-bottom: 0.5rem;
   }
   
@@ -368,7 +368,7 @@
   
   .loading-state i {
     font-size: 2rem;
-    color: #1976d2;
+    color: #2a8d8e; /* Modifié: anciennement #1976d2 */
     margin-bottom: 1rem;
   }
   
