@@ -1,7 +1,14 @@
-// Modified DoctorSidebar.jsx to display profile photo
+// src/components/doctor-dashboard/DoctorSidebar.jsx
 import React from "react";
 
-const DoctorSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading }) => (
+const DoctorSidebar = ({ 
+  user, 
+  activeTab, 
+  handleTabChange, 
+  handleLogout, 
+  actionLoading,
+  profile // Ajout du prop profile
+}) => (
   <aside className="sidebar">
     <div className="sidebar-header">
       <img src="/images/logo.png" alt="Logo Clinique" className="logo" />
@@ -10,8 +17,8 @@ const DoctorSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionL
 
     <div className="user-info">
       <div className="avatar">
-        {user?.photoUrl ? (
-          <img src={user.photoUrl} alt="Photo de profil" className="profile-photo" />
+        {profile?.photoUrl ? (
+          <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
         ) : (
           <i className="fas fa-user-md"></i>
         )}

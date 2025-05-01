@@ -37,6 +37,7 @@ const DoctorDashboard = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
+  const [profile, setProfile] = useState(null); // État pour stocker le profil de l'utilisateur
 
   const navigate = useNavigate();
 
@@ -64,7 +65,10 @@ const DoctorDashboard = () => {
           setTimeout(() => navigate("/"), 3000);
           return;
         }
-
+        // Récupérer le profil de l'utilisateur
+        const profileResponse = await axios.get("/api/doctor/profile", getAuthHeaders());
+        setProfile(profileResponse.data.profile);
+        
         // Récupérer toutes les données en parallèle
         const [appointmentsRes, patientsRes] = await Promise.all([
           axios.get("/api/doctor/appointments", getAuthHeaders()),
@@ -365,6 +369,7 @@ const DoctorDashboard = () => {
     <div className="doctor-dashboard">
       <DoctorSidebar
         user={user}
+        profile={profile}  // Ajout de cette prop
         activeTab={activeTab}
         handleTabChange={handleTabChange}
         handleLogout={handleLogout}

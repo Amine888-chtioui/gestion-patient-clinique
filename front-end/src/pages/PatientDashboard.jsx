@@ -366,6 +366,7 @@ const PatientDashboard = () => {
     <div className="patient-dashboard">
       <Sidebar
         user={user}
+        profile={profile}  // Ajout de cette prop
         activeTab={activeTab}
         handleTabChange={handleTabChange}
         handleLogout={handleLogout}
