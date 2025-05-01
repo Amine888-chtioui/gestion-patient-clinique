@@ -1,12 +1,11 @@
 // src/pages/PatientDashboard.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
 import "../components/patient-dashboard/notification.css";
 import "../components/patient-dashboard/PatientDashboard.css";
 
 // Import des composants communs
-import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
 import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
 import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
 
@@ -29,17 +28,19 @@ import "../components/patient-dashboard/appointment-booking.css";
 
 const PatientDashboard = () => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
 
   // États pour suivre le chargement des sections
   const [loadingStates, setLoadingStates] = useState({
+    overview: false,
     appointments: false,
     medicalRecords: false,
     prescriptions: false,
     profile: false,
-    invoices: false
+    invoices: false,
+    book: false
   });
 
   // États pour stocker les données
@@ -55,6 +56,7 @@ const PatientDashboard = () => {
   const [actionSuccess, setActionSuccess] = useState(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Fonction utilitaire pour les en-têtes d'autorisation
   const getAuthHeaders = () => ({
@@ -71,12 +73,13 @@ const PatientDashboard = () => {
 
   // Récupération des données initiales
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const initDashboard = async () => {
       const token = localStorage.getItem("token");
       if (!token) return navigate("/login");
 
       try {
-        setLoading(true);
+        setInitialLoading(true);
+        
         // Récupérer les informations de l'utilisateur
         const userResponse = await axios.get("/api/user", getAuthHeaders());
         setUser(userResponse.data);
@@ -87,12 +90,32 @@ const PatientDashboard = () => {
           return;
         }
 
-        // Charger uniquement le profil et les données pour l'onglet Overview au démarrage
-        const profileRes = await axios.get("/api/patient/profile", getAuthHeaders());
-        setProfile(profileRes.data.profile || null);
+        // Charger le profil
+        try {
+          const profileRes = await axios.get("/api/patient/profile", getAuthHeaders());
+          setProfile(profileRes.data.profile || null);
+        } catch(profileErr) {
+          console.warn("Impossible de charger le profil:", profileErr);
+        }
         
-        // Charger les données de l'onglet initial (overview)
-        await loadSectionData("overview");
+        // Déterminer l'onglet actif à partir de l'URL
+        const pathSegments = location.pathname.split('/').filter(Boolean);
+        let initialTab = "overview";
+        
+        if (pathSegments.length >= 3 && pathSegments[0] === 'patient' && pathSegments[1] === 'dashboard') {
+          initialTab = pathSegments[2];
+        }
+        
+        setActiveTab(initialTab);
+        
+        // Marquer la section active comme étant en cours de chargement
+        setLoadingState(initialTab, true);
+        
+        // Charger les données de l'onglet initial
+        await loadSectionData(initialTab);
+        
+        // Désactiver le loading initial une fois les données de base chargées
+        setInitialLoading(false);
         
       } catch (err) {
         console.error("Erreur:", err);
@@ -102,13 +125,12 @@ const PatientDashboard = () => {
         } else {
           setError("Impossible de charger les données. Veuillez réessayer plus tard.");
         }
-      } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     };
 
-    fetchDashboardData();
-  }, [navigate]);
+    initDashboard();
+  }, [navigate, location]);
 
   // Charge les données pour une section spécifique
   const loadSectionData = async (section) => {
@@ -119,14 +141,33 @@ const PatientDashboard = () => {
       switch (section) {
         case "overview":
           // Pour l'overview, nous avons besoin de toutes les données mais en version résumée
-          if (appointments.length === 0) await fetchAppointments();
-          if (medicalRecords.length === 0) await fetchMedicalRecords();
-          if (prescriptions.length === 0) await fetchPrescriptions();
+          const overviewPromises = [];
+          
+          if (appointments.length === 0) {
+            overviewPromises.push(fetchAppointments());
+          }
+          
+          if (medicalRecords.length === 0) {
+            overviewPromises.push(fetchMedicalRecords());
+          }
+          
+          if (prescriptions.length === 0) {
+            overviewPromises.push(fetchPrescriptions());
+          }
+          
+          if (overviewPromises.length > 0) {
+            await Promise.all(overviewPromises);
+          }
           break;
           
         case "appointments":
           if (appointments.length === 0) {
             await fetchAppointments();
+          }
+          
+          // On a besoin des docteurs pour les rendez-vous également
+          if (doctors.length === 0) {
+            await fetchDoctors();
           }
           break;
           
@@ -147,6 +188,14 @@ const PatientDashboard = () => {
           if (prescriptions.length === 0) {
             await fetchPrescriptions();
           }
+          break;
+          
+        case "invoices":
+          // Les factures sont chargées directement par le composant Invoices
+          break;
+          
+        case "profile":
+          // Le profil est déjà chargé
           break;
           
         default:
@@ -222,14 +271,17 @@ const PatientDashboard = () => {
     }
   };
 
-  // Gestion du changement d'onglet avec chargement à la demande
+  // Gestion du changement d'onglet
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setActionError(null);
     setActionSuccess(null);
     
-    // Chargement des données de l'onglet à la demande
+    // Charger les données de l'onglet à la demande
     loadSectionData(tab);
+    
+    // Mise à jour de l'URL
+    navigate(`/patient/dashboard/${tab}`);
   };
 
   const handleBookAppointment = async (appointmentData) => {
@@ -244,7 +296,7 @@ const PatientDashboard = () => {
         getAuthHeaders()
       );
 
-      // Ajouter le nouveau rendez-vous à la liste avec des données minimales
+      // Ajouter le nouveau rendez-vous à la liste
       const newAppointment = {
         id: response.data.appointment.id,
         date: appointmentData.date,
@@ -257,9 +309,11 @@ const PatientDashboard = () => {
       setAppointments([newAppointment, ...appointments]);
       setActionSuccess("Rendez-vous créé avec succès!");
 
+      // Redirection vers les rendez-vous après la création
       setTimeout(() => {
         setActiveTab("appointments");
         setActionSuccess(null);
+        navigate('/patient/dashboard/appointments');
       }, 1500);
     } catch (err) {
       if (err.response?.status === 401) {
@@ -286,11 +340,14 @@ const PatientDashboard = () => {
 
     try {
       await axios.delete(`/api/patient/appointments/${id}`, getAuthHeaders());
+      
+      // Mettre à jour l'état localement
       setAppointments(
         appointments.map((apt) =>
           apt.id === id ? { ...apt, status: "annulé" } : apt
         )
       );
+      
       setActionSuccess("Rendez-vous annulé avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
@@ -378,10 +435,7 @@ const PatientDashboard = () => {
       setActionSuccess("Photo de profil mise à jour avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
-      console.error(
-        "Erreur lors de la mise à jour de la photo de profil:",
-        err
-      );
+      console.error("Erreur lors de la mise à jour de la photo de profil:", err);
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         navigate("/login");
@@ -440,12 +494,7 @@ const PatientDashboard = () => {
     }
   };
 
-  // Affichage en cas de chargement
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  // Affichage en cas d'erreur
+  // Affichage en cas d'erreur globale
   if (error) {
     return <ErrorDisplay error={error} />;
   }
@@ -454,12 +503,12 @@ const PatientDashboard = () => {
   return (
     <div className="patient-dashboard">
       <Sidebar
-        user={user}
+        user={user || { name: "Chargement...", email: "" }}
         profile={profile}
         activeTab={activeTab}
         handleTabChange={handleTabChange}
         handleLogout={handleLogout}
-        actionLoading={actionLoading}
+        actionLoading={actionLoading || initialLoading}
       />
 
       <main className="main-content">
@@ -468,9 +517,9 @@ const PatientDashboard = () => {
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
 
-          {/* Rendu conditionnel des sections avec indicateurs de chargement locaux */}
+          {/* Rendus conditionnels avec indicateurs de chargement */}
           {activeTab === "overview" && (
-            loadingStates.overview ? (
+            initialLoading || loadingStates.overview ? (
               <div className="section-loader">
                 <div className="loader-indicator"></div>
               </div>
@@ -487,13 +536,14 @@ const PatientDashboard = () => {
           )}
 
           {activeTab === "appointments" && (
-            loadingStates.appointments ? (
+            initialLoading || loadingStates.appointments ? (
               <div className="section-loader">
                 <div className="loader-indicator"></div>
               </div>
             ) : (
               <Appointments
                 appointments={appointments}
+                doctors={doctors}
                 handleCancelAppointment={handleCancelAppointment}
                 handleTabChange={handleTabChange}
                 actionLoading={actionLoading}
@@ -502,15 +552,21 @@ const PatientDashboard = () => {
           )}
 
           {activeTab === "book" && (
-            <ImprovedBookAppointment
-              handleTabChange={handleTabChange}
-              actionLoading={actionLoading}
-              onBookAppointment={handleBookAppointment}
-            />
+            initialLoading || loadingStates.book ? (
+              <div className="section-loader">
+                <div className="loader-indicator"></div>
+              </div>
+            ) : (
+              <ImprovedBookAppointment
+                handleTabChange={handleTabChange}
+                actionLoading={actionLoading}
+                onBookAppointment={handleBookAppointment}
+              />
+            )
           )}
 
           {activeTab === "medicalRecords" && (
-            loadingStates.medicalRecords ? (
+            initialLoading || loadingStates.medicalRecords ? (
               <div className="section-loader">
                 <div className="loader-indicator"></div>
               </div>
@@ -524,7 +580,7 @@ const PatientDashboard = () => {
           )}
 
           {activeTab === "prescriptions" && (
-            loadingStates.prescriptions ? (
+            initialLoading || loadingStates.prescriptions ? (
               <div className="section-loader">
                 <div className="loader-indicator"></div>
               </div>
@@ -537,19 +593,31 @@ const PatientDashboard = () => {
           )}
 
           {activeTab === "invoices" && (
-            <Invoices
-              actionLoading={actionLoading}
-            />
+            initialLoading || loadingStates.invoices ? (
+              <div className="section-loader">
+                <div className="loader-indicator"></div>
+              </div>
+            ) : (
+              <Invoices
+                actionLoading={actionLoading}
+              />
+            )
           )}
 
           {activeTab === "profile" && (
-            <Profile
-              user={user}
-              profile={profile}
-              updateProfile={handleUpdateProfile}
-              updatePhoto={handleUpdatePhoto}
-              actionLoading={actionLoading}
-            />
+            initialLoading || loadingStates.profile ? (
+              <div className="section-loader">
+                <div className="loader-indicator"></div>
+              </div>
+            ) : (
+              <Profile
+                user={user}
+                profile={profile}
+                updateProfile={handleUpdateProfile}
+                updatePhoto={handleUpdatePhoto}
+                actionLoading={actionLoading}
+              />
+            )
           )}
         </div>
       </main>
