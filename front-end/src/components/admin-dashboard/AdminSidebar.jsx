@@ -1,9 +1,16 @@
-// Modifiez le fichier front-end/src/components/admin-dashboard/AdminSidebar.jsx
+// src/components/admin-dashboard/AdminSidebar.jsx
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLoading }) => {
+const AdminSidebar = ({ 
+  user, 
+  activeTab, 
+  handleTabChange, 
+  handleLogout, 
+  actionLoading,
+  profile  // Ajout du prop profile
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -15,10 +22,15 @@ const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLo
 
       <div className="user-info">
         <div className="avatar">
-          <i className="fas fa-user-circle"></i>
+          {profile?.photoUrl ? (
+            <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+          ) : (
+            <i className="fas fa-user-circle"></i>
+          )}
         </div>
         <h3>{user?.name}</h3>
         <p>{user?.email}</p>
+        <span className="badge-admin">Administrateur</span>
       </div>
 
       <nav className="sidebar-nav">
@@ -38,7 +50,7 @@ const AdminSidebar = ({ user, activeTab, handleTabChange, handleLogout, actionLo
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
               <button 
                 onClick={() => handleTabChange(item.id)}
-                data-tab={item.id} /* Ajout de l'attribut data-tab pour cibler en CSS */
+                data-tab={item.id}
               >
                 <i className={`fas fa-${item.icon}`}></i> {item.label}
               </button>

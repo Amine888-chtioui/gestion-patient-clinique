@@ -54,7 +54,8 @@ const AdminDashboard = () => {
     invoices: false,
     profile: false  // Added this line
   });
-
+  // Ajouter un nouvel état pour le profil admin
+  const [adminProfile, setAdminProfile] = useState(null);
   // États pour stocker les données
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -108,7 +109,13 @@ const AdminDashboard = () => {
           setTimeout(() => navigate("/"), 3000);
           return;
         }
-
+           // Récupérer le profil de l'administrateur
+      try {
+        const profileResponse = await axios.get("/api/admin/profile", getAuthHeaders());
+        setAdminProfile(profileResponse.data.profile);
+      } catch (profileErr) {
+        console.warn("Impossible de charger le profil administrateur:", profileErr);
+      }
         // Déterminer l'onglet actif à partir de l'URL
         const pathSegments = location.pathname.split('/').filter(Boolean);
         let initialTab = "overview";
@@ -676,13 +683,14 @@ const AdminDashboard = () => {
   // Affichage du tableau de bord
   return (
     <div className="admin-dashboard">
-      <AdminSidebar
-        user={user}
-        activeTab={activeTab}
-        handleTabChange={handleTabChange}
-        handleLogout={handleLogout}
-        actionLoading={actionLoading}
-      />
+    <AdminSidebar
+      user={user}
+      profile={adminProfile}  // Ajout de cette prop
+      activeTab={activeTab}
+      handleTabChange={handleTabChange}
+      handleLogout={handleLogout}
+      actionLoading={actionLoading}
+    />
 
       <main className="main-content">
         <ContentHeader activeTab={activeTab} />
