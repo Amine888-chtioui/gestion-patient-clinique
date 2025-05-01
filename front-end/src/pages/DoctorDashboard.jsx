@@ -68,7 +68,7 @@ const DoctorDashboard = () => {
         // Récupérer le profil de l'utilisateur
         const profileResponse = await axios.get("/api/doctor/profile", getAuthHeaders());
         setProfile(profileResponse.data.profile);
-        
+
         // Récupérer toutes les données en parallèle
         const [appointmentsRes, patientsRes] = await Promise.all([
           axios.get("/api/doctor/appointments", getAuthHeaders()),
@@ -381,6 +381,7 @@ const DoctorDashboard = () => {
           activeTab={activeTab} 
           activeSubTab={activeSubTab} 
           selectedPatient={selectedPatient}
+          handleTabChange={handleTabChange}
         />
 
         <div className="content-body">

@@ -1,8 +1,8 @@
-// src/components/admin-dashboard/ContentHeader.jsx - version améliorée
+// src/components/admin-dashboard/ContentHeader.jsx
 import React from "react";
 import AdminNotificationButton from "./AdminNotificationButton";
 
-const ContentHeader = ({ activeTab }) => {
+const ContentHeader = ({ activeTab, handleTabChange }) => {
   const getTabTitle = () => {
     switch (activeTab) {
       case "overview":
@@ -23,6 +23,8 @@ const ContentHeader = ({ activeTab }) => {
         return "Statistiques";
       case "users":
         return "Gestion des utilisateurs";
+      case "profile":
+        return "Mon profil";
       default:
         return "Administration";
     }
@@ -33,8 +35,12 @@ const ContentHeader = ({ activeTab }) => {
       <h1>{getTabTitle()}</h1>
       <div className="header-actions">
         <AdminNotificationButton />
-        <button className="btn-secondary">
-          <i className="fas fa-cog"></i>
+        <button 
+          className="btn-secondary" 
+          onClick={() => handleTabChange("profile")}
+          title="Mon profil"
+        >
+          <i className="fas fa-user"></i>
         </button>
       </div>
     </header>

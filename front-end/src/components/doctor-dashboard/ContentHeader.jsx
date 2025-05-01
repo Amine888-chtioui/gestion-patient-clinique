@@ -1,8 +1,8 @@
-// src/components/doctor-dashboard/ContentHeader.jsx - version mise à jour
+// src/components/doctor-dashboard/ContentHeader.jsx
 import React from "react";
 import NotificationButton from "./NotificationButton";
 
-const ContentHeader = ({ activeTab, activeSubTab, selectedPatient }) => {
+const ContentHeader = ({ activeTab, activeSubTab, selectedPatient, handleTabChange }) => {
   let title = "";
   
   if (activeTab === "overview") {
@@ -32,8 +32,12 @@ const ContentHeader = ({ activeTab, activeSubTab, selectedPatient }) => {
       <h1>{title}</h1>
       <div className="header-actions">
         <NotificationButton />
-        <button className="btn-secondary">
-          <i className="fas fa-cog"></i>
+        <button 
+          className="btn-secondary" 
+          onClick={() => handleTabChange("profile")}
+          title="Mon profil"
+        >
+          <i className="fas fa-user"></i>
         </button>
       </div>
     </header>

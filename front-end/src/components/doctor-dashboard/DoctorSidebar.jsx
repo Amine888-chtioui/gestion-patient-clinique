@@ -34,7 +34,6 @@ const DoctorSidebar = ({
           { id: "overview", icon: "home", label: "Tableau de bord" },
           { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
           { id: "patients", icon: "user-injured", label: "Patients" },
-          { id: "profile", icon: "user", label: "Mon profil" }
         ].map(item => (
           <li key={item.id} className={activeTab === item.id ? "active" : ""}>
             <button onClick={() => handleTabChange(item.id)}>

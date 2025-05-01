@@ -41,7 +41,7 @@ const Sidebar = ({
             { id: "medicalRecords", icon: "file-medical", label: "Dossier médical" },
             { id: "prescriptions", icon: "prescription", label: "Ordonnances" },
             { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
-            { id: "profile", icon: "user", label: "Mon profil" },
+            
           ].map((item) => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
               <button onClick={() => handleTabChange(item.id)}>

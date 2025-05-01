@@ -693,7 +693,7 @@ const AdminDashboard = () => {
     />
 
       <main className="main-content">
-        <ContentHeader activeTab={activeTab} />
+      <ContentHeader activeTab={activeTab} handleTabChange={handleTabChange} />
 
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
