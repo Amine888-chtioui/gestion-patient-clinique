@@ -1,31 +1,80 @@
 // src/components/admin-dashboard/AdminProfile.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "../../axios";
 
 const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, setActionSuccess }) => {
-  const [editMode, setEditMode] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isChangingPhoto, setIsChangingPhoto] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
+    name: "",
+    email: "",
     password: "",
     password_confirmation: "",
-    phone: user?.phone || "",
-    bio: user?.bio || "",
+    phone: "",
+    bio: "",
   });
 
-  const fileInputRef = useRef(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [photoFile, setPhotoFile] = useState(null);
+  // Charger les données du profil au chargement du composant
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("/api/admin/profile", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        
+        setProfile(response.data.profile);
+        // Initialiser le formulaire avec les données du profil
+        setFormData({
+          name: response.data.profile.name || "",
+          email: response.data.profile.email || "",
+          password: "",
+          password_confirmation: "",
+          phone: response.data.profile.phone || "",
+          bio: response.data.profile.bio || "",
+        });
+      } catch (err) {
+        console.error("Erreur lors du chargement du profil:", err);
+        setActionError("Impossible de charger les informations du profil");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setIsChangingPhoto(false);
+  };
+
+  const handlePhotoClick = () => {
+    setIsChangingPhoto(true);
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleCancelPhotoChange = () => {
+    setIsChangingPhoto(false);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
 
-  const handleProfileUpdate = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
 
@@ -42,13 +91,8 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
       });
 
       setActionSuccess("Profil mis à jour avec succès!");
-      setEditMode(false);
-      
-      setTimeout(() => {
-        setActionSuccess(null);
-        // Reload to get fresh user data
-        window.location.reload();
-      }, 2000);
+      setProfile(response.data.profile);
+      setIsEditing(false);
     } catch (err) {
       console.error("Erreur lors de la mise à jour du profil:", err);
       setActionError(
@@ -60,27 +104,14 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
     }
   };
 
-  const handlePhotoClick = () => {
-    fileInputRef.current.click();
-  };
-
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPhotoFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      handleSavePhoto(file);
     }
   };
 
-  const handlePhotoUpload = async () => {
-    if (!photoFile) return;
-    
+  const handleSavePhoto = async (photoFile) => {
     setActionLoading(true);
     
     try {
@@ -94,12 +125,14 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
         },
       });
       
+      // Mettre à jour le profil avec la nouvelle URL de photo
+      setProfile({
+        ...profile,
+        photoUrl: response.data.photo_url
+      });
+      
       setActionSuccess("Photo de profil mise à jour avec succès!");
-      setTimeout(() => {
-        setActionSuccess(null);
-        // Reload to get fresh user data
-        window.location.reload();
-      }, 2000);
+      setIsChangingPhoto(false);
     } catch (err) {
       console.error("Erreur lors de la mise à jour de la photo:", err);
       setActionError(
@@ -108,69 +141,39 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
       );
     } finally {
       setActionLoading(false);
-      setPhotoFile(null);
-      setPhotoPreview(null);
     }
   };
 
-  return (
-    <div className="profile-container">
-      <div className="profile-info-card">
-        <div className="profile-header">
-          <div className="profile-avatar">
-            {photoPreview ? (
-              <img src={photoPreview} alt="Prévisualisation" className="profile-photo" />
-            ) : user?.photoUrl ? (
-              <img src={user.photoUrl} alt={user.name} className="profile-photo" />
-            ) : (
-              <i className="fas fa-user-circle"></i>
-            )}
+  // Affichage pendant le chargement
+  if (loading) {
+    return (
+      <div className="profile-container">
+        <div className="profile-info-card">
+          <div className="loading-state">
+            <i className="fas fa-spinner fa-spin"></i>
+            <p>Chargement du profil...</p>
           </div>
-          <div className="profile-title">
-            <h3>{user?.name}</h3>
-            <p>Administrateur depuis {new Date().getFullYear()}</p>
-          </div>
-          <button
-            className="btn-outline"
-            onClick={handlePhotoClick}
-            disabled={actionLoading}
-          >
-            <i className="fas fa-camera"></i> Changer la photo
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handlePhotoChange}
-            style={{ display: "none" }}
-            accept="image/jpeg, image/png, image/jpg"
-          />
         </div>
+      </div>
+    );
+  }
 
-        {photoFile && (
-          <div className="photo-actions" style={{ textAlign: 'center', margin: '1rem 0' }}>
-            <button
-              className="btn-primary"
-              onClick={handlePhotoUpload}
-              disabled={actionLoading}
-            >
-              {actionLoading ? "Enregistrement..." : "Enregistrer la nouvelle photo"}
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => {
-                setPhotoFile(null);
-                setPhotoPreview(null);
-              }}
-              disabled={actionLoading}
-              style={{ marginLeft: '10px' }}
-            >
-              Annuler
-            </button>
+  // Interface de modification du profil
+  if (isEditing) {
+    return (
+      <div className="profile-container">
+        <div className="profile-info-card">
+          <div className="profile-header">
+            <div className="profile-avatar">
+              <i className="fas fa-user-circle"></i>
+            </div>
+            <div className="profile-title">
+              <h3>Modifier mon profil</h3>
+              <p>Mettre à jour mes informations personnelles</p>
+            </div>
           </div>
-        )}
-
-        {editMode ? (
-          <form onSubmit={handleProfileUpdate} className="edit-profile-form">
+          
+          <form onSubmit={handleSubmit} className="edit-profile-form">
             <div className="form-section">
               <h4>Informations personnelles</h4>
               
@@ -200,18 +203,16 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="phone">Téléphone</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    disabled={actionLoading}
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="phone">Téléphone</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  disabled={actionLoading}
+                />
               </div>
             </div>
             
@@ -234,7 +235,7 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
 
             <div className="form-section">
               <h4>Modifier le mot de passe</h4>
-              <p style={{ color: '#6c757d', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              <p className="form-info">
                 Laissez ces champs vides si vous ne souhaitez pas modifier votre mot de passe
               </p>
               
@@ -274,62 +275,110 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => setEditMode(false)}
+                onClick={handleCancelEdit}
                 disabled={actionLoading}
               >
                 Annuler
               </button>
             </div>
           </form>
-        ) : (
-          <div className="profile-details">
-            <div className="detail-group">
-              <h4>Informations personnelles</h4>
-              <div className="detail-row">
-                <div className="detail-label">Nom complet</div>
-                <div className="detail-value">{user?.name}</div>
-              </div>
-              <div className="detail-row">
-                <div className="detail-label">Email</div>
-                <div className="detail-value">{user?.email}</div>
-              </div>
-              <div className="detail-row">
-                <div className="detail-label">Téléphone</div>
-                <div className="detail-value">
-                  {user?.phone || "Non renseigné"}
-                </div>
-              </div>
-              <div className="detail-row">
-                <div className="detail-label">Rôle</div>
-                <div className="detail-value">
-                  <span className="role-badge admin">Administrateur</span>
-                </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Interface de changement de photo
+  if (isChangingPhoto) {
+    return (
+      <div className="profile-container">
+        <div className="profile-info-card">
+          <PhotoUpload 
+            onSave={handleSavePhoto} 
+            onCancel={handleCancelPhotoChange} 
+            actionLoading={actionLoading}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Interface principale du profil
+  return (
+    <div className="profile-container">
+      <div className="profile-info-card">
+        <div className="profile-header">
+          <div className="profile-avatar">
+            {profile?.photoUrl ? (
+              <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+            ) : (
+              <i className="fas fa-user-circle"></i>
+            )}
+          </div>
+          <div className="profile-title">
+            <h3>{profile?.name}</h3>
+            <p>Administrateur depuis {new Date().getFullYear()}</p>
+          </div>
+          <button
+            className="btn-outline"
+            onClick={handlePhotoClick}
+            disabled={actionLoading}
+          >
+            <i className="fas fa-camera"></i> Changer la photo
+          </button>
+        </div>
+
+        <div className="profile-details">
+          <div className="detail-group">
+            <h4>Informations personnelles</h4>
+            <div className="detail-row">
+              <div className="detail-label">Nom complet</div>
+              <div className="detail-value">{profile?.name}</div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-label">Email</div>
+              <div className="detail-value">{profile?.email}</div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-label">Téléphone</div>
+              <div className="detail-value">
+                {profile?.phone || "Non renseigné"}
               </div>
             </div>
-
-            <div className="detail-group">
-              <h4>Informations professionnelles</h4>
-              <div className="detail-row">
-                <div className="detail-label">Biographie</div>
-                <div className="detail-value">
-                  {user?.bio || "Non renseignée"}
-                </div>
+            <div className="detail-row">
+              <div className="detail-label">Rôle</div>
+              <div className="detail-value">
+                <span className="role-badge admin">Administrateur</span>
               </div>
             </div>
           </div>
-        )}
 
-        {!editMode && (
-          <div className="profile-actions">
-            <button
-              className="btn-primary"
-              onClick={() => setEditMode(true)}
-              disabled={actionLoading}
-            >
-              <i className="fas fa-edit"></i> Modifier le profil
-            </button>
+          <div className="detail-group">
+            <h4>Informations professionnelles</h4>
+            <div className="detail-row">
+              <div className="detail-label">Biographie</div>
+              <div className="detail-value">
+                {profile?.bio || "Non renseignée"}
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="profile-actions">
+          <button
+            className="btn-primary"
+            onClick={handleEditClick}
+            disabled={actionLoading}
+          >
+            <i className="fas fa-edit"></i> Modifier le profil
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => alert("Fonctionnalité en cours de développement")}
+            disabled={actionLoading}
+          >
+            <i className="fas fa-key"></i> Changer le mot de passe
+          </button>
+        </div>
       </div>
       <div className="privacy-notice">
         <h4>Sécurité du compte administrateur</h4>
@@ -338,6 +387,122 @@ const AdminProfile = ({ user, actionLoading, setActionLoading, setActionError, s
           Veillez à maintenir votre mot de passe sécurisé et à ne jamais partager vos identifiants.
           Toutes vos actions sont enregistrées dans le système pour des raisons de sécurité.
         </p>
+      </div>
+    </div>
+  );
+};
+
+// Composant de téléchargement de photo
+const PhotoUpload = ({ onSave, onCancel, actionLoading }) => {
+  const [preview, setPreview] = useState(null);
+  const [file, setFile] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    
+    if (selectedFile) {
+      // Vérification du type et de la taille du fichier
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      
+      if (!validTypes.includes(selectedFile.type)) {
+        alert('Veuillez sélectionner une image au format JPEG, PNG ou JPG.');
+        return;
+      }
+      
+      if (selectedFile.size > maxSize) {
+        alert('La taille de l\'image ne doit pas dépasser 2 MB.');
+        return;
+      }
+      
+      setFile(selectedFile);
+      
+      // Créer un aperçu de l'image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (file) {
+      onSave(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
+  return (
+    <div className="photo-upload-container">
+      <h3>Changer la photo de profil</h3>
+      
+      <div className="upload-preview">
+        {preview ? (
+          <img src={preview} alt="Aperçu" className="profile-photo-preview" />
+        ) : (
+          <div className="photo-placeholder">
+            <i className="fas fa-user-circle"></i>
+            <p>Sélectionnez une photo</p>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          onChange={handleFileChange} 
+          accept="image/jpeg, image/png, image/jpg"
+          className="file-input"
+          name="profile_photo"
+          disabled={actionLoading}
+          style={{ display: 'none' }}
+        />
+        
+        <div className="upload-actions">
+          <button 
+            type="button" 
+            className="btn-secondary" 
+            onClick={triggerFileInput}
+            disabled={actionLoading}
+          >
+            <i className="fas fa-image"></i> Choisir une photo
+          </button>
+          
+          <div className="form-actions">
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              disabled={!file || actionLoading}
+            >
+              {actionLoading ? "Enregistrement..." : "Enregistrer"}
+            </button>
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              onClick={onCancel}
+              disabled={actionLoading}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      </form>
+      
+      <div className="photo-guidelines">
+        <h4>Conseils pour la photo</h4>
+        <ul>
+          <li>Utilisez une photo de visage claire et récente</li>
+          <li>Assurez-vous que votre visage est bien visible</li>
+          <li>Format accepté: JPEG ou PNG</li>
+          <li>Taille maximale: 2 Mo</li>
+        </ul>
       </div>
     </div>
   );
