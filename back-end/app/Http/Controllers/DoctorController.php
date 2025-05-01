@@ -12,7 +12,7 @@ use App\Models\Document;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Exception;
+use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
 
 class DoctorController extends Controller
@@ -308,6 +308,8 @@ public function getAllDoctors()
                     }),
                 ];
             });
+
+            
         
         // Formater les données du patient
         $profile = $patient->patientProfile;
@@ -331,6 +333,215 @@ public function getAllDoctors()
         return response()->json([
             'patient' => $patientData
         ]);
+    }
+
+    public function getProfile()
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un médecin
+        if (!$user->isDoctor()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Dans un système réel, vous auriez une table dédiée pour les profils de médecin
+        // Ici, nous utilisons simplement les données de l'utilisateur
+        
+        return response()->json([
+            'profile' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                // Ces champs seraient idéalement dans une table DoctorProfile
+                'speciality' => $user->speciality ?? null,
+                'phone' => $user->phone ?? null,
+                'bio' => $user->bio ?? null,
+                'education' => $user->education ?? null,
+                'experience' => $user->experience ?? null,
+                'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
+            ]
+        ]);
+    }
+
+    /**
+     * Mettre à jour le profil du médecin
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un médecin
+        if (!$user->isDoctor()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        $validatedData = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'speciality' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'bio' => 'nullable|string',
+            'education' => 'nullable|string',
+            'experience' => 'nullable|string',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+        
+        // Mise à jour des informations de base de l'utilisateur
+        if (isset($validatedData['name'])) {
+            $user->name = $validatedData['name'];
+        }
+        
+        if (isset($validatedData['email'])) {
+            $user->email = $validatedData['email'];
+        }
+        
+        if (isset($validatedData['password']) && $validatedData['password']) {
+            $user->password = Hash::make($validatedData['password']);
+        }
+        
+        // Dans un système réel, ces champs seraient dans une table dédiée aux profils de médecin
+        // Ici, nous les ajoutons directement à l'utilisateur (vous devriez adapter votre modèle User)
+        
+        if (isset($validatedData['speciality'])) {
+            $user->speciality = $validatedData['speciality'];
+        }
+        
+        if (isset($validatedData['phone'])) {
+            $user->phone = $validatedData['phone'];
+        }
+        
+        if (isset($validatedData['bio'])) {
+            $user->bio = $validatedData['bio'];
+        }
+        
+        if (isset($validatedData['education'])) {
+            $user->education = $validatedData['education'];
+        }
+        
+        if (isset($validatedData['experience'])) {
+            $user->experience = $validatedData['experience'];
+        }
+        
+        $user->save();
+        
+        // Pas de notification envoyée ici, conformément aux instructions
+        
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès',
+            'profile' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'speciality' => $user->speciality ?? null,
+                'phone' => $user->phone ?? null,
+                'bio' => $user->bio ?? null,
+                'education' => $user->education ?? null,
+                'experience' => $user->experience ?? null,
+                'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
+            ]
+        ]);
+    }
+
+    /**
+     * Télécharger et mettre à jour la photo de profil du médecin
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function updateProfilePhoto(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un médecin
+        if (!$user->isDoctor()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Validation de la requête
+        $request->validate([
+            'profile_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB max
+        ]);
+        
+        try {
+            Log::info('Doctor profile photo upload started');
+            
+            // Vérifier si une image a été envoyée
+            if ($request->hasFile('profile_photo')) {
+                $image = $request->file('profile_photo');
+                Log::info('Photo received successfully', [
+                    'original_name' => $image->getClientOriginalName(),
+                    'size' => $image->getSize(),
+                    'mime' => $image->getMimeType()
+                ]);
+                
+                // Supprimer l'ancienne photo si elle existe
+                if ($user->profile_photo && file_exists(public_path('uploads/profiles/' . $user->profile_photo))) {
+                    unlink(public_path('uploads/profiles/' . $user->profile_photo));
+                    Log::info('Old photo deleted');
+                }
+                
+                // Générer un nom unique pour l'image
+                $fileName = time() . '.' . $image->getClientOriginalExtension();
+                Log::info('Generated filename: ' . $fileName);
+                
+                // Créer le dossier s'il n'existe pas
+                $uploadPath = public_path('uploads/profiles');
+                if (!file_exists($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                    Log::info('Upload directory created: ' . $uploadPath);
+                } else {
+                    Log::info('Upload directory already exists: ' . $uploadPath);
+                }
+                
+                try {
+                    // Déplacer l'image
+                    $image->move($uploadPath, $fileName);
+                    Log::info('Image moved successfully to: ' . $uploadPath . '/' . $fileName);
+                    
+                    // Mettre à jour le chemin de la photo dans le modèle utilisateur
+                    $user->profile_photo = $fileName;
+                    $user->save();
+                    Log::info('User record updated with new profile_photo path');
+                    
+                    // Générer l'URL publique de la photo
+                    $photoUrl = asset('uploads/profiles/' . $fileName);
+                    Log::info('Photo URL generated: ' . $photoUrl);
+                    
+                    // Envoyer une notification au médecin
+                    $this->notificationService->sendNotification(
+                        $user,
+                        'Photo de profil mise à jour',
+                        'Votre photo de profil a été mise à jour avec succès.',
+                        'success',
+                        '/doctor/profile'
+                    );
+                    
+                    return response()->json([
+                        'message' => 'Photo de profil mise à jour avec succès',
+                        'photo_url' => $photoUrl
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Error processing image: ' . $e->getMessage());
+                    Log::error($e->getTraceAsString());
+                    throw $e; // Relancer l'exception pour être capturée par le bloc externe
+                }
+            } else {
+                Log::warning('No image file was sent');
+                return response()->json([
+                    'message' => 'Aucune image n\'a été envoyée',
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error uploading doctor profile photo: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            return response()->json([
+                'message' => 'Erreur lors de la mise à jour de la photo de profil',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -537,118 +748,7 @@ public function getAllDoctors()
         return Storage::download($document->file_path, $document->name);
     }
 
-    /**
-     * Récupérer ou mettre à jour le profil du médecin
-     */
-    public function getProfile()
-    {
-        $user = Auth::user();
-        
-        // Vérifier que l'utilisateur est un médecin
-        if (!$user->isDoctor()) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
-        
-        // Dans un système réel, vous auriez une table dédiée pour les profils de médecin
-        // Ici, nous utilisons simplement les données de l'utilisateur
-        
-        return response()->json([
-            'profile' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                // Ces champs seraient idéalement dans une table DoctorProfile
-                'speciality' => $user->speciality ?? null,
-                'phone' => $user->phone ?? null,
-                'bio' => $user->bio ?? null,
-                'education' => $user->education ?? null,
-                'experience' => $user->experience ?? null,
-            ]
-        ]);
-    }
 
-    /**
-     * Mettre à jour le profil du médecin
-     */
-    public function updateProfile(Request $request)
-    {
-        $user = Auth::user();
-        
-        // Vérifier que l'utilisateur est un médecin
-        if (!$user->isDoctor()) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
-        
-        $validatedData = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
-            'speciality' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'bio' => 'nullable|string',
-            'education' => 'nullable|string',
-            'experience' => 'nullable|string',
-        ]);
-        
-        // Mise à jour des informations de base de l'utilisateur
-        if (isset($validatedData['name'])) {
-            $user->name = $validatedData['name'];
-        }
-        
-        if (isset($validatedData['email'])) {
-            $user->email = $validatedData['email'];
-        }
-        
-        // Dans un système réel, ces champs seraient dans une table dédiée aux profils de médecin
-        // Ici, nous les ajoutons directement à l'utilisateur (vous devriez adapter votre modèle User)
-        
-        if (isset($validatedData['speciality'])) {
-            $user->speciality = $validatedData['speciality'];
-        }
-        
-        if (isset($validatedData['phone'])) {
-            $user->phone = $validatedData['phone'];
-        }
-        
-        if (isset($validatedData['bio'])) {
-            $user->bio = $validatedData['bio'];
-        }
-        
-        if (isset($validatedData['education'])) {
-            $user->education = $validatedData['education'];
-        }
-        
-        if (isset($validatedData['experience'])) {
-            $user->experience = $validatedData['experience'];
-        }
-        
-        $user->save();
-        
-        // Pas de notification envoyée ici, conformément aux instructions
-        
-        return response()->json([
-            'message' => 'Profil mis à jour avec succès',
-            'profile' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'speciality' => $user->speciality ?? null,
-                'phone' => $user->phone ?? null,
-                'bio' => $user->bio ?? null,
-                'education' => $user->education ?? null,
-                'experience' => $user->experience ?? null,
-            ]
-        ]);
-    }
-
-    /**
-     * Récupérer les disponibilités d'un médecin pour une date donnée
-     * 
-     * @param Request $request
-     * @param int $doctor_id
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function getAvailability(Request $request, $doctor_id)
     {
         \Log::info('Requête reçue pour getAvailability', [

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'profile_photo', // Ajoutez cette ligne pour le champ photo de profil
     ];
 
     /**

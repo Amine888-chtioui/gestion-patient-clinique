@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/documents/{id}/download', [DoctorController::class, 'downloadDocument']);
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::put('/profile', [DoctorController::class, 'updateProfile']);
+        Route::post('/profile/photo', [DoctorController::class, 'updateProfilePhoto']);
     });
     
     // Routes pour les admins

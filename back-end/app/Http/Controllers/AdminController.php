@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -967,30 +968,42 @@ public function updateProfilePhoto(Request $request)
     ]);
     
     try {
+        Log::info('Admin profile photo upload started');
+        
         // Check if an image was sent
         if ($request->hasFile('profile_photo')) {
             $image = $request->file('profile_photo');
+            Log::info('Image file received', [
+                'original_name' => $image->getClientOriginalName(),
+                'size' => $image->getSize(),
+                'mime' => $image->getMimeType()
+            ]);
             
             // Delete old photo if it exists
             if ($user->profile_photo && file_exists(public_path('uploads/profiles/' . $user->profile_photo))) {
                 unlink(public_path('uploads/profiles/' . $user->profile_photo));
+                Log::info('Old profile photo deleted');
             }
             
             // Generate a unique name for the image
             $fileName = time() . '.' . $image->getClientOriginalExtension();
+            Log::info('Generated filename: ' . $fileName);
             
             // Create directory if it doesn't exist
             $uploadPath = public_path('uploads/profiles');
             if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0777, true);
+                Log::info('Created upload directory: ' . $uploadPath);
             }
             
             // Move the uploaded file
             $image->move($uploadPath, $fileName);
+            Log::info('Image moved to: ' . $uploadPath . '/' . $fileName);
             
             // Update the photo path in the user model
             $user->profile_photo = $fileName;
             $user->save();
+            Log::info('User record updated with new profile photo');
             
             // Generate the public URL of the photo
             $photoUrl = asset('uploads/profiles/' . $fileName);
@@ -1000,11 +1013,15 @@ public function updateProfilePhoto(Request $request)
                 'photo_url' => $photoUrl
             ]);
         } else {
+            Log::warning('No image file was received in the request');
             return response()->json([
                 'message' => 'No image was sent',
             ], 400);
         }
     } catch (\Exception $e) {
+        Log::error('Error updating admin profile photo: ' . $e->getMessage());
+        Log::error($e->getTraceAsString());
+        
         return response()->json([
             'message' => 'Error updating profile photo',
             'error' => $e->getMessage()
