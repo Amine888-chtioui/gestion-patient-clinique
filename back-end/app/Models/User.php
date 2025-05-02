@@ -22,7 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'profile_photo', // Ajoutez cette ligne pour le champ photo de profil
+        'profile_photo',
     ];
 
     /**
@@ -78,6 +78,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the doctor details associated with the user.
+     */
+    public function doctorDetail()
+    {
+        return $this->hasOne(DoctorDetail::class);
+    }
+
+    /**
+     * Get the patient details associated with the user.
+     */
+    public function patientDetail()
+    {
+        return $this->hasOne(PatientDetail::class);
+    }
+
+    /**
      * Get the appointments for the patient.
      */
     public function patientAppointments()
@@ -124,13 +140,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Prescription::class, 'doctor_id');
     }
-    // Ajoutez cette méthode dans le modèle User.php
 
-/**
- * Get the notifications for the user.
- */
-public function notifications()
-{
-    return $this->hasMany(Notification::class);
-}
+    /**
+     * Get the notifications for the user.
+     */
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
 }

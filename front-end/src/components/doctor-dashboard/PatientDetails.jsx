@@ -109,63 +109,84 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
       <div className="patient-content">
         {activeTab === 'info' && (
           <div className="patient-info-tab">
-            <div className="info-section">
-              <h3>Informations personnelles</h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <span className="info-label">Nom complet</span>
-                  <span className="info-value">{patient.name}</span>
+            {/* Nouvelles sections d'informations sans cadres */}
+            <div className="patient-info-container">
+              <h3 className="section-title">Informations personnelles</h3>
+              
+              <div className="info-form">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Nom complet</label>
+                    <div className="info-value">{patient.name}</div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Email</label>
+                    <div className="info-value">{patient.email}</div>
+                  </div>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Email</span>
-                  <span className="info-value">{patient.email}</span>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Téléphone</label>
+                    <div className="info-value">{patient.phone || "Non renseigné"}</div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Date de naissance</label>
+                    <div className="info-value">{patient.date_of_birth || "Non renseignée"}</div>
+                  </div>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Téléphone</span>
-                  <span className="info-value">{patient.phone || "Non renseigné"}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Date de naissance</span>
-                  <span className="info-value">{patient.date_of_birth || "Non renseignée"}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Adresse</span>
-                  <span className="info-value">{patient.address || "Non renseignée"}</span>
+                
+                <div className="form-row">
+                  <div className="form-group full-width">
+                    <label>Adresse</label>
+                    <div className="info-value">{patient.address || "Non renseignée"}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="info-section">
-              <h3>Informations médicales</h3>
-              <div className="info-grid">
-                <div className="info-item">
-                  <span className="info-label">Groupe sanguin</span>
-                  <span className="info-value">{patient.blood_type || "Non renseigné"}</span>
+              
+              <h3 className="section-title">Informations médicales</h3>
+              
+              <div className="info-form">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Groupe sanguin</label>
+                    <div className="info-value">{patient.blood_type || "Non renseigné"}</div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Allergies</label>
+                    <div className="info-value">
+                      {patient.allergies && patient.allergies.length > 0
+                        ? patient.allergies.join(", ")
+                        : "Aucune allergie renseignée"}
+                    </div>
+                  </div>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Allergies</span>
-                  <span className="info-value">
-                    {patient.allergies && patient.allergies.length > 0
-                      ? patient.allergies.join(", ")
-                      : "Aucune allergie renseignée"}
-                  </span>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Maladies chroniques</label>
+                    <div className="info-value">
+                      {patient.chronic_diseases && patient.chronic_diseases.length > 0
+                        ? patient.chronic_diseases.join(", ")
+                        : "Aucune maladie chronique renseignée"}
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Contact d'urgence</label>
+                    <div className="info-value">{patient.emergency_contact || "Non renseigné"}</div>
+                  </div>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Maladies chroniques</span>
-                  <span className="info-value">
-                    {patient.chronic_diseases && patient.chronic_diseases.length > 0
-                      ? patient.chronic_diseases.join(", ")
-                      : "Aucune maladie chronique renseignée"}
-                  </span>
-                </div>
-                <div className="info-item full-width">
-                  <span className="info-label">Contact d'urgence</span>
-                  <span className="info-value">{patient.emergency_contact || "Non renseigné"}</span>
-                </div>
-                <div className="info-item full-width">
-                  <span className="info-label">Antécédents médicaux</span>
-                  <div className="info-value-box">
-                    {patient.medical_history || "Aucun antécédent médical renseigné"}
+                
+                <div className="form-row">
+                  <div className="form-group full-width">
+                    <label>Antécédents médicaux</label>
+                    <div className="info-value medical-history">
+                      {patient.medical_history || "Aucun antécédent médical renseigné"}
+                    </div>
                   </div>
                 </div>
               </div>

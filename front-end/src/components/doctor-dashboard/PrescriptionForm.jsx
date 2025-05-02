@@ -65,198 +65,210 @@ const PrescriptionForm = ({
   };
 
   return (
-    <div className="prescription-form-container">
-      <div className="form-header">
-        <div className="patient-info">
-          <h3>Créer une ordonnance</h3>
-          <p>Patient: <strong>{patient.name}</strong></p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="prescription-form">
-        <div className="form-section">
-          <h4>Informations générales</h4>
-          
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="date">Date de l'ordonnance</label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-                disabled={actionLoading}
-              />
+    <div className="prescription-container">
+      <div className="form-content">
+        <div className="form-header">
+          <div className="patient-info">
+            <h3>Créer une ordonnance</h3>
+            <div className="patient-details">
+              <span className="patient-name">Patient: <strong>{patient.name}</strong></span>
             </div>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="notes">Notes générales</label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Informations complémentaires pour le patient..."
-              rows="3"
-              disabled={actionLoading}
-            ></textarea>
-          </div>
         </div>
 
-        <div className="form-section">
-          <div className="section-header">
-            <h4>Médicaments prescrits</h4>
-            <button 
-              type="button" 
-              className="btn-sm btn-outline"
-              onClick={addMedication}
-              disabled={actionLoading}
-            >
-              <i className="fas fa-plus"></i> Ajouter un médicament
-            </button>
-          </div>
+        <form onSubmit={handleSubmit} className="prescription-form">
+          <div className="form-grid">
+            <div className="form-main">
+              <div className="form-section">
+                <h4>Informations générales</h4>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="date">Date de l'ordonnance</label>
+                    <input
+                      type="date"
+                      id="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      required
+                      disabled={actionLoading}
+                    />
+                  </div>
+                </div>
 
-          {formData.medications.map((medication, index) => (
-            <div key={index} className="medication-form">
-              <div className="medication-header">
-                <h5>Médicament {index + 1}</h5>
-                {formData.medications.length > 1 && (
+                <div className="form-group">
+                  <label htmlFor="notes">Notes générales</label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    placeholder="Informations complémentaires pour le patient..."
+                    rows="3"
+                    disabled={actionLoading}
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="form-section medications-section">
+                <div className="section-header">
+                  <h4>Médicaments prescrits</h4>
                   <button 
                     type="button" 
-                    className="btn-icon" 
-                    onClick={() => removeMedication(index)}
+                    className="btn-add-medication"
+                    onClick={addMedication}
                     disabled={actionLoading}
                   >
-                    <i className="fas fa-trash-alt"></i>
+                    <i className="fas fa-plus"></i> Ajouter un médicament
                   </button>
-                )}
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor={`medication-name-${index}`}>Nom du médicament</label>
-                  <input
-                    type="text"
-                    id={`medication-name-${index}`}
-                    value={medication.name}
-                    onChange={(e) => handleMedicationChange(index, "name", e.target.value)}
-                    placeholder="Nom du médicament"
-                    required
-                    disabled={actionLoading}
-                  />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor={`medication-dosage-${index}`}>Dosage</label>
-                  <input
-                    type="text"
-                    id={`medication-dosage-${index}`}
-                    value={medication.dosage}
-                    onChange={(e) => handleMedicationChange(index, "dosage", e.target.value)}
-                    placeholder="Ex: 500mg, 5ml, etc."
-                    required
-                    disabled={actionLoading}
-                  />
-                </div>
-              </div>
+                <div className="medications-list">
+                  {formData.medications.map((medication, index) => (
+                    <div key={index} className="medication-form">
+                      <div className="medication-header">
+                        <h5>Médicament {index + 1}</h5>
+                        {formData.medications.length > 1 && (
+                          <button 
+                            type="button" 
+                            className="btn-icon" 
+                            onClick={() => removeMedication(index)}
+                            disabled={actionLoading}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        )}
+                      </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor={`medication-frequency-${index}`}>Fréquence</label>
-                  <input
-                    type="text"
-                    id={`medication-frequency-${index}`}
-                    value={medication.frequency}
-                    onChange={(e) => handleMedicationChange(index, "frequency", e.target.value)}
-                    placeholder="Ex: 3 fois par jour, tous les matins, etc."
-                    required
-                    disabled={actionLoading}
-                  />
-                </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor={`medication-name-${index}`}>Nom du médicament</label>
+                          <input
+                            type="text"
+                            id={`medication-name-${index}`}
+                            value={medication.name}
+                            onChange={(e) => handleMedicationChange(index, "name", e.target.value)}
+                            placeholder="Nom du médicament"
+                            required
+                            disabled={actionLoading}
+                          />
+                        </div>
 
-                <div className="form-group">
-                  <label htmlFor={`medication-duration-${index}`}>Durée du traitement</label>
-                  <input
-                    type="text"
-                    id={`medication-duration-${index}`}
-                    value={medication.duration}
-                    onChange={(e) => handleMedicationChange(index, "duration", e.target.value)}
-                    placeholder="Ex: 7 jours, 2 semaines, etc."
-                    required
-                    disabled={actionLoading}
-                  />
-                </div>
-              </div>
+                        <div className="form-group">
+                          <label htmlFor={`medication-dosage-${index}`}>Dosage</label>
+                          <input
+                            type="text"
+                            id={`medication-dosage-${index}`}
+                            value={medication.dosage}
+                            onChange={(e) => handleMedicationChange(index, "dosage", e.target.value)}
+                            placeholder="Ex: 500mg, 5ml, etc."
+                            required
+                            disabled={actionLoading}
+                          />
+                        </div>
+                      </div>
 
-              <div className="form-group">
-                <label htmlFor={`medication-instructions-${index}`}>Instructions spécifiques</label>
-                <textarea
-                  id={`medication-instructions-${index}`}
-                  value={medication.instructions}
-                  onChange={(e) => handleMedicationChange(index, "instructions", e.target.value)}
-                  placeholder="Précisions sur la prise du médicament (à prendre pendant les repas, etc.)"
-                  rows="2"
-                  disabled={actionLoading}
-                ></textarea>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor={`medication-frequency-${index}`}>Fréquence</label>
+                          <input
+                            type="text"
+                            id={`medication-frequency-${index}`}
+                            value={medication.frequency}
+                            onChange={(e) => handleMedicationChange(index, "frequency", e.target.value)}
+                            placeholder="Ex: 3 fois par jour, tous les matins, etc."
+                            required
+                            disabled={actionLoading}
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor={`medication-duration-${index}`}>Durée du traitement</label>
+                          <input
+                            type="text"
+                            id={`medication-duration-${index}`}
+                            value={medication.duration}
+                            onChange={(e) => handleMedicationChange(index, "duration", e.target.value)}
+                            placeholder="Ex: 7 jours, 2 semaines, etc."
+                            required
+                            disabled={actionLoading}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor={`medication-instructions-${index}`}>Instructions spécifiques</label>
+                        <textarea
+                          id={`medication-instructions-${index}`}
+                          value={medication.instructions}
+                          onChange={(e) => handleMedicationChange(index, "instructions", e.target.value)}
+                          placeholder="Précisions sur la prise du médicament (à prendre pendant les repas, etc.)"
+                          rows="2"
+                          disabled={actionLoading}
+                        ></textarea>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="form-actions">
-          <button 
-            type="submit" 
-            className="btn-primary"
-            disabled={actionLoading}
-          >
-            {actionLoading ? "Création en cours..." : "Créer l'ordonnance"}
-          </button>
-          <button 
-            type="button" 
-            className="btn-secondary" 
-            onClick={handleCancel}
-            disabled={actionLoading}
-          >
-            Annuler
-          </button>
-        </div>
-      </form>
-      
-      <div className="info-panel">
-        <h4>Informations patient</h4>
-        <div className="info-list">
-          <div className="info-item">
-            <span className="info-label">Groupe sanguin:</span>
-            <span className="info-value">{patient.blood_type || "Non renseigné"}</span>
+            <div className="form-sidebar">
+              <div className="info-panel">
+                <h4>Informations patient</h4>
+                <div className="info-list">
+                  <div className="info-item">
+                    <span className="info-label">Groupe sanguin:</span>
+                    <span className="info-value">{patient.blood_type || "Non renseigné"}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Allergies:</span>
+                    <span className="info-value">
+                      {patient.allergies && patient.allergies.length > 0
+                        ? patient.allergies.join(", ")
+                        : "Aucune allergie connue"}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Maladies chroniques:</span>
+                    <span className="info-value">
+                      {patient.chronic_diseases && patient.chronic_diseases.length > 0
+                        ? patient.chronic_diseases.join(", ")
+                        : "Aucune maladie chronique connue"}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="warning-box">
+                  <i className="fas fa-exclamation-triangle"></i>
+                  <p>
+                    Veuillez vérifier attentivement les allergies du patient et les
+                    interactions médicamenteuses potentielles avant de prescrire.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="info-item">
-            <span className="info-label">Allergies:</span>
-            <span className="info-value">
-              {patient.allergies && patient.allergies.length > 0
-                ? patient.allergies.join(", ")
-                : "Aucune allergie connue"}
-            </span>
+
+          <div className="form-actions">
+            <button 
+              type="submit" 
+              className="btn-primary"
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Création en cours..." : "Créer l'ordonnance"}
+            </button>
+            <button 
+              type="button" 
+              className="btn-secondary" 
+              onClick={handleCancel}
+              disabled={actionLoading}
+            >
+              Annuler
+            </button>
           </div>
-          <div className="info-item">
-            <span className="info-label">Maladies chroniques:</span>
-            <span className="info-value">
-              {patient.chronic_diseases && patient.chronic_diseases.length > 0
-                ? patient.chronic_diseases.join(", ")
-                : "Aucune maladie chronique connue"}
-            </span>
-          </div>
-        </div>
-        
-        <div className="warning-box">
-          <i className="fas fa-exclamation-triangle"></i>
-          <p>
-            Veuillez vérifier attentivement les allergies du patient et les
-            interactions médicamenteuses potentielles avant de prescrire.
-          </p>
-        </div>
+        </form>
       </div>
     </div>
   );
