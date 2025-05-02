@@ -19,8 +19,9 @@ const DoctorProfile = () => {
     email: "",
     speciality: "",
     phone: "",
-    bio: "",
+    address: "",
     education: "",
+    bio: "",
     experience: "",
     password: "",
     password_confirmation: ""
@@ -31,19 +32,23 @@ const DoctorProfile = () => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
+        console.log("Récupération du profil médecin...");
         const response = await axios.get("/api/doctor/profile", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         
+        console.log("Profil reçu:", response.data);
         setProfile(response.data.profile);
+        
         // Initialiser le formulaire avec les données du profil
         setFormData({
           name: response.data.profile.name || "",
           email: response.data.profile.email || "",
           speciality: response.data.profile.speciality || "",
           phone: response.data.profile.phone || "",
-          bio: response.data.profile.bio || "",
+          address: response.data.profile.address || "",
           education: response.data.profile.education || "",
+          bio: response.data.profile.bio || "",
           experience: response.data.profile.experience || "",
           password: "",
           password_confirmation: ""
@@ -62,19 +67,25 @@ const DoctorProfile = () => {
   const handleEditClick = () => {
     setIsEditing(true);
     setIsChangingPhoto(false);
+    setActionError(null);
+    setActionSuccess(null);
   };
 
   const handlePhotoClick = () => {
     setIsChangingPhoto(true);
     setIsEditing(false);
+    setActionError(null);
+    setActionSuccess(null);
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
+    setActionError(null);
   };
 
   const handleCancelPhotoChange = () => {
     setIsChangingPhoto(false);
+    setActionError(null);
   };
 
   const handleChange = (e) => {
@@ -88,6 +99,15 @@ const DoctorProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    // Vérification des mots de passe
+    if (formData.password && formData.password !== formData.password_confirmation) {
+      setActionError("La confirmation du mot de passe ne correspond pas.");
+      setActionLoading(false);
+      return;
+    }
 
     try {
       // Remove password fields if empty
@@ -97,10 +117,14 @@ const DoctorProfile = () => {
         delete dataToSubmit.password_confirmation;
       }
 
+      console.log("Données à envoyer:", dataToSubmit);
+
       const response = await axios.put("/api/doctor/profile", dataToSubmit, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
+      console.log("Réponse du serveur:", response.data);
+      
       setActionSuccess("Profil mis à jour avec succès!");
       setProfile(response.data.profile);
       setIsEditing(false);
@@ -117,6 +141,8 @@ const DoctorProfile = () => {
 
   const handleSavePhoto = async (photoFile) => {
     setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
     
     try {
       const formData = new FormData();
@@ -166,10 +192,20 @@ const DoctorProfile = () => {
   if (isEditing) {
     return (
       <div className="doctor-profile-container">
+        {actionError && (
+          <div className="alert alert-danger">
+            <i className="fas fa-exclamation-circle"></i> {actionError}
+          </div>
+        )}
+        
         <div className="profile-card">
           <div className="profile-header">
             <div className="profile-avatar">
-              <i className="fas fa-user-md"></i>
+              {profile?.photoUrl ? (
+                <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+              ) : (
+                <i className="fas fa-user-md"></i>
+              )}
             </div>
             <div className="profile-title">
               <h3>Modifier mon profil</h3>
@@ -218,6 +254,18 @@ const DoctorProfile = () => {
                   disabled={actionLoading}
                 />
               </div>
+              
+              <div className="form-group">
+                <label htmlFor="address">Adresse</label>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  disabled={actionLoading}
+                />
+              </div>
             </div>
             
             <div className="form-section">
@@ -236,20 +284,7 @@ const DoctorProfile = () => {
               </div>
               
               <div className="form-group">
-                <label htmlFor="bio">Biographie</label>
-                <textarea
-                  id="bio"
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleChange}
-                  rows="4"
-                  disabled={actionLoading}
-                  placeholder="Décrivez votre parcours et votre approche médicale..."
-                ></textarea>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="education">Formation académique</label>
+                <label htmlFor="education">Diplômes</label>
                 <textarea
                   id="education"
                   name="education"
@@ -257,7 +292,7 @@ const DoctorProfile = () => {
                   onChange={handleChange}
                   rows="3"
                   disabled={actionLoading}
-                  placeholder="Vos diplômes et formations..."
+                  placeholder="Vos diplômes..."
                 ></textarea>
               </div>
               
@@ -271,6 +306,19 @@ const DoctorProfile = () => {
                   rows="3"
                   disabled={actionLoading}
                   placeholder="Vos expériences professionnelles..."
+                ></textarea>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="bio">Biographie</label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  rows="4"
+                  disabled={actionLoading}
+                  placeholder="Décrivez votre parcours et votre approche médicale..."
                 ></textarea>
               </div>
             </div>
@@ -333,6 +381,12 @@ const DoctorProfile = () => {
   if (isChangingPhoto) {
     return (
       <div className="doctor-profile-container">
+        {actionError && (
+          <div className="alert alert-danger">
+            <i className="fas fa-exclamation-circle"></i> {actionError}
+          </div>
+        )}
+        
         <div className="profile-card">
           <PhotoUpload 
             onSave={handleSavePhoto} 
@@ -399,6 +453,12 @@ const DoctorProfile = () => {
               </div>
             </div>
             <div className="detail-row">
+              <div className="detail-label">Adresse</div>
+              <div className="detail-value">
+                {profile?.address || "Non renseignée"}
+              </div>
+            </div>
+            <div className="detail-row">
               <div className="detail-label">Rôle</div>
               <div className="detail-value">
                 <span className="role-badge doctor">Médecin</span>
@@ -414,15 +474,9 @@ const DoctorProfile = () => {
                 {profile?.speciality || "Non renseignée"}
               </div>
             </div>
-            <div className="detail-row">
-              <div className="detail-label">Biographie</div>
-              <div className="detail-value">
-                {profile?.bio || "Non renseignée"}
-              </div>
-            </div>
             {profile?.education && (
               <div className="detail-row">
-                <div className="detail-label">Formation</div>
+                <div className="detail-label">Diplômes</div>
                 <div className="detail-value">{profile.education}</div>
               </div>
             )}
@@ -430,6 +484,12 @@ const DoctorProfile = () => {
               <div className="detail-row">
                 <div className="detail-label">Expérience</div>
                 <div className="detail-value">{profile.experience}</div>
+              </div>
+            )}
+            {profile?.bio && (
+              <div className="detail-row">
+                <div className="detail-label">Biographie</div>
+                <div className="detail-value">{profile.bio}</div>
               </div>
             )}
           </div>
@@ -442,13 +502,6 @@ const DoctorProfile = () => {
             disabled={actionLoading}
           >
             <i className="fas fa-edit"></i> Modifier le profil
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => alert("Fonctionnalité en cours de développement")}
-            disabled={actionLoading}
-          >
-            <i className="fas fa-key"></i> Changer le mot de passe
           </button>
         </div>
       </div>

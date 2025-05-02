@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('doctor_details', function (Blueprint $table) {
+        Schema::create('doctor_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('phone')->nullable();
             $table->string('specialite')->nullable();
-            $table->text('diplome')->nullable();
             $table->string('adresse')->nullable();
+            $table->text('education')->nullable();
+            $table->text('experience')->nullable();
+            $table->text('bio')->nullable();
             $table->timestamps();
         });
     }
@@ -27,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('doctor_details');
+        Schema::dropIfExists('doctor_profiles');
     }
 };

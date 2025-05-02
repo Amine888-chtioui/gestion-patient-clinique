@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DoctorDetail extends Model
+class DoctorProfile extends Model
 {
     use HasFactory;
 
@@ -18,12 +18,14 @@ class DoctorDetail extends Model
         'user_id',
         'phone',
         'specialite',
-        'diplome',
         'adresse',
+        'education',
+        'experience',
+        'bio'
     ];
 
     /**
-     * Get the user that owns the doctor details.
+     * Get the user that owns the doctor profile.
      */
     public function user()
     {

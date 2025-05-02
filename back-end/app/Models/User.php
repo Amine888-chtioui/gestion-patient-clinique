@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -78,19 +77,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the doctor details associated with the user.
+     * Get the doctor profile associated with the user.
      */
-    public function doctorDetail()
+    public function doctorProfile()
     {
-        return $this->hasOne(DoctorDetail::class);
-    }
-
-    /**
-     * Get the patient details associated with the user.
-     */
-    public function patientDetail()
-    {
-        return $this->hasOne(PatientDetail::class);
+        return $this->hasOne(DoctorProfile::class);
     }
 
     /**

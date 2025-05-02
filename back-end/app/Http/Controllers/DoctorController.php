@@ -11,9 +11,10 @@ use App\Models\Medication;
 use App\Models\Document;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Hash;
+use App\Models\DoctorProfile;
 
 class DoctorController extends Controller
 {
@@ -344,8 +345,8 @@ public function getAllDoctors()
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
         
-        // Dans un système réel, vous auriez une table dédiée pour les profils de médecin
-        // Ici, nous utilisons simplement les données de l'utilisateur
+        // Récupérer les détails du médecin
+        $doctorProfile = DoctorProfile::where('user_id', $user->id)->first();
         
         return response()->json([
             'profile' => [
@@ -353,12 +354,13 @@ public function getAllDoctors()
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
-                // Ces champs seraient idéalement dans une table DoctorProfile
-                'speciality' => $user->speciality ?? null,
-                'phone' => $user->phone ?? null,
-                'bio' => $user->bio ?? null,
-                'education' => $user->education ?? null,
-                'experience' => $user->experience ?? null,
+                // Utiliser les détails du médecin si disponibles
+                'phone' => $doctorProfile ? $doctorProfile->phone : null,
+                'speciality' => $doctorProfile ? $doctorProfile->specialite : null,
+                'education' => $doctorProfile ? $doctorProfile->education : null,
+                'address' => $doctorProfile ? $doctorProfile->adresse : null,
+                'bio' => $doctorProfile ? $doctorProfile->bio : null,
+                'experience' => $doctorProfile ? $doctorProfile->experience : null,
                 'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
             ]
         ]);
@@ -379,15 +381,16 @@ public function getAllDoctors()
         $validatedData = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
-            'speciality' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'bio' => 'nullable|string',
-            'education' => 'nullable|string',
-            'experience' => 'nullable|string',
             'password' => 'nullable|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'speciality' => 'nullable|string|max:255',
+            'education' => 'nullable|string',
+            'address' => 'nullable|string|max:255',
+            'bio' => 'nullable|string',
+            'experience' => 'nullable|string',
         ]);
         
-        // Mise à jour des informations de base de l'utilisateur
+        // Mettre à jour les informations de base de l'utilisateur
         if (isset($validatedData['name'])) {
             $user->name = $validatedData['name'];
         }
@@ -400,33 +403,38 @@ public function getAllDoctors()
             $user->password = Hash::make($validatedData['password']);
         }
         
-        // Dans un système réel, ces champs seraient dans une table dédiée aux profils de médecin
-        // Ici, nous les ajoutons directement à l'utilisateur (vous devriez adapter votre modèle User)
+        $user->save();
         
-        if (isset($validatedData['speciality'])) {
-            $user->speciality = $validatedData['speciality'];
-        }
+        // Mettre à jour ou créer les détails du médecin
+        $doctorProfile = DoctorProfile::firstOrNew(['user_id' => $user->id]);
         
         if (isset($validatedData['phone'])) {
-            $user->phone = $validatedData['phone'];
+            $doctorProfile->phone = $validatedData['phone'];
         }
         
-        if (isset($validatedData['bio'])) {
-            $user->bio = $validatedData['bio'];
+        if (isset($validatedData['speciality'])) {
+            $doctorProfile->specialite = $validatedData['speciality'];
         }
         
         if (isset($validatedData['education'])) {
-            $user->education = $validatedData['education'];
+            $doctorProfile->education = $validatedData['education'];
+        }
+        
+        if (isset($validatedData['address'])) {
+            $doctorProfile->adresse = $validatedData['address'];
+        }
+        
+        if (isset($validatedData['bio'])) {
+            $doctorProfile->bio = $validatedData['bio'];
         }
         
         if (isset($validatedData['experience'])) {
-            $user->experience = $validatedData['experience'];
+            $doctorProfile->experience = $validatedData['experience'];
         }
         
-        $user->save();
+        $doctorProfile->save();
         
-        // Pas de notification envoyée ici, conformément aux instructions
-        
+        // Retourner le profil mis à jour
         return response()->json([
             'message' => 'Profil mis à jour avec succès',
             'profile' => [
@@ -434,11 +442,12 @@ public function getAllDoctors()
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
-                'speciality' => $user->speciality ?? null,
-                'phone' => $user->phone ?? null,
-                'bio' => $user->bio ?? null,
-                'education' => $user->education ?? null,
-                'experience' => $user->experience ?? null,
+                'phone' => $doctorProfile->phone ?? null,
+                'speciality' => $doctorProfile->specialite ?? null,
+                'education' => $doctorProfile->education ?? null,
+                'address' => $doctorProfile->adresse ?? null,
+                'bio' => $doctorProfile->bio ?? null,
+                'experience' => $doctorProfile->experience ?? null,
                 'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
             ]
         ]);
