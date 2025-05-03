@@ -122,7 +122,7 @@ const HomePage = () => {
                   </a>
                 </li>
                 <li className="nav-item">
-                  <a className="nav-link" href="#">
+                  <a className="nav-link" href="#services">
                     Services
                   </a>
                 </li>
@@ -227,6 +227,48 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* About Section */}
+      <section className="about-section" id="about">
+        <div className="container">
+          <div className="section-header">
+            <h2>À propos de nous</h2>
+            <div className="header-line"></div>
+          </div>
+          <div className="row align-items-center">
+            <div className="col-lg-6">
+              <div className="about-content">
+                <p>
+                  Le Groupe AKDITAL est le leader du secteur privé de la santé
+                  au Maroc, opérant un réseau de 32 établissements de santé
+                  répartis sur plusieurs villes du royaume et représentant plus
+                  de 20% de l'offre nationale privée. Nous proposons une gamme
+                  complète de soins médicaux, couvrant toutes les spécialités et
+                  offrant une continuité des soins grâce à une prise en charge
+                  individualisée et multidisciplinaire.
+                </p>
+                <p>
+                  Notre philosophie place le patient au cœur de nos actions,
+                  s'appuyant sur des installations modernes, l'excellence
+                  clinique et la qualité de service.
+                </p>
+                <Link to="/register" className="btn btn-primary">
+                  Rejoignez-nous <i className="fas fa-arrow-right"></i>
+                </Link>
+              </div>
+            </div>
+            <div className="col-lg-6">
+              <div className="about-image">
+                <img
+                  src="/images/bg-1.jpg"
+                  alt="À propos de notre clinique"
+                  className="img-fluid rounded shadow"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Hours Section */}
       <section className="hours-section" id="hours">
         <div className="container">
@@ -298,48 +340,67 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-
-      {/* About Section */}
-      <section className="about-section" id="about">
+      <section className="services-section" id="services">
         <div className="container">
           <div className="section-header">
-            <h2>À propos de nous</h2>
+            <h2>Nos Services Médicaux</h2>
             <div className="header-line"></div>
+            <p>Nous proposons une gamme complète de services médicaux pour répondre à vos besoins de santé</p>
           </div>
-          <div className="row align-items-center">
-            <div className="col-lg-6">
-              <div className="about-content">
-                <p>
-                  Le Groupe AKDITAL est le leader du secteur privé de la santé
-                  au Maroc, opérant un réseau de 32 établissements de santé
-                  répartis sur plusieurs villes du royaume et représentant plus
-                  de 20% de l'offre nationale privée. Nous proposons une gamme
-                  complète de soins médicaux, couvrant toutes les spécialités et
-                  offrant une continuité des soins grâce à une prise en charge
-                  individualisée et multidisciplinaire.
-                </p>
-                <p>
-                  Notre philosophie place le patient au cœur de nos actions,
-                  s'appuyant sur des installations modernes, l'excellence
-                  clinique et la qualité de service.
-                </p>
-                <Link to="/register" className="btn btn-primary">
-                  Rejoignez-nous <i className="fas fa-arrow-right"></i>
-                </Link>
+          
+          <div className="services-grid">
+            <div className="service-card">
+              <div className="service-icon">
+                <i className="fas fa-stethoscope"></i>
               </div>
+              <h3>Consultations Médicales</h3>
+              <p>Consultations avec nos médecins généralistes et spécialistes pour tous vos besoins médicaux.</p>
             </div>
-            <div className="col-lg-6">
-              <div className="about-image">
-                <img
-                  src="/images/bg-1.jpg"
-                  alt="À propos de notre clinique"
-                  className="img-fluid rounded shadow"
-                />
+            
+            <div className="service-card">
+              <div className="service-icon">
+                <i className="fas fa-heartbeat"></i>
               </div>
+              <h3>Cardiologie</h3>
+              <p>Diagnostic et traitement des maladies cardiovasculaires par nos cardiologues expérimentés.</p>
+            </div>
+            
+            <div className="service-card">
+              <div className="service-icon">
+                <i className="fas fa-x-ray"></i>
+              </div>
+              <h3>Radiologie</h3>
+              <p>Services d'imagerie médicale incluant radiographie, échographie, scanner et IRM.</p>
+            </div>
+            
+            <div className="service-card">
+              <div className="service-icon">
+                <i className="fas fa-teeth"></i>
+              </div>
+              <h3>Dentisterie</h3>
+              <p>Soins dentaires complets incluant prévention, traitement et chirurgie buccale.</p>
+            </div>
+            
+            <div className="service-card">
+              <div className="service-icon">
+                <i className="fas fa-brain"></i>
+              </div>
+              <h3>Neurologie</h3>
+              <p>Diagnostic et traitement des troubles du système nerveux par nos neurologues qualifiés.</p>
+            </div>
+            
+            <div className="service-card">
+              <div className="service-icon">
+                <i className="fas fa-baby"></i>
+              </div>
+              <h3>Pédiatrie</h3>
+              <p>Soins médicaux spécialisés pour les enfants, de la naissance à l'adolescence.</p>
             </div>
           </div>
         </div>
       </section>
+
+      
 
       {/* Contact Section */}
       <section className="contact-section" id="contact">

@@ -133,7 +133,7 @@ img {
 .top-bar {
   background-color: var(--dark-color);
   color: white;
-  padding: 10px 15px;
+  padding: 3px 15px;
   font-size: 0.85rem;
 }
 
@@ -171,7 +171,7 @@ img {
 .navbar {
   background-color: white;
   box-shadow: var(--shadow-sm);
-  padding: 15px 0;
+  padding: 10px 0;
   transition: all 0.3s ease;
 }
 
@@ -761,4 +761,78 @@ img {
     transform: translateX(0);
     opacity: 1;
   }
+}
+/* Services Section */
+.services-section {
+  padding: 80px 0;
+  background-color: var(--bg-color);
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 50px;
+}
+
+.service-card {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.service-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.service-icon {
+  width: 80px;
+  height: 80px;
+  background-color: var(--primary-light);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 20px;
+}
+
+.service-icon i {
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
+.service-card h3 {
+  font-size: 1.25rem;
+  margin-bottom: 15px;
+  color: var(--text-dark);
+}
+
+.service-card p {
+  color: var(--text-light);
+  margin-bottom: 0;
+}
+
+/* Media Queries pour Responsive Design */
+@media (max-width: 992px) {
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Réduction du padding de la top bar */
+.top-bar {
+  background-color: var(--dark-color);
+  color: white;
+  padding: 5px 15px; /* Padding réduit comme demandé */
+  font-size: 0.85rem;
 }
