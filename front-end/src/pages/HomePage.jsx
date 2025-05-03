@@ -9,7 +9,7 @@ const HomePage = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    message: ""
+    message: "",
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -18,9 +18,9 @@ const HomePage = () => {
   // Gérer les changements dans le formulaire
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -30,14 +30,17 @@ const HomePage = () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-    
+
     try {
-      const response = await axios.post('/api/contact', formData);
+      const response = await axios.post("/api/contact", formData);
       setSuccess(true);
-      setFormData({ name: '', email: '', message: '' });
+      setFormData({ name: "", email: "", message: "" });
     } catch (err) {
       console.error("Erreur lors de l'envoi du message:", err);
-      setError(err.response?.data?.message || 'Une erreur est survenue lors de l\'envoi du message. Veuillez réessayer plus tard.');
+      setError(
+        err.response?.data?.message ||
+          "Une erreur est survenue lors de l'envoi du message. Veuillez réessayer plus tard."
+      );
     } finally {
       setLoading(false);
     }
@@ -345,62 +348,81 @@ const HomePage = () => {
           <div className="section-header">
             <h2>Nos Services Médicaux</h2>
             <div className="header-line"></div>
-            <p>Nous proposons une gamme complète de services médicaux pour répondre à vos besoins de santé</p>
+            <p>
+              Nous proposons une gamme complète de services médicaux pour
+              répondre à vos besoins de santé
+            </p>
           </div>
-          
+
           <div className="services-grid">
             <div className="service-card">
               <div className="service-icon">
                 <i className="fas fa-stethoscope"></i>
               </div>
               <h3>Consultations Médicales</h3>
-              <p>Consultations avec nos médecins généralistes et spécialistes pour tous vos besoins médicaux.</p>
+              <p>
+                Consultations avec nos médecins généralistes et spécialistes
+                pour tous vos besoins médicaux.
+              </p>
             </div>
-            
+
             <div className="service-card">
               <div className="service-icon">
                 <i className="fas fa-heartbeat"></i>
               </div>
               <h3>Cardiologie</h3>
-              <p>Diagnostic et traitement des maladies cardiovasculaires par nos cardiologues expérimentés.</p>
+              <p>
+                Diagnostic et traitement des maladies cardiovasculaires par nos
+                cardiologues expérimentés.
+              </p>
             </div>
-            
+
             <div className="service-card">
               <div className="service-icon">
                 <i className="fas fa-x-ray"></i>
               </div>
               <h3>Radiologie</h3>
-              <p>Services d'imagerie médicale incluant radiographie, échographie, scanner et IRM.</p>
+              <p>
+                Services d'imagerie médicale incluant radiographie, échographie,
+                scanner et IRM.
+              </p>
             </div>
-            
+
             <div className="service-card">
               <div className="service-icon">
                 <i className="fas fa-teeth"></i>
               </div>
               <h3>Dentisterie</h3>
-              <p>Soins dentaires complets incluant prévention, traitement et chirurgie buccale.</p>
+              <p>
+                Soins dentaires complets incluant prévention, traitement et
+                chirurgie buccale.
+              </p>
             </div>
-            
+
             <div className="service-card">
               <div className="service-icon">
                 <i className="fas fa-brain"></i>
               </div>
               <h3>Neurologie</h3>
-              <p>Diagnostic et traitement des troubles du système nerveux par nos neurologues qualifiés.</p>
+              <p>
+                Diagnostic et traitement des troubles du système nerveux par nos
+                neurologues qualifiés.
+              </p>
             </div>
-            
+
             <div className="service-card">
               <div className="service-icon">
                 <i className="fas fa-baby"></i>
               </div>
               <h3>Pédiatrie</h3>
-              <p>Soins médicaux spécialisés pour les enfants, de la naissance à l'adolescence.</p>
+              <p>
+                Soins médicaux spécialisés pour les enfants, de la naissance à
+                l'adolescence.
+              </p>
             </div>
           </div>
         </div>
       </section>
-
-      
 
       {/* Contact Section */}
       <section className="contact-section" id="contact">
@@ -465,7 +487,8 @@ const HomePage = () => {
                 <h3>Envoyer un message</h3>
                 {success && (
                   <div className="alert alert-success">
-                    <i className="fas fa-check-circle"></i> Votre message a été envoyé avec succès. Nous vous contacterons bientôt.
+                    <i className="fas fa-check-circle"></i> Votre message a été
+                    envoyé avec succès. Nous vous contacterons bientôt.
                   </div>
                 )}
                 {error && (
@@ -475,47 +498,52 @@ const HomePage = () => {
                 )}
                 <form className="contact-form" onSubmit={handleSubmit}>
                   <div className="form-group">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      placeholder="Nom et prénom" 
-                      required 
+                      placeholder="Nom et prénom"
+                      required
                       disabled={loading}
                     />
                   </div>
                   <div className="form-group">
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="Email" 
-                      required 
+                      placeholder="Email"
+                      required
                       disabled={loading}
                     />
                   </div>
                   <div className="form-group">
-                    <textarea 
+                    <textarea
                       name="message"
                       value={formData.message}
                       onChange={handleChange}
-                      placeholder="Votre message..." 
-                      rows="5" 
+                      placeholder="Votre message..."
+                      rows="5"
                       required
                       disabled={loading}
                     ></textarea>
                   </div>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={loading}
                   >
                     {loading ? (
-                      <span><i className="fas fa-spinner fa-spin"></i> Envoi en cours...</span>
+                      <span>
+                        <i className="fas fa-spinner fa-spin"></i> Envoi en
+                        cours...
+                      </span>
                     ) : (
-                      <span>Envoyer <i className="fas fa-paper-plane"></i></span>
+                      <span>
+                        Envoyer <i className="fas fa-paper-plane"></i>
+                      </span>
                     )}
                   </button>
                 </form>
@@ -525,6 +553,7 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Footer */}
       {/* Footer */}
       <footer className="footer">
         <div className="container">
@@ -541,26 +570,28 @@ const HomePage = () => {
             </div>
             <div className="col-md-4">
               <h4>Liens rapides</h4>
-              <ul className="footer-links">
-                <li>
-                  <a href="#">Accueil</a>
-                </li>
-                <li>
-                  <a href="#about">À propos</a>
-                </li>
-                <li>
-                  <a href="#hours">Horaires</a>
-                </li>
-                <li>
-                  <a href="#contact">Contact</a>
-                </li>
-                <li>
-                  <Link to="/login">Connexion</Link>
-                </li>
-                <li>
-                  <Link to="/register">Inscription</Link>
-                </li>
-              </ul>
+              <div className="footer-links-horizontal">
+                <ul>
+                  <li>
+                    <a href="#">Accueil</a>
+                  </li>
+                  <li>
+                    <a href="#about">À propos</a>
+                  </li>
+                  <li>
+                    <a href="#hours">Horaires</a>
+                  </li>
+                  <li>
+                    <a href="#contact">Contact</a>
+                  </li>
+                  <li>
+                    <Link to="/login">Connexion</Link>
+                  </li>
+                  <li>
+                    <Link to="/register">Inscription</Link>
+                  </li>
+                </ul>
+              </div>
             </div>
             <div className="col-md-4">
               <h4>Contactez-nous</h4>
