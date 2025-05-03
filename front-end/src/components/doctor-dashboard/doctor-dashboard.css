@@ -873,3 +873,106 @@
     gap: 0.5rem;
   }
 }
+/* Styles pour le spinner de chargement des sections */
+.section-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  width: 100%;
+  padding: 2rem;
+  background-color: var(--bg-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.spinner-container {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 1.5rem;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(42, 141, 142, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s ease-in-out infinite;
+}
+
+.spinner-message {
+  font-size: 1.1rem;
+  color: var(--text-light);
+  text-align: center;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Animation de pulsation pour indiquer le chargement */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.section-loading .spinner-message {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Customisation pour les différentes sections */
+.section-loading.overview .spinner {
+  border-top-color: var(--primary-color);
+}
+
+.section-loading.appointments .spinner {
+  border-top-color: var(--info-color);
+}
+
+.section-loading.patients .spinner {
+  border-top-color: var(--success-color);
+}
+
+.section-loading.profile .spinner {
+  border-top-color: var(--warning-color);
+}
+
+/* Animation d'entrée pour les sections chargées */
+.content-body > div:not(.section-loading) {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Rendre l'expérience plus fluide sur mobile */
+@media (max-width: 768px) {
+  .section-loading {
+    padding: 1.5rem;
+    min-height: 250px;
+  }
+  
+  .spinner-container {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border-width: 3px;
+  }
+  
+  .spinner-message {
+    font-size: 1rem;
+  }
+}
