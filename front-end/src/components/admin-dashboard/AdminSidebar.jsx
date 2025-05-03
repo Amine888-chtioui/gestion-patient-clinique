@@ -40,6 +40,7 @@ const AdminSidebar = ({
             { id: "medicalRecords", icon: "file-medical", label: "Dossiers médicaux" },
             { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
             { id: "payments", icon: "credit-card", label: "Paiements" },
+            { id: "contacts", icon: "envelope", label: "Messages" },
             { id: "statistics", icon: "chart-bar", label: "Statistiques" },
             { id: "users", icon: "users", label: "Utilisateurs" }
           ].map(item => (

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Contact;
 
 class AdminController extends Controller
 {
@@ -1096,6 +1097,109 @@ public function updateProfilePhoto(Request $request)
             ]
         ]);
     }
+    public function storeContact(Request $request)
+{
+    $validatedData = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'message' => 'required|string',
+    ]);
+    
+    $contact = Contact::create($validatedData);
+    
+    return response()->json([
+        'message' => 'Votre message a été envoyé avec succès',
+        'contact' => $contact
+    ], 201);
+}
+
+/**
+ * Récupérer tous les messages de contact (admin uniquement)
+ */
+public function getContacts(Request $request)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Filtrer par statut (lu/non lu)
+    $query = Contact::query()->orderBy('created_at', 'desc');
+    
+    if ($request->has('read')) {
+        $query->where('read', $request->boolean('read'));
+    }
+    
+    $contacts = $query->get();
+    
+    return response()->json([
+        'contacts' => $contacts,
+        'unread_count' => Contact::where('read', false)->count()
+    ]);
+}
+
+/**
+ * Afficher un message de contact spécifique
+ */
+public function showContact($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    $contact = Contact::findOrFail($id);
+    
+    return response()->json([
+        'contact' => $contact
+    ]);
+}
+
+/**
+ * Marquer un message comme lu
+ */
+public function markContactAsRead($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    $contact = Contact::findOrFail($id);
+    $contact->read = true;
+    $contact->save();
+    
+    return response()->json([
+        'message' => 'Message marqué comme lu',
+        'contact' => $contact
+    ]);
+}
+
+/**
+ * Supprimer un message de contact
+ */
+public function deleteContact($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    $contact = Contact::findOrFail($id);
+    $contact->delete();
+    
+    return response()->json([
+        'message' => 'Message supprimé avec succès'
+    ]);
+}
 
     /**
      * Supprimer un utilisateur

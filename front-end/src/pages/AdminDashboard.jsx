@@ -36,6 +36,8 @@ import AdminProfile from "../components/admin-dashboard/AdminProfile";
 import "../components/admin-dashboard/admin-profile.css";
 import "../components/admin-dashboard/admin-dashboard.css";
 
+import ContactsManagement from "../components/admin-dashboard/ContactsManagement";
+
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -838,6 +840,22 @@ const AdminDashboard = () => {
                 )}
               </>
             )}
+          {activeTab === "contacts" && (
+            <>
+              {loadingStates.contacts ? (
+                <div className="section-loader">
+                  <div className="loader-indicator"></div>
+                </div>
+              ) : (
+                <ContactsManagement
+                  actionLoading={actionLoading}
+                  setActionLoading={setActionLoading}
+                  setActionError={setActionError}
+                  setActionSuccess={setActionSuccess}
+                />
+              )}
+            </>
+          )}
           
           {activeTab === "invoices" && renderInvoiceContent()}
           

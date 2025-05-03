@@ -1,9 +1,48 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import axios from "../axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./HomePage.css";
 
 const HomePage = () => {
+  // État pour le formulaire de contact
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Gérer les changements dans le formulaire
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Soumettre le formulaire de contact
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    
+    try {
+      const response = await axios.post('/api/contact', formData);
+      setSuccess(true);
+      setFormData({ name: '', email: '', message: '' });
+    } catch (err) {
+      console.error("Erreur lors de l'envoi du message:", err);
+      setError(err.response?.data?.message || 'Une erreur est survenue lors de l\'envoi du message. Veuillez réessayer plus tard.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="homepage">
       {/* Navigation */}
@@ -363,22 +402,60 @@ const HomePage = () => {
             <div className="col-lg-7">
               <div className="contact-form-wrap">
                 <h3>Envoyer un message</h3>
-                <form className="contact-form">
+                {success && (
+                  <div className="alert alert-success">
+                    <i className="fas fa-check-circle"></i> Votre message a été envoyé avec succès. Nous vous contacterons bientôt.
+                  </div>
+                )}
+                {error && (
+                  <div className="alert alert-danger">
+                    <i className="fas fa-exclamation-circle"></i> {error}
+                  </div>
+                )}
+                <form className="contact-form" onSubmit={handleSubmit}>
                   <div className="form-group">
-                    <input type="text" placeholder="Nom et prénom" required />
+                    <input 
+                      type="text" 
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Nom et prénom" 
+                      required 
+                      disabled={loading}
+                    />
                   </div>
                   <div className="form-group">
-                    <input type="email" placeholder="Email" required />
+                    <input 
+                      type="email" 
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Email" 
+                      required 
+                      disabled={loading}
+                    />
                   </div>
                   <div className="form-group">
-                    <textarea
-                      placeholder="Votre message..."
-                      rows="5"
+                    <textarea 
+                      name="message"
+                      value={formData.message}
+                      onChange={handleChange}
+                      placeholder="Votre message..." 
+                      rows="5" 
                       required
+                      disabled={loading}
                     ></textarea>
                   </div>
-                  <button type="submit" className="btn btn-primary">
-                    Envoyer <i className="fas fa-paper-plane"></i>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span><i className="fas fa-spinner fa-spin"></i> Envoi en cours...</span>
+                    ) : (
+                      <span>Envoyer <i className="fas fa-paper-plane"></i></span>
+                    )}
                   </button>
                 </form>
               </div>

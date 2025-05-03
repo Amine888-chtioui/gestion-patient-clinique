@@ -26,6 +26,9 @@ use App\Http\Controllers\PaymentController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Route pour le formulaire de contact (accessible publiquement)
+Route::post('/contact', [AdminController::class, 'storeContact']);
+
 // Webhook (non authentifié)
 Route::post('/payments/webhook', [PaymentController::class, 'handlePaymentWebhook']);
 
@@ -96,7 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
         
-        // Routes pour le profil admin - CORRIGÉ ICI
+        // Routes pour le profil admin
         Route::get('/profile', [AdminController::class, 'getProfile']);
         Route::put('/profile', [AdminController::class, 'updateProfile']);
         Route::post('/profile/photo', [AdminController::class, 'updateProfilePhoto']);
@@ -111,7 +114,14 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Routes pour surveiller les paiements
         Route::get('/payments', [PaymentController::class, 'index']);
+        
+        // Routes pour les messages de contact
+        Route::get('/contacts', [AdminController::class, 'getContacts']);
+        Route::get('/contacts/{id}', [AdminController::class, 'showContact']);
+        Route::put('/contacts/{id}/mark-as-read', [AdminController::class, 'markContactAsRead']);
+        Route::delete('/contacts/{id}', [AdminController::class, 'deleteContact']);
     });
+    
     // Routes pour les notifications
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'getNotifications']);
