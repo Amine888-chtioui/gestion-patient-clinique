@@ -9,6 +9,7 @@ const ImprovedBookAppointment = ({
   actionLoading,
   onBookAppointment
 }) => {
+  // State management
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState("");
   const [doctors, setDoctors] = useState([]);
@@ -18,28 +19,30 @@ const ImprovedBookAppointment = ({
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSummary, setShowSummary] = useState(false);
 
-  // Récupérer la liste des services disponibles
+  // Load services on component mount
   useEffect(() => {
-    const fetchServices = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get('/api/patient/services', {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setServices(response.data.services || []);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des services:", err);
-        setError("Impossible de charger la liste des services. Veuillez réessayer plus tard.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchServices();
   }, []);
 
-  // Récupérer les médecins associés au service sélectionné
+  // Fetch services from API
+  const fetchServices = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get('/api/patient/services', {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      setServices(response.data.services || []);
+    } catch (err) {
+      console.error("Error fetching services:", err);
+      setError("Unable to load services. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch doctors when a service is selected
   useEffect(() => {
     if (!selectedService) return;
     
@@ -54,8 +57,8 @@ const ImprovedBookAppointment = ({
         });
         setDoctors(response.data.doctors || []);
       } catch (err) {
-        console.error("Erreur lors de la récupération des médecins:", err);
-        setError("Impossible de charger les médecins pour ce service. Veuillez réessayer plus tard.");
+        console.error("Error fetching doctors:", err);
+        setError("Unable to load doctors for this service. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -64,41 +67,51 @@ const ImprovedBookAppointment = ({
     fetchDoctorsByService();
   }, [selectedService]);
 
-  // Gérer le changement de service
+  // Event handlers
   const handleServiceChange = (e) => {
     setSelectedService(e.target.value);
-    // Réinitialiser les sélections suivantes
     setSelectedDoctor("");
     setSelectedDate("");
     setSelectedTime("");
+    setShowSummary(false);
   };
 
-  // Gérer le changement de médecin
   const handleDoctorChange = (e) => {
     setSelectedDoctor(e.target.value);
-    // Réinitialiser la date et l'heure sélectionnées
     setSelectedDate("");
     setSelectedTime("");
+    setShowSummary(false);
   };
 
-  // Gérer la sélection de date
   const handleDateSelect = (date) => {
     setSelectedDate(date);
-    // Réinitialiser l'heure sélectionnée
     setSelectedTime("");
+    updateSummaryVisibility();
   };
 
-  // Gérer la sélection d'heure
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
+    updateSummaryVisibility();
   };
 
-  // Soumettre le formulaire
+  const handleReasonChange = (e) => {
+    setReason(e.target.value);
+    updateSummaryVisibility();
+  };
+
+  // Show summary when all fields are completed
+  const updateSummaryVisibility = () => {
+    if (selectedService && selectedDoctor && selectedDate && selectedTime && reason) {
+      setShowSummary(true);
+    }
+  };
+
+  // Form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (!selectedDoctor || !selectedDate || !selectedTime || !reason.trim()) {
-      setError("Veuillez remplir tous les champs obligatoires.");
+      setError("Please complete all required fields.");
       return;
     }
     
@@ -112,6 +125,26 @@ const ImprovedBookAppointment = ({
     onBookAppointment(appointmentData);
   };
 
+  // Formatting helpers
+  const formatReadableDate = (dateString) => {
+    if (!dateString) return "Not selected";
+    
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('fr-FR', options);
+  };
+
+  // Get service name by ID
+  const getServiceName = (serviceId) => {
+    const service = services.find(s => s.id.toString() === serviceId.toString());
+    return service ? service.name : "";
+  };
+
+  // Get doctor name by ID
+  const getDoctorName = (doctorId) => {
+    const doctor = doctors.find(d => d.id.toString() === doctorId.toString());
+    return doctor ? doctor.name : "";
+  };
+
   return (
     <div className="improved-book-appointment">
       <h2 className="section-title">Prendre un rendez-vous</h2>
@@ -123,7 +156,8 @@ const ImprovedBookAppointment = ({
       )}
 
       <div className="appointment-form-container">
-        <div className="service-selection">
+        {/* Step 1: Service Selection */}
+        <div className="step-container">
           <h3>1. Choisissez un service médical</h3>
           <div className="form-group">
             <label htmlFor="service">Service</label>
@@ -150,8 +184,9 @@ const ImprovedBookAppointment = ({
           </div>
         </div>
 
+        {/* Step 2: Doctor Selection */}
         {selectedService && (
-          <div className="doctor-selection">
+          <div className="step-container">
             <h3>2. Choisissez un médecin</h3>
             <div className="form-group">
               <label htmlFor="doctor">Médecin</label>
@@ -179,6 +214,7 @@ const ImprovedBookAppointment = ({
           </div>
         )}
 
+        {/* Step 3 & 4: Date and Time Selection */}
         {selectedDoctor && (
           <div className="date-time-selection">
             <div className="date-selection">
@@ -206,6 +242,7 @@ const ImprovedBookAppointment = ({
           </div>
         )}
 
+        {/* Step 5: Reason for Visit */}
         {selectedDoctor && selectedDate && selectedTime && (
           <div className="reason-section">
             <h3>5. Motif de consultation</h3>
@@ -214,7 +251,7 @@ const ImprovedBookAppointment = ({
               <textarea
                 id="reason"
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={handleReasonChange}
                 placeholder="Décrivez brièvement le motif de votre consultation..."
                 rows="4"
                 required
@@ -225,73 +262,59 @@ const ImprovedBookAppointment = ({
           </div>
         )}
 
-        <div className="appointment-summary">
-          {selectedDoctor && selectedDate && selectedTime && (
+        {/* Appointment Summary Card */}
+        {showSummary && (
+          <div className="appointment-summary">
             <div className="summary-card">
               <h3>Résumé du rendez-vous</h3>
               <div className="summary-details">
-                <div className="summary-item">
+                <div className="summary-row">
                   <span className="summary-label">Service:</span>
-                  <span className="summary-value">
-                    {services.find(s => s.id == selectedService)?.name || "Service sélectionné"}
-                  </span>
+                  <span className="summary-value">{getServiceName(selectedService)}</span>
                 </div>
-                <div className="summary-item">
+                <div className="summary-row">
                   <span className="summary-label">Médecin:</span>
-                  <span className="summary-value">
-                    {doctors.find(d => d.id == selectedDoctor)?.name || "Médecin sélectionné"}
-                  </span>
+                  <span className="summary-value">{getDoctorName(selectedDoctor)}</span>
                 </div>
-                <div className="summary-item">
+                <div className="summary-row">
                   <span className="summary-label">Date:</span>
-                  <span className="summary-value">
-                    {formatReadableDate(selectedDate)}
-                  </span>
+                  <span className="summary-value">{formatReadableDate(selectedDate)}</span>
                 </div>
-                <div className="summary-item">
+                <div className="summary-row">
                   <span className="summary-label">Heure:</span>
-                  <span className="summary-value">
-                    {selectedTime}
-                  </span>
+                  <span className="summary-value">{selectedTime}</span>
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="form-actions">
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={!selectedDoctor || !selectedDate || !selectedTime || !reason.trim() || actionLoading}
-              onClick={handleSubmit}
-            >
-              {actionLoading ? (
-                <><i className="fas fa-spinner fa-spin"></i> En cours...</>
-              ) : (
-                <><i className="fas fa-calendar-check"></i> Confirmer le rendez-vous</>
-              )}
-            </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => handleTabChange("overview")}
-              disabled={actionLoading}
-            >
-              Annuler
-            </button>
           </div>
+        )}
+
+        {/* Form Actions */}
+        <div className="form-actions">
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={!selectedDoctor || !selectedDate || !selectedTime || !reason.trim() || actionLoading}
+            onClick={handleSubmit}
+          >
+            {actionLoading ? (
+              <><i className="fas fa-spinner fa-spin"></i> En cours...</>
+            ) : (
+              <><i className="fas fa-calendar-check"></i> Confirmer le rendez-vous</>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => handleTabChange("overview")}
+            disabled={actionLoading}
+          >
+            Annuler
+          </button>
         </div>
       </div>
     </div>
   );
-};
-
-// Fonction utilitaire pour formater les dates
-const formatReadableDate = (dateString) => {
-  if (!dateString) return "Non sélectionnée";
-  
-  const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-  return new Date(dateString).toLocaleDateString('fr-FR', options);
 };
 
 export default ImprovedBookAppointment;

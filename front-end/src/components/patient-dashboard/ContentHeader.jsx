@@ -5,7 +5,7 @@ const ContentHeader = ({ activeTab, handleTabChange, handleLogout, actionLoading
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // Fermer le menu si on clique ailleurs
+  // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -35,37 +35,39 @@ const ContentHeader = ({ activeTab, handleTabChange, handleLogout, actionLoading
         {activeTab === "profile" && "Mon profil"}
       </h1>
       <div className="header-actions">
-        <NotificationButton />
-        <div className="profile-menu-container" ref={menuRef}>
-          <button 
-            className="btn-secondary" 
-            onClick={toggleProfileMenu}
-            title="Options de profil"
-          >
-            <i className="fas fa-user"></i>
-          </button>
-          
-          {showProfileMenu && (
-            <div className="profile-dropdown-menu">
-              <button 
-                className="profile-menu-item" 
-                onClick={() => {
-                  handleTabChange("profile");
-                  setShowProfileMenu(false);
-                }}
-              >
-                <i className="fas fa-id-card"></i> Voir profil
-              </button>
-              <button 
-                className="profile-menu-item" 
-                onClick={handleLogout}
-                disabled={actionLoading}
-              >
-                <i className="fas fa-sign-out-alt"></i> 
-                {actionLoading ? "Chargement..." : "Déconnexion"}
-              </button>
-            </div>
-          )}
+        <div className="header-controls">
+          <NotificationButton />
+          <div className="profile-menu-container" ref={menuRef}>
+            <button 
+              className="btn-secondary" 
+              onClick={toggleProfileMenu}
+              title="Options de profil"
+            >
+              <i className="fas fa-user"></i>
+            </button>
+            
+            {showProfileMenu && (
+              <div className="profile-dropdown-menu">
+                <button 
+                  className="profile-menu-item" 
+                  onClick={() => {
+                    handleTabChange("profile");
+                    setShowProfileMenu(false);
+                  }}
+                >
+                  <i className="fas fa-id-card"></i> Voir profil
+                </button>
+                <button 
+                  className="profile-menu-item" 
+                  onClick={handleLogout}
+                  disabled={actionLoading}
+                >
+                  <i className="fas fa-sign-out-alt"></i> 
+                  {actionLoading ? "Chargement..." : "Déconnexion"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

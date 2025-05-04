@@ -50,116 +50,126 @@ const Appointments = ({
   return (
     <div className="appointments-container">
       <div className="filter-bar">
-        <div className="search-box">
-          <i className="fas fa-search"></i>
-          <input 
-            type="text" 
-            placeholder="Rechercher un rendez-vous..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
         <div className="filter-options">
           <select 
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            defaultValue="all"
+            className="status-filter"
           >
-            <option value="all">Tous les statuts</option>
+            <option value="all">Tous</option>
             <option value="confirmé">Confirmés</option>
             <option value="en attente">En attente</option>
             <option value="annulé">Annulés</option>
           </select>
-          <button className="btn-outline" onClick={() => {
-            setFilter("all");
-            setSearchTerm("");
-          }} disabled={actionLoading}>
-            <i className="fas fa-filter"></i> Réinitialiser
-          </button>
+
+          <div className="search-box">
+            <input 
+              type="text" 
+              placeholder="Rechercher..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+            <i className="fas fa-search search-icon"></i>
+          </div>
         </div>
+        
+        <button className="btn-outline reset-btn" onClick={() => {
+          setFilter("all");
+          setSearchTerm("");
+        }} disabled={actionLoading}>
+          <i className="fas fa-redo-alt"></i> Réinitialiser
+        </button>
       </div>
 
-      <div className="appointments-list">
-        {filteredAppointments.length > 0 ? (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Heure</th>
-                <th>Médecin</th>
-                <th>Spécialité</th>
-                <th>Motif</th>
-                <th>Statut</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAppointments.map(appointment => (
-                <tr key={appointment.id}>
-                  <td>{appointment.date}</td>
-                  <td>{appointment.time}</td>
-                  <td>{appointment.doctor}</td>
-                  <td>{appointment.specialty || "Non spécifié"}</td>
-                  <td>
-                    {appointment.reason
-                      ? appointment.reason.length > 30
-                        ? `${appointment.reason.substring(0, 30)}...`
-                        : appointment.reason
-                      : "Non spécifié"}
-                  </td>
-                  <td>
-                    <span className={`status-badge ${appointment.status.replace(" ", "")}`}>
-                      {appointment.status}
-                    </span>
-                  </td>
-                  <td className="actions">
-                    <button className="btn-icon" title="Voir les détails" disabled={actionLoading}>
-                      <i className="fas fa-eye"></i>
-                    </button>
-                    
-                    {/* Bouton d'édition pour les rendez-vous non annulés et futurs */}
-                    {appointment.status !== "annulé" && new Date(appointment.date) > new Date() && (
-                      <button 
-                        className="btn-icon" 
-                        title="Modifier" 
-                        onClick={() => handleEditAppointment(appointment)}
-                        disabled={actionLoading}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                    )}
-                    
-                    {/* Bouton d'annulation pour les rendez-vous non annulés et futurs */}
-                    {appointment.status !== "annulé" && new Date(appointment.date) > new Date() && (
-                      <button 
-                        className="btn-icon" 
-                        title="Annuler" 
-                        onClick={() => handleCancelAppointment(appointment.id)}
-                        disabled={actionLoading}
-                      >
-                        <i className="fas fa-times-circle"></i>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty-state">
-            <i className="fas fa-calendar-times"></i>
-            <h3>Aucun rendez-vous</h3>
-            <p>Vous n'avez pas encore de rendez-vous programmés</p>
-            <button 
-              className="btn-primary" 
-              onClick={() => handleTabChange("book")} 
-              disabled={actionLoading}
-            >
-              Prendre un rendez-vous
-            </button>
-          </div>
-        )}
-      </div>
+      {filteredAppointments.length > 0 ? (
+        <div className="appointments-list">
+          {filteredAppointments.map(appointment => (
+            <div key={appointment.id} className="appointment-card">
+              <div className="appointment-header">
+                <span className={`status-badge ${appointment.status.replace(" ", "")}`}>
+                  {appointment.status}
+                </span>
+                <span className="appointment-date">{appointment.date}</span>
+              </div>
+              
+              <div className="appointment-body">
+                <div className="appointment-info">
+                  <div className="info-row">
+                    <span className="info-label">Heure:</span>
+                    <span className="info-value">{appointment.time}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Médecin:</span>
+                    <span className="info-value">{appointment.doctor}</span>
+                  </div>
+                  {appointment.specialty && (
+                    <div className="info-row">
+                      <span className="info-label">Spécialité:</span>
+                      <span className="info-value">{appointment.specialty}</span>
+                    </div>
+                  )}
+                  {appointment.reason && (
+                    <div className="info-row">
+                      <span className="info-label">Motif:</span>
+                      <span className="info-value reason-text">
+                        {appointment.reason.length > 100 
+                          ? `${appointment.reason.substring(0, 100)}...` 
+                          : appointment.reason}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="appointment-footer">
+                <button className="btn-sm btn-outline" 
+                  title="Voir les détails" 
+                  disabled={actionLoading}>
+                  <i className="fas fa-eye"></i> Détails
+                </button>
+                
+                {/* Bouton d'édition pour les rendez-vous non annulés et futurs */}
+                {appointment.status !== "annulé" && new Date(appointment.date) > new Date() && (
+                  <button 
+                    className="btn-sm btn-outline" 
+                    title="Modifier" 
+                    onClick={() => handleEditAppointment(appointment)}
+                    disabled={actionLoading}
+                  >
+                    <i className="fas fa-edit"></i> Modifier
+                  </button>
+                )}
+                
+                {/* Bouton d'annulation pour les rendez-vous non annulés et futurs */}
+                {appointment.status !== "annulé" && new Date(appointment.date) > new Date() && (
+                  <button 
+                    className="btn-sm btn-outline danger" 
+                    title="Annuler" 
+                    onClick={() => handleCancelAppointment(appointment.id)}
+                    disabled={actionLoading}
+                  >
+                    <i className="fas fa-times-circle"></i> Annuler
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <i className="fas fa-calendar-times"></i>
+          <h3>Aucun rendez-vous</h3>
+          <p>Vous n'avez pas encore de rendez-vous programmés</p>
+          <button 
+            className="btn-primary" 
+            onClick={() => handleTabChange("book")} 
+            disabled={actionLoading}
+          >
+            Prendre un rendez-vous
+          </button>
+        </div>
+      )}
     </div>
   );
 };
