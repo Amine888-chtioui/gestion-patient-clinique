@@ -10,6 +10,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SimpleInvoiceController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ServiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +63,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment-methods', [PaymentController::class, 'getPaymentMethods']);
         Route::post('/invoices/{id}/payment/initialize', [PaymentController::class, 'initializePayment']);
         Route::post('/payments/process', [PaymentController::class, 'processPayment']);
+        // Add to routes/api.php
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::get('/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
+        
     });
     
     // Routes pour les médecins
@@ -76,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::put('/profile', [DoctorController::class, 'updateProfile']);
         Route::post('/profile/photo', [DoctorController::class, 'updateProfilePhoto']);
+
     });
     
     // Routes pour les admins
@@ -120,6 +126,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/contacts/{id}', [AdminController::class, 'showContact']);
         Route::put('/contacts/{id}/mark-as-read', [AdminController::class, 'markContactAsRead']);
         Route::delete('/contacts/{id}', [AdminController::class, 'deleteContact']);
+
+        // Routes pour les services
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::get('/services/{id}', [ServiceController::class, 'show']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+        Route::post('/services/{id}/doctors', [ServiceController::class, 'assignDoctor']);
+        Route::delete('/services/{id}/doctors', [ServiceController::class, 'removeDoctor']);
     });
     
     // Routes pour les notifications
@@ -150,4 +165,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/invoices/{id}', [SimpleInvoiceController::class, 'update']);
     Route::delete('/invoices/{id}', [SimpleInvoiceController::class, 'destroy']);
     Route::post('/invoices/{id}/pay', [SimpleInvoiceController::class, 'markAsPaid']);
+
+
 });

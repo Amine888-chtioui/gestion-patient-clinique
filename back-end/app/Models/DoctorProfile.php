@@ -21,7 +21,8 @@ class DoctorProfile extends Model
         'adresse',
         'education',
         'experience',
-        'bio'
+        'bio',
+        'service_id'  // Nouveau champ
     ];
 
     /**
@@ -30,5 +31,12 @@ class DoctorProfile extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    /**
+     * Get the service associated with the doctor profile.
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
     }
 }

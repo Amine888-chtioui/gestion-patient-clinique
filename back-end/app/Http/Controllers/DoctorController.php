@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Hash;
 use App\Models\DoctorProfile;
+use App\Models\Service;
 
 class DoctorController extends Controller
 {
@@ -336,35 +337,46 @@ public function getAllDoctors()
         ]);
     }
 
-    public function getProfile()
-    {
-        $user = Auth::user();
-        
-        // Vérifier que l'utilisateur est un médecin
-        if (!$user->isDoctor()) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
-        
-        // Récupérer les détails du médecin
-        $doctorProfile = DoctorProfile::where('user_id', $user->id)->first();
-        
-        return response()->json([
-            'profile' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                // Utiliser les détails du médecin si disponibles
-                'phone' => $doctorProfile ? $doctorProfile->phone : null,
-                'speciality' => $doctorProfile ? $doctorProfile->specialite : null,
-                'education' => $doctorProfile ? $doctorProfile->education : null,
-                'address' => $doctorProfile ? $doctorProfile->adresse : null,
-                'bio' => $doctorProfile ? $doctorProfile->bio : null,
-                'experience' => $doctorProfile ? $doctorProfile->experience : null,
-                'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
-            ]
-        ]);
+   // Dans la méthode getProfile du DoctorController
+public function getProfile()
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un médecin
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
     }
+    
+    // Récupérer les détails du médecin
+    $doctorProfile = DoctorProfile::where('user_id', $user->id)->first();
+    
+    // Récupérer les informations du service si disponibles
+    $service = null;
+    if ($doctorProfile && $doctorProfile->service_id) {
+        $service = Service::find($doctorProfile->service_id);
+    }
+    
+    return response()->json([
+        'profile' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'phone' => $doctorProfile ? $doctorProfile->phone : null,
+            'speciality' => $doctorProfile ? $doctorProfile->specialite : null,
+            'education' => $doctorProfile ? $doctorProfile->education : null,
+            'address' => $doctorProfile ? $doctorProfile->adresse : null,
+            'bio' => $doctorProfile ? $doctorProfile->bio : null,
+            'experience' => $doctorProfile ? $doctorProfile->experience : null,
+            'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
+            'service' => $service ? [
+                'id' => $service->id,
+                'name' => $service->name,
+                'icon' => $service->icon,
+            ] : null,
+        ]
+    ]);
+}
 
     /**
      * Mettre à jour le profil du médecin

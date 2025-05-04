@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Contact;
+use App\Models\DoctorProfile;
 
 class AdminController extends Controller
 {
@@ -331,11 +332,15 @@ class AdminController extends Controller
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
         
-        // Récupérer tous les médecins
-        $doctors = User::where('role', 'doctor')->get();
+        // Récupérer tous les médecins avec leurs profils et services
+        $doctors = User::where('role', 'doctor')
+            ->with(['doctorProfile.service'])
+            ->get();
         
         // Formater les données pour la réponse
         $formattedDoctors = $doctors->map(function ($doctor) {
+            $profile = $doctor->doctorProfile;
+            
             return [
                 'id' => $doctor->id,
                 'name' => $doctor->name,
@@ -346,6 +351,11 @@ class AdminController extends Controller
                 'bio' => $doctor->bio ?? null,
                 'education' => $doctor->education ?? null,
                 'experience' => $doctor->experience ?? null,
+                'service' => $profile && $profile->service ? [
+                    'id' => $profile->service->id,
+                    'name' => $profile->service->name,
+                    'icon' => $profile->service->icon,
+                ] : null,
             ];
         });
         
@@ -353,7 +363,6 @@ class AdminController extends Controller
             'doctors' => $formattedDoctors
         ]);
     }
-
     /**
      * Ajouter un nouveau médecin
      */
@@ -376,6 +385,7 @@ class AdminController extends Controller
             'bio' => 'nullable|string',
             'education' => 'nullable|string',
             'experience' => 'nullable|string',
+            'service_id' => 'nullable|exists:services,id',
         ]);
         
         if ($validator->fails()) {
@@ -397,7 +407,13 @@ class AdminController extends Controller
             'education' => $request->education,
             'experience' => $request->experience,
         ]);
-        
+
+        if ($request->has('service_id')) {
+            $doctorProfile = DoctorProfile::firstOrNew(['user_id' => $doctor->id]);
+            $doctorProfile->service_id = $request->service_id;
+            $doctor->doctorProfile()->save($doctorProfile);
+        }
+
         return response()->json([
             'message' => 'Médecin créé avec succès',
             'doctor' => [
@@ -439,6 +455,7 @@ class AdminController extends Controller
             'bio' => 'nullable|string',
             'education' => 'nullable|string',
             'experience' => 'nullable|string',
+            'service_id' => 'nullable|exists:services,id',
         ]);
         
         if ($validator->fails()) {
@@ -482,6 +499,12 @@ class AdminController extends Controller
         }
         
         $doctor->save();
+
+        if ($request->has('service_id')) {
+            $doctorProfile = DoctorProfile::firstOrNew(['user_id' => $doctor->id]);
+            $doctorProfile->service_id = $request->service_id;
+            $doctor->doctorProfile()->save($doctorProfile);
+        }
         
         return response()->json([
             'message' => 'Médecin mis à jour avec succès',
