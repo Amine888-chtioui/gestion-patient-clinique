@@ -216,4 +216,59 @@ class ServiceController extends Controller
             'message' => 'Médecin retiré du service avec succès'
         ]);
     }
+
+    /**
+ * Get all active services (public endpoint)
+ */
+public function getActiveServices()
+{
+    $services = Service::where('is_active', true)
+        ->select('id', 'name', 'description', 'icon')
+        ->get();
+    
+    return response()->json([
+        'services' => $services
+    ]);
+}
+
+/**
+ * Get all doctors for a specific service (public endpoint)
+ */
+public function getDoctors($id)
+{
+    // Vérifier que le service existe et est actif
+    $service = Service::where('id', $id)
+        ->where('is_active', true)
+        ->firstOrFail();
+    
+    // Récupérer tous les profils de médecins associés à ce service
+    $doctorProfiles = DoctorProfile::where('service_id', $id)->get();
+    
+    // Récupérer les IDs des utilisateurs
+    $doctorIds = $doctorProfiles->pluck('user_id')->toArray();
+    
+    // Récupérer les informations de base des médecins
+    $doctors = User::whereIn('id', $doctorIds)
+        ->where('role', 'doctor')
+        ->select('id', 'name', 'email')
+        ->with('doctorProfile') // Pour récupérer la spécialité
+        ->get()
+        ->map(function($doctor) {
+            return [
+                'id' => $doctor->id,
+                'name' => $doctor->name,
+                'specialty' => $doctor->doctorProfile->specialite ?? null,
+            ];
+        });
+    
+    return response()->json([
+        'service' => [
+            'id' => $service->id,
+            'name' => $service->name,
+            'description' => $service->description,
+            'icon' => $service->icon,
+        ],
+        'doctors' => $doctors
+    ]);
+}
 }

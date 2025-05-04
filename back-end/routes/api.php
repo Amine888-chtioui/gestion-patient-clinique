@@ -63,9 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment-methods', [PaymentController::class, 'getPaymentMethods']);
         Route::post('/invoices/{id}/payment/initialize', [PaymentController::class, 'initializePayment']);
         Route::post('/payments/process', [PaymentController::class, 'processPayment']);
-        // Add to routes/api.php
-        Route::get('/services', [ServiceController::class, 'index']);
-        Route::get('/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
+        // Ajouter aux routes patient
+        Route::get('/patient/services', [ServiceController::class, 'getActiveServices']);
+        Route::get('/patient/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
         
     });
     
