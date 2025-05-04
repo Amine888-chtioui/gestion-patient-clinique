@@ -52,14 +52,6 @@ const DoctorSidebar = ({
         ))}
       </ul>
     </nav>
-
-    <div className="sidebar-footer">
-      <button onClick={handleLogout} className="logout-btn" disabled={actionLoading}>
-        {actionLoading ? "Chargement..." : (
-          <><i className="fas fa-sign-out-alt"></i> Déconnexion</>
-        )}
-      </button>
-    </div>
   </aside>
 );
 

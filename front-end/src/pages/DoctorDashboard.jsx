@@ -464,12 +464,13 @@ const DoctorDashboard = () => {
       />
 
       <main className="main-content">
-        <ContentHeader 
-          activeTab={activeTab} 
-          activeSubTab={activeSubTab} 
-          selectedPatient={selectedPatient}
-          handleTabChange={handleTabChange}
-        />
+      <ContentHeader 
+        activeTab={activeTab} 
+        activeSubTab={activeSubTab} 
+        selectedPatient={selectedPatient}
+        handleTabChange={handleTabChange}
+        handleLogout={handleLogout} // Ajouter cette prop
+      />
 
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
@@ -523,7 +524,7 @@ const DoctorDashboard = () => {
             )
           )}
 
-          {/* Sous-sections spécifiques */}
+          {/* Sous-sections spécifiques qui ne nécessitent pas d'indicateurs de chargement spécifiques */}
           {activeTab === "patients" && activeSubTab === "details" && selectedPatient && (
             <PatientDetails
               patient={selectedPatient}
@@ -575,7 +576,6 @@ const DoctorDashboard = () => {
         </div>
       </main>
 
-      {/* Barre de navigation mobile */}
       <MobileNav activeTab={activeTab} handleTabChange={handleTabChange} />
     </div>
   );

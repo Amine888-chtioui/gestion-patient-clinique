@@ -97,6 +97,9 @@ const AdminDashboard = () => {
 
   // Effet pour le chargement initial et l'authentification
   useEffect(() => {
+
+    
+
     const initDashboard = async () => {
       const token = localStorage.getItem("token");
       if (!token) return navigate("/login");
@@ -167,6 +170,18 @@ const AdminDashboard = () => {
     };
 
     initDashboard();
+
+    const handleLogoutEvent = () => {
+      handleLogout();
+    };
+    
+    // Ajouter l'écouteur d'événement
+    window.addEventListener('admin-logout', handleLogoutEvent);
+    
+    // Nettoyage
+    return () => {
+      window.removeEventListener('admin-logout', handleLogoutEvent);
+    };
   }, []);
 
   // Charge les données pour une section spécifique

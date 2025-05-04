@@ -1,8 +1,29 @@
 // src/components/admin-dashboard/ContentHeader.jsx
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import AdminNotificationButton from "./AdminNotificationButton";
 
 const ContentHeader = ({ activeTab, handleTabChange }) => {
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const toggleProfileMenu = () => {
+    setShowProfileMenu(!showProfileMenu);
+  };
+
   const getTabTitle = () => {
     switch (activeTab) {
       case "overview":
@@ -25,6 +46,10 @@ const ContentHeader = ({ activeTab, handleTabChange }) => {
         return "Gestion des utilisateurs";
       case "profile":
         return "Mon profil";
+      case "contacts":
+        return "Messages de contact";
+      case "services":
+        return "Gestion des services";
       default:
         return "Administration";
     }
@@ -34,14 +59,41 @@ const ContentHeader = ({ activeTab, handleTabChange }) => {
     <header className="content-header">
       <h1>{getTabTitle()}</h1>
       <div className="header-actions">
-        <AdminNotificationButton />
-        <button 
-          className="btn-secondary" 
-          onClick={() => handleTabChange("profile")}
-          title="Mon profil"
-        >
-          <i className="fas fa-user"></i>
-        </button>
+        <div className="header-controls">
+          <AdminNotificationButton />
+          <div className="profile-menu-container" ref={menuRef}>
+            <button 
+              className="btn-secondary" 
+              onClick={toggleProfileMenu}
+              title="Options de profil"
+            >
+              <i className="fas fa-user"></i>
+            </button>
+            
+            {showProfileMenu && (
+              <div className="profile-dropdown-menu">
+                <button 
+                  className="profile-menu-item" 
+                  onClick={() => {
+                    handleTabChange("profile");
+                    setShowProfileMenu(false);
+                  }}
+                >
+                  <i className="fas fa-id-card"></i> Voir profil
+                </button>
+                <button 
+                  className="profile-menu-item logout-menu-item" 
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('admin-logout'));
+                    setShowProfileMenu(false);
+                  }}
+                >
+                  <i className="fas fa-sign-out-alt"></i> Déconnexion
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </header>
   );

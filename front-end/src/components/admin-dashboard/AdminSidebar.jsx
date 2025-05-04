@@ -3,24 +3,26 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const AdminSidebar = ({ 
-  user, 
-  activeTab, 
-  handleTabChange, 
-  handleLogout, 
+const AdminSidebar = ({
+  user,
+  activeTab,
+  handleTabChange,
+  handleLogout,
   actionLoading,
-  profile  // Ajout du prop profile
+  profile, // Ajout du prop profile
 }) => {
   const navigate = useNavigate();
 
   return (
     <aside className="sidebar">
-      
-
       <div className="user-info">
         <div className="avatar">
           {profile?.photoUrl ? (
-            <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+            <img
+              src={profile.photoUrl}
+              alt="Photo de profil"
+              className="profile-photo"
+            />
           ) : (
             <i className="fas fa-user-circle"></i>
           )}
@@ -37,16 +39,20 @@ const AdminSidebar = ({
             { id: "patients", icon: "user-injured", label: "Patients" },
             { id: "doctors", icon: "user-md", label: "Médecins" },
             { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
-            { id: "medicalRecords", icon: "file-medical", label: "Dossiers médicaux" },
+            {
+              id: "medicalRecords",
+              icon: "file-medical",
+              label: "Dossiers médicaux",
+            },
             { id: "services", icon: "hospital", label: "Services" },
             { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
             { id: "payments", icon: "credit-card", label: "Paiements" },
             { id: "contacts", icon: "envelope", label: "Messages" },
             { id: "statistics", icon: "chart-bar", label: "Statistiques" },
-            { id: "users", icon: "users", label: "Utilisateurs" }
-          ].map(item => (
+            { id: "users", icon: "users", label: "Utilisateurs" },
+          ].map((item) => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
-              <button 
+              <button
                 onClick={() => handleTabChange(item.id)}
                 data-tab={item.id}
               >
@@ -57,15 +63,7 @@ const AdminSidebar = ({
         </ul>
       </nav>
 
-      <div className="sidebar-footer">
-        <button onClick={handleLogout} className="logout-btn" disabled={actionLoading}>
-          {actionLoading ? (
-            <span><i className="fas fa-circle-notch fa-spin"></i> Déconnexion...</span>
-          ) : (
-            <><i className="fas fa-sign-out-alt"></i> Déconnexion</>
-          )}
-        </button>
-      </div>
+      <div className="sidebar-footer"></div>
     </aside>
   );
 };

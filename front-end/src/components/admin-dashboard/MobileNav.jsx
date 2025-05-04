@@ -27,12 +27,6 @@ const MobileNav = ({ activeTab, handleTabChange }) => (
     >
       <i className="fas fa-file-invoice-dollar"></i>
     </div>
-    <div
-      className={`mobile-nav-item ${activeTab === "settings" ? "active" : ""}`}
-      onClick={() => handleTabChange("settings")}
-    >
-      <i className="fas fa-cog"></i>
-    </div>
   </nav>
 );
 
