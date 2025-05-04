@@ -976,12 +976,45 @@
     font-size: 1rem;
   }
 }
-/* Styles pour la navigation mobile - à ajouter à doctor-dashboard.css */
+/* Ajoutez ces styles à votre fichier doctor-dashboard.css */
 
+/* Styles améliorés pour la navigation mobile */
+.mobile-nav {
+  display: none; /* Masqué par défaut, visible seulement en mobile */
+}
+
+/* Médias queries pour le responsive */
 @media (max-width: 768px) {
+  /* Structure principale */
+  .doctor-dashboard {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden; /* Empêche le défilement horizontal */
+  }
+  
+  /* Sidebar cachée sur mobile */
+  .doctor-dashboard .sidebar {
+    display: none;
+  }
+  
+  /* Contenu principal sans marge gauche et pleine largeur */
+  .doctor-dashboard .main-content {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    padding-bottom: 70px; /* Espace pour la navigation mobile */
+    overflow-x: hidden;
+    flex: 1;
+  }
+  
+  /* Navigation mobile en bas de l'écran */
   .mobile-nav {
     display: flex;
     justify-content: space-around;
+    align-items: center;
     background-color: white;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
     position: fixed;
@@ -990,36 +1023,70 @@
     right: 0;
     width: 100%;
     z-index: 1000;
+    height: 60px;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--border-color);
   }
-
+  
   .mobile-nav-item {
-    padding: 0.75rem;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     flex: 1;
+    height: 100%;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: var(--transition);
   }
-
+  
   .mobile-nav-item i {
     font-size: 1.25rem;
-    color: var(--text-light);
+    margin-bottom: 0.25rem;
   }
-
-  .mobile-nav-item.active i {
+  
+  .mobile-nav-item .nav-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+  
+  .mobile-nav-item.active {
     color: var(--primary-color);
   }
   
-  /* Ajuster le padding pour éviter que le contenu soit caché derrière la barre de navigation */
-  .main-content {
-    padding-bottom: 60px;
+  /* Empêcher le défilement horizontal sur tout le corps */
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
   
-  /* Cacher la sidebar sur mobile */
-  .sidebar {
-    display: none;
-  }
-  
-  /* Ajustement pour que le contenu principal prenne toute la largeur */
-  .doctor-dashboard .main-content {
-    margin-left: 0;
+  /* Adapter la grille pour qu'elle s'affiche correctement en mobile */
+  .patients-grid,
+  .appointments-list,
+  .stats-container {
+    grid-template-columns: 1fr;
     width: 100%;
+  }
+  
+  /* Contenu adapté à la largeur mobile */
+  .content-body {
+    padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  
+  /* Les formulaires doivent s'adapter à la largeur */
+  .form-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+  
+  /* Tableaux adaptés à la largeur mobile */
+  .data-table {
+    width: 100%;
+    display: block;
+    overflow-x: auto;
   }
 }
