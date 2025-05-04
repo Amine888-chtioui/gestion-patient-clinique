@@ -1,5 +1,7 @@
-// ImprovedBookAppointment.jsx
+// src/components/patient-dashboard/ImprovedBookAppointment.jsx
 import React, { useState, useEffect } from "react";
+import AvailabilityCalendar from "./AvailabilityCalendar";
+import TimeSlots from "./TimeSlots";
 import axios from "../../axios";
 
 const ImprovedBookAppointment = ({ 
@@ -7,8 +9,6 @@ const ImprovedBookAppointment = ({
   actionLoading,
   onBookAppointment
 }) => {
-  const [services, setServices] = useState([]);
-  const [selectedService, setSelectedService] = useState("");
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
@@ -17,63 +17,30 @@ const ImprovedBookAppointment = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Récupérer la liste des services disponibles
+  // Récupérer la liste des médecins
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchDoctors = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('/api/patient/services', {
+        const response = await axios.get('/api/doctors', {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
-        setServices(response.data.services || []);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des services:", err);
-        setError("Impossible de charger la liste des services. Veuillez réessayer plus tard.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchServices();
-  }, []);
-
-  // Récupérer les médecins associés au service sélectionné
-  useEffect(() => {
-    if (!selectedService) return;
-    
-    const fetchDoctorsByService = async () => {
-      setLoading(true);
-      setDoctors([]);
-      setSelectedDoctor("");
-      
-      try {
-        const response = await axios.get(`/api/patient/services/${selectedService}/doctors`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setDoctors(response.data.doctors || []);
+        setDoctors(response.data || []);
       } catch (err) {
         console.error("Erreur lors de la récupération des médecins:", err);
-        setError("Impossible de charger les médecins pour ce service. Veuillez réessayer plus tard.");
+        setError("Impossible de charger la liste des médecins. Veuillez réessayer plus tard.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDoctorsByService();
-  }, [selectedService]);
-
-  // Gérer le changement de service
-  const handleServiceChange = (e) => {
-    setSelectedService(e.target.value);
-    // Réinitialiser les sélections suivantes
-    setSelectedDoctor("");
-    setSelectedDate("");
-    setSelectedTime("");
-  };
+    fetchDoctors();
+  }, []);
 
   // Gérer le changement de médecin
   const handleDoctorChange = (e) => {
-    setSelectedDoctor(e.target.value);
+    const doctorId = e.target.value;
+    setSelectedDoctor(doctorId);
     // Réinitialiser la date et l'heure sélectionnées
     setSelectedDate("");
     setSelectedTime("");
@@ -121,111 +88,60 @@ const ImprovedBookAppointment = ({
       )}
 
       <div className="appointment-form-container">
-        <div className="service-selection">
-          <h3>1. Choisissez un service médical</h3>
+        <div className="doctor-selection">
+          <h3>1. Choisissez un médecin</h3>
           <div className="form-group">
-            <label htmlFor="service">Service</label>
+            <label htmlFor="doctor">Médecin</label>
             <select
-              id="service"
-              value={selectedService}
-              onChange={handleServiceChange}
+              id="doctor"
+              value={selectedDoctor}
+              onChange={handleDoctorChange}
               disabled={loading || actionLoading}
               required
-              className="form-control"
             >
-              <option value="">Sélectionnez un service</option>
-              {services.map(service => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
+              <option value="">Sélectionnez un médecin</option>
+              {doctors.map(doctor => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.name} {doctor.specialty ? `- ${doctor.specialty}` : ""}
                 </option>
               ))}
             </select>
             {loading && (
               <div className="loading-indicator">
-                <i className="fas fa-spinner fa-spin"></i> Chargement...
+                <i className="fas fa-spinner fa-spin"></i> Chargement des médecins...
               </div>
             )}
           </div>
         </div>
 
-        {selectedService && (
-          <div className="doctor-selection">
-            <h3>2. Choisissez un médecin</h3>
-            <div className="form-group">
-              <label htmlFor="doctor">Médecin</label>
-              <select
-                id="doctor"
-                value={selectedDoctor}
-                onChange={handleDoctorChange}
-                disabled={loading || actionLoading}
-                required
-                className="form-control"
-              >
-                <option value="">Sélectionnez un médecin</option>
-                {doctors.map(doctor => (
-                  <option key={doctor.id} value={doctor.id}>
-                    {doctor.name} {doctor.specialty ? `- ${doctor.specialty}` : ""}
-                  </option>
-                ))}
-              </select>
-              {doctors.length === 0 && !loading && (
-                <div className="info-message">
-                  <i className="fas fa-info-circle"></i> Aucun médecin disponible pour ce service.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {selectedDoctor && (
           <div className="date-time-selection">
             <div className="date-selection">
-              <h3>3. Choisissez une date</h3>
-              {/* Ici, vous pourriez intégrer votre composant AvailabilityCalendar */}
-              <div className="form-group">
-                <label htmlFor="date">Date souhaitée</label>
-                <input
-                  type="date"
-                  id="date"
-                  value={selectedDate}
-                  onChange={(e) => handleDateSelect(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  required
-                  disabled={actionLoading}
-                  className="form-control"
-                />
-              </div>
+              <h3>2. Choisissez une date</h3>
+              <AvailabilityCalendar
+                doctorId={selectedDoctor}
+                selectedDate={selectedDate}
+                onDateSelect={handleDateSelect}
+                disabled={actionLoading}
+              />
             </div>
 
-            {selectedDate && (
-              <div className="time-selection">
-                <h3>4. Choisissez un horaire</h3>
-                {/* Ici, vous pourriez intégrer votre composant TimeSlots */}
-                <div className="form-group">
-                  <label htmlFor="time">Heure souhaitée</label>
-                  <select
-                    id="time"
-                    value={selectedTime}
-                    onChange={(e) => handleTimeSelect(e.target.value)}
-                    required
-                    disabled={actionLoading}
-                    className="form-control"
-                  >
-                    <option value="">Sélectionner une heure</option>
-                    {["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", 
-                      "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"].map(time => (
-                      <option key={time} value={time}>{time}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
+            <div className="time-selection">
+              <h3>3. Choisissez un horaire</h3>
+              <TimeSlots
+                doctorId={selectedDoctor}
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                onTimeSelect={handleTimeSelect}
+                disabled={actionLoading}
+              />
+            </div>
           </div>
         )}
 
         {selectedDoctor && selectedDate && selectedTime && (
           <div className="reason-section">
-            <h3>5. Motif de consultation</h3>
+            <h3>4. Motif de consultation</h3>
             <div className="form-group">
               <label htmlFor="reason">Motif de la consultation</label>
               <textarea
@@ -236,7 +152,6 @@ const ImprovedBookAppointment = ({
                 rows="4"
                 required
                 disabled={actionLoading}
-                className="form-control"
               ></textarea>
             </div>
           </div>
@@ -248,15 +163,9 @@ const ImprovedBookAppointment = ({
               <h3>Résumé du rendez-vous</h3>
               <div className="summary-details">
                 <div className="summary-item">
-                  <span className="summary-label">Service:</span>
-                  <span className="summary-value">
-                    {services.find(s => s.id == selectedService)?.name || "Service sélectionné"}
-                  </span>
-                </div>
-                <div className="summary-item">
                   <span className="summary-label">Médecin:</span>
                   <span className="summary-value">
-                    {doctors.find(d => d.id == selectedDoctor)?.name || "Médecin sélectionné"}
+                    {doctors.find(d => d.id === selectedDoctor)?.name || "Médecin sélectionné"}
                   </span>
                 </div>
                 <div className="summary-item">
@@ -268,7 +177,7 @@ const ImprovedBookAppointment = ({
                 <div className="summary-item">
                   <span className="summary-label">Heure:</span>
                   <span className="summary-value">
-                    {selectedTime}
+                    {formatReadableTime(selectedTime)}
                   </span>
                 </div>
               </div>
@@ -303,12 +212,23 @@ const ImprovedBookAppointment = ({
   );
 };
 
-// Fonction utilitaire pour formater les dates
+// Fonctions utilitaires pour le formatage des dates et heures
 const formatReadableDate = (dateString) => {
   if (!dateString) return "Non sélectionnée";
   
   const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
   return new Date(dateString).toLocaleDateString('fr-FR', options);
+};
+
+const formatReadableTime = (timeString) => {
+  if (!timeString) return "Non sélectionnée";
+  
+  const [hours, minutes] = timeString.split(':');
+  const h = parseInt(hours);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  
+  return `${hour12}:${minutes} ${period}`;
 };
 
 export default ImprovedBookAppointment;

@@ -63,10 +63,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment-methods', [PaymentController::class, 'getPaymentMethods']);
         Route::post('/invoices/{id}/payment/initialize', [PaymentController::class, 'initializePayment']);
         Route::post('/payments/process', [PaymentController::class, 'processPayment']);
-        // Ajouter aux routes patient
-        Route::get('/patient/services', [ServiceController::class, 'getActiveServices']);
-        Route::get('/patient/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
-        
+        // Routes pour les services (correctement placées dans le préfixe 'patient')
+        Route::get('/services', [ServiceController::class, 'getActiveServices']);
+        Route::get('/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
     });
     
     // Routes pour les médecins
@@ -81,7 +80,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::put('/profile', [DoctorController::class, 'updateProfile']);
         Route::post('/profile/photo', [DoctorController::class, 'updateProfilePhoto']);
-
     });
     
     // Routes pour les admins
@@ -167,6 +165,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/invoices/{id}', [SimpleInvoiceController::class, 'update']);
     Route::delete('/invoices/{id}', [SimpleInvoiceController::class, 'destroy']);
     Route::post('/invoices/{id}/pay', [SimpleInvoiceController::class, 'markAsPaid']);
-
-
 });
