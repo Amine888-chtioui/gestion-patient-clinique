@@ -1,13 +1,11 @@
-// src/components/patient-dashboard/Sidebar.jsx
 import React from "react";
 
 const Sidebar = ({
   user,
   activeTab,
   handleTabChange,
-  handleLogout,
   actionLoading,
-  profile,  // Ajout du prop profile
+  profile,
 }) => {
   return (
     <aside className="sidebar">
@@ -41,7 +39,6 @@ const Sidebar = ({
             { id: "medicalRecords", icon: "file-medical", label: "Dossier médical" },
             { id: "prescriptions", icon: "prescription", label: "Ordonnances" },
             { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
-            
           ].map((item) => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
               <button onClick={() => handleTabChange(item.id)}>
@@ -51,22 +48,6 @@ const Sidebar = ({
           ))}
         </ul>
       </nav>
-
-      <div className="sidebar-footer">
-        <button
-          onClick={handleLogout}
-          className="logout-btn"
-          disabled={actionLoading}
-        >
-          {actionLoading ? (
-            "Chargement..."
-          ) : (
-            <>
-              <i className="fas fa-sign-out-alt"></i> Déconnexion
-            </>
-          )}
-        </button>
-      </div>
     </aside>
   );
 };

@@ -25,6 +25,15 @@ const DoctorSidebar = ({
       </div>
       <h3>Dr. {user?.name}</h3>
       <p>{user?.email}</p>
+      {profile?.speciality && <p className="doctor-speciality">{profile.speciality}</p>}
+      {profile?.service && (
+        <div className="service-info">
+          <span className="service-badge">
+            {profile.service.icon && <i className={`fas ${profile.service.icon}`}></i>}
+            {profile.service.name}
+          </span>
+        </div>
+      )}
       <span className="badge badge-doctor">Médecin</span>
     </div>
 

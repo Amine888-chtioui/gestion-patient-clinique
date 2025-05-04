@@ -8,6 +8,7 @@ const DoctorProfile = () => {
   const [isChangingPhoto, setIsChangingPhoto] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [services, setServices] = useState([]);
   
   // États pour les actions
   const [actionLoading, setActionLoading] = useState(false);
@@ -24,34 +25,46 @@ const DoctorProfile = () => {
     bio: "",
     experience: "",
     password: "",
-    password_confirmation: ""
+    password_confirmation: "",
+    service_id: ""
   });
 
   // Charger les données du profil au chargement du composant
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         console.log("Récupération du profil médecin...");
-        const response = await axios.get("/api/doctor/profile", {
+        
+        // Get doctor profile
+        const profileResponse = await axios.get("/api/doctor/profile", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         
-        console.log("Profil reçu:", response.data);
-        setProfile(response.data.profile);
+        console.log("Profil reçu:", profileResponse.data);
+        setProfile(profileResponse.data.profile);
+        
+        // Get available services
+        const servicesResponse = await axios.get("/api/patient/services", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        
+        console.log("Services reçus:", servicesResponse.data);
+        setServices(servicesResponse.data.services || []);
         
         // Initialiser le formulaire avec les données du profil
         setFormData({
-          name: response.data.profile.name || "",
-          email: response.data.profile.email || "",
-          speciality: response.data.profile.speciality || "",
-          phone: response.data.profile.phone || "",
-          address: response.data.profile.address || "",
-          education: response.data.profile.education || "",
-          bio: response.data.profile.bio || "",
-          experience: response.data.profile.experience || "",
+          name: profileResponse.data.profile.name || "",
+          email: profileResponse.data.profile.email || "",
+          speciality: profileResponse.data.profile.speciality || "",
+          phone: profileResponse.data.profile.phone || "",
+          address: profileResponse.data.profile.address || "",
+          education: profileResponse.data.profile.education || "",
+          bio: profileResponse.data.profile.bio || "",
+          experience: profileResponse.data.profile.experience || "",
           password: "",
-          password_confirmation: ""
+          password_confirmation: "",
+          service_id: profileResponse.data.profile.service?.id || ""
         });
       } catch (err) {
         console.error("Erreur lors du chargement du profil:", err);
@@ -61,7 +74,7 @@ const DoctorProfile = () => {
       }
     };
 
-    fetchProfile();
+    fetchData();
   }, []);
 
   const handleEditClick = () => {
@@ -284,6 +297,24 @@ const DoctorProfile = () => {
               </div>
               
               <div className="form-group">
+                <label htmlFor="service_id">Service</label>
+                <select
+                  id="service_id"
+                  name="service_id"
+                  value={formData.service_id}
+                  onChange={handleChange}
+                  disabled={actionLoading}
+                >
+                  <option value="">-- Sélectionnez un service --</option>
+                  {services.map(service => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
                 <label htmlFor="education">Diplômes</label>
                 <textarea
                   id="education"
@@ -472,6 +503,19 @@ const DoctorProfile = () => {
               <div className="detail-label">Spécialité</div>
               <div className="detail-value">
                 {profile?.speciality || "Non renseignée"}
+              </div>
+            </div>
+            <div className="detail-row">
+              <div className="detail-label">Service</div>
+              <div className="detail-value">
+                {profile?.service ? (
+                  <span className="service-badge">
+                    {profile.service.icon && <i className={`fas ${profile.service.icon}`}></i>} 
+                    {profile.service.name}
+                  </span>
+                ) : (
+                  "Non assigné"
+                )}
               </div>
             </div>
             {profile?.education && (
