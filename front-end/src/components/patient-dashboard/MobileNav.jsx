@@ -1,4 +1,4 @@
-// src/components/patient-dashboard/MobileNav.jsx
+// src/components/doctor-dashboard/MobileNav.jsx
 import React from "react";
 
 const MobileNav = ({ activeTab, handleTabChange }) => (
@@ -16,16 +16,10 @@ const MobileNav = ({ activeTab, handleTabChange }) => (
       <i className="fas fa-calendar-alt"></i>
     </div>
     <div
-      className={`mobile-nav-item ${activeTab === "book" ? "active" : ""}`}
-      onClick={() => handleTabChange("book")}
+      className={`mobile-nav-item ${activeTab === "patients" ? "active" : ""}`}
+      onClick={() => handleTabChange("patients")}
     >
-      <i className="fas fa-plus-circle"></i>
-    </div>
-    <div
-      className={`mobile-nav-item ${activeTab === "medicalRecords" ? "active" : ""}`}
-      onClick={() => handleTabChange("medicalRecords")}
-    >
-      <i className="fas fa-file-medical"></i>
+      <i className="fas fa-user-injured"></i>
     </div>
     <div
       className={`mobile-nav-item ${activeTab === "profile" ? "active" : ""}`}

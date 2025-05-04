@@ -523,7 +523,7 @@ const DoctorDashboard = () => {
             )
           )}
 
-          {/* Sous-sections spécifiques qui ne nécessitent pas d'indicateurs de chargement spécifiques */}
+          {/* Sous-sections spécifiques */}
           {activeTab === "patients" && activeSubTab === "details" && selectedPatient && (
             <PatientDetails
               patient={selectedPatient}
@@ -575,6 +575,7 @@ const DoctorDashboard = () => {
         </div>
       </main>
 
+      {/* Barre de navigation mobile */}
       <MobileNav activeTab={activeTab} handleTabChange={handleTabChange} />
     </div>
   );
