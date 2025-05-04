@@ -38,6 +38,7 @@ const AdminSidebar = ({
             { id: "doctors", icon: "user-md", label: "Médecins" },
             { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
             { id: "medicalRecords", icon: "file-medical", label: "Dossiers médicaux" },
+            { id: "services", icon: "hospital", label: "Services" },
             { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
             { id: "payments", icon: "credit-card", label: "Paiements" },
             { id: "contacts", icon: "envelope", label: "Messages" },

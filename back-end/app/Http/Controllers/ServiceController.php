@@ -168,8 +168,8 @@ class ServiceController extends Controller
         
         $service = Service::findOrFail($serviceId);
         $doctor = User::where('id', $request->doctor_id)
-                      ->where('role', 'doctor')
-                      ->firstOrFail();
+                    ->where('role', 'doctor')
+                    ->firstOrFail();
         
         // Récupérer ou créer le profil du médecin
         $doctorProfile = DoctorProfile::firstOrNew(['user_id' => $doctor->id]);
@@ -209,8 +209,8 @@ class ServiceController extends Controller
         
         // Mettre à jour le profil du médecin
         DoctorProfile::where('user_id', $request->doctor_id)
-                      ->where('service_id', $serviceId)
-                      ->update(['service_id' => null]);
+                    ->where('service_id', $serviceId)
+                    ->update(['service_id' => null]);
         
         return response()->json([
             'message' => 'Médecin retiré du service avec succès'

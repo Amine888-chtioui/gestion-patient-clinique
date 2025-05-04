@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
 import "../components/admin-dashboard/admin-dashboard.css";
 import "../styles/invoices.css";
+import "../components/admin-dashboard/services-management.css";
 
 // Import des composants communs
 import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
@@ -24,6 +25,7 @@ import MedicalRecordsManagement from "../components/admin-dashboard/MedicalRecor
 import StatisticsView from "../components/admin-dashboard/StatisticsView";
 import UsersManagement from "../components/admin-dashboard/UsersManagement";
 import PaymentMethodsManagement from "../components/admin-dashboard/PaymentMethodsManagement";
+import ServicesManagement from "../components/admin-dashboard/ServicesManagement";
 import "../components/admin-dashboard/payment-status-viewer.css";
 import "../components/admin-dashboard/admin-payment-methods.css";
 
@@ -54,7 +56,8 @@ const AdminDashboard = () => {
     statistics: false,
     payments: false,
     invoices: false,
-    profile: false  // Added this line
+    profile: false,
+    services: false
   });
   // Ajouter un nouvel état pour le profil admin
   const [adminProfile, setAdminProfile] = useState(null);
@@ -65,6 +68,7 @@ const AdminDashboard = () => {
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
+  const [services, setServices] = useState([]);
 
   // États pour les actions
   const [actionLoading, setActionLoading] = useState(false);
@@ -111,13 +115,14 @@ const AdminDashboard = () => {
           setTimeout(() => navigate("/"), 3000);
           return;
         }
-           // Récupérer le profil de l'administrateur
-      try {
-        const profileResponse = await axios.get("/api/admin/profile", getAuthHeaders());
-        setAdminProfile(profileResponse.data.profile);
-      } catch (profileErr) {
-        console.warn("Impossible de charger le profil administrateur:", profileErr);
-      }
+        // Récupérer le profil de l'administrateur
+        try {
+          const profileResponse = await axios.get("/api/admin/profile", getAuthHeaders());
+          setAdminProfile(profileResponse.data.profile);
+        } catch (profileErr) {
+          console.warn("Impossible de charger le profil administrateur:", profileErr);
+        }
+        
         // Déterminer l'onglet actif à partir de l'URL
         const pathSegments = location.pathname.split('/').filter(Boolean);
         let initialTab = "overview";
@@ -228,6 +233,20 @@ const AdminDashboard = () => {
         case "users":
           if (users.length === 0) {
             await fetchUsers();
+          }
+          break;
+          
+        case "services":
+          if (services.length === 0) {
+            setLoadingState(section, true);
+            try {
+              const servicesRes = await axios.get("/api/admin/services", getAuthHeaders());
+              setServices(servicesRes.data.services || []);
+            } catch (error) {
+              console.warn("Impossible de charger les services:", error);
+            } finally {
+              setLoadingState(section, false);
+            }
           }
           break;
           
@@ -685,17 +704,17 @@ const AdminDashboard = () => {
   // Affichage du tableau de bord
   return (
     <div className="admin-dashboard">
-    <AdminSidebar
-      user={user}
-      profile={adminProfile}  // Ajout de cette prop
-      activeTab={activeTab}
-      handleTabChange={handleTabChange}
-      handleLogout={handleLogout}
-      actionLoading={actionLoading}
-    />
+      <AdminSidebar
+        user={user}
+        profile={adminProfile}
+        activeTab={activeTab}
+        handleTabChange={handleTabChange}
+        handleLogout={handleLogout}
+        actionLoading={actionLoading}
+      />
 
       <main className="main-content">
-      <ContentHeader activeTab={activeTab} handleTabChange={handleTabChange} />
+        <ContentHeader activeTab={activeTab} handleTabChange={handleTabChange} />
 
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
@@ -823,6 +842,24 @@ const AdminDashboard = () => {
               )}
             </>
           )}
+          
+          {activeTab === "services" && (
+            <>
+              {loadingStates.services ? (
+                <div className="section-loader">
+                  <div className="loader-indicator"></div>
+                </div>
+              ) : (
+                <ServicesManagement
+                  actionLoading={actionLoading}
+                  setActionLoading={setActionLoading}
+                  setActionError={setActionError}
+                  setActionSuccess={setActionSuccess}
+                />
+              )}
+            </>
+          )}
+          
           {activeTab === "profile" && (
               <>
                 {loadingStates.profile ? (
