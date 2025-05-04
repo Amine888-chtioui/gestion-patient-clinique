@@ -133,6 +133,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/services/{id}', [ServiceController::class, 'show']);
         Route::put('/services/{id}', [ServiceController::class, 'update']);
         Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+        
+        // Routes corrigées pour la gestion des médecins dans les services
         Route::post('/services/{id}/doctors', [ServiceController::class, 'assignDoctor']);
         Route::delete('/services/{id}/doctors', [ServiceController::class, 'removeDoctor']);
     });
