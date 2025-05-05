@@ -1,5 +1,5 @@
 // src/components/doctor-dashboard/DoctorNotificationList.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "../../axios";
 
@@ -7,40 +7,53 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const pollingIntervalRef = useRef(null); // Reference to store the interval ID
   
-  // Récupérer les notifications au chargement du composant
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-  
-  // Fonction pour récupérer les notifications
+  // Fetch notifications function
   const fetchNotifications = async () => {
     try {
-      setLoading(true);
+      setError(null); // Reset error before fetching
+      
       const response = await axios.get("/api/notifications", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
       setNotifications(response.data.notifications || []);
       if (onCountUpdate) {
-        onCountUpdate(response.data.unread_count);
+        onCountUpdate(response.data.unread_count || 0);
       }
+      setLoading(false);
     } catch (err) {
-      console.error("Erreur lors de la récupération des notifications:", err);
-      setError("Impossible de charger les notifications");
-    } finally {
+      console.error("Error fetching notifications:", err.response?.data || err.message);
+      setError("Unable to load notifications. Please try again later.");
       setLoading(false);
     }
   };
   
-  // Marquer une notification comme lue
+  // Set up polling for notifications when component mounts
+  useEffect(() => {
+    // Initial fetch
+    fetchNotifications();
+    
+    // Set up polling interval (every 5 seconds)
+    pollingIntervalRef.current = setInterval(fetchNotifications, 5000);
+    
+    // Clean up interval when component unmounts
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+  
+  // Mark notification as read
   const handleMarkAsRead = async (id) => {
     try {
       const response = await axios.post(`/api/notifications/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
-      // Mettre à jour l'état local
+      // Update local state
       setNotifications(prevNotifications => 
         prevNotifications.map(notif => 
           notif.id === id ? { ...notif, read_at: new Date().toISOString() } : notif
@@ -51,18 +64,18 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
         onCountUpdate(response.data.unread_count);
       }
     } catch (err) {
-      console.error("Erreur lors du marquage de la notification:", err);
+      console.error("Error marking notification as read:", err);
     }
   };
   
-  // Marquer toutes les notifications comme lues
+  // Mark all notifications as read
   const handleMarkAllAsRead = async () => {
     try {
       const response = await axios.post("/api/notifications/read-all", {}, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
-      // Mettre à jour l'état local
+      // Update local state
       setNotifications(prevNotifications => 
         prevNotifications.map(notif => ({ ...notif, read_at: new Date().toISOString() }))
       );
@@ -71,20 +84,20 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
         onCountUpdate(0);
       }
     } catch (err) {
-      console.error("Erreur lors du marquage de toutes les notifications:", err);
+      console.error("Error marking all notifications as read:", err);
     }
   };
   
-  // Supprimer une notification
+  // Delete notification
   const handleDelete = async (id, e) => {
-    e.stopPropagation(); // Empêcher le marquage comme lu en même temps
+    e.stopPropagation(); // Prevent marking as read at the same time
     
     try {
       const response = await axios.delete(`/api/notifications/${id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
-      // Mettre à jour l'état local
+      // Update local state
       setNotifications(prevNotifications => 
         prevNotifications.filter(notif => notif.id !== id)
       );
@@ -93,40 +106,40 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
         onCountUpdate(response.data.unread_count);
       }
     } catch (err) {
-      console.error("Erreur lors de la suppression de la notification:", err);
+      console.error("Error deleting notification:", err);
     }
   };
   
-  // Formater la date relative (il y a X minutes, heures, etc.)
+  // Format relative time (X minutes ago, etc.)
   const formatRelativeTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
     
     if (diffInSeconds < 60) {
-      return "à l'instant";
+      return "just now";
     }
     
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) {
-      return `il y a ${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''}`;
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
     }
     
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) {
-      return `il y a ${diffInHours} heure${diffInHours > 1 ? 's' : ''}`;
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
     }
     
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 30) {
-      return `il y a ${diffInDays} jour${diffInDays > 1 ? 's' : ''}`;
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
     }
     
     const diffInMonths = Math.floor(diffInDays / 30);
-    return `il y a ${diffInMonths} mois`;
+    return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
   };
   
-  // Obtenir la classe d'icône en fonction du type de notification
+  // Get icon class based on notification type
   const getIconClass = (type) => {
     switch (type) {
       case 'success':
@@ -148,7 +161,6 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
     }
   };
   
-  // Rendu du composant
   return (
     <div className="notifications-list">
       <div className="notifications-header">
@@ -159,9 +171,9 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
             onClick={handleMarkAllAsRead}
             disabled={notifications.every(n => n.read_at) || notifications.length === 0}
           >
-            <i className="fas fa-check-double"></i> Tout marquer comme lu
+            <i className="fas fa-check-double"></i> Mark all as read
           </button>
-          <button className="btn-icon" onClick={onClose} title="Fermer">
+          <button className="btn-icon" onClick={onClose} title="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -170,7 +182,7 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
       <div className="notifications-body">
         {loading ? (
           <div className="loading-indicator">
-            <i className="fas fa-spinner fa-spin"></i> Chargement...
+            <i className="fas fa-spinner fa-spin"></i> Loading...
           </div>
         ) : error ? (
           <div className="error-message">
@@ -179,7 +191,7 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
         ) : notifications.length === 0 ? (
           <div className="empty-notifications">
             <i className="fas fa-bell-slash"></i>
-            <p>Aucune notification</p>
+            <p>No notifications</p>
           </div>
         ) : (
           <ul className="notifications-items">
@@ -205,7 +217,7 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
                     <Link 
                       to={notification.link} 
                       className="btn-icon" 
-                      title="Voir plus de détails"
+                      title="View details"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <i className="fas fa-external-link-alt"></i>
@@ -214,7 +226,7 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
                   <button 
                     className="btn-icon danger" 
                     onClick={(e) => handleDelete(notification.id, e)}
-                    title="Supprimer"
+                    title="Delete"
                   >
                     <i className="fas fa-trash"></i>
                   </button>
@@ -227,7 +239,7 @@ const DoctorNotificationList = ({ onClose, onCountUpdate }) => {
       
       <div className="notifications-footer">
         <button className="btn-sm btn-outline" onClick={() => fetchNotifications()}>
-          <i className="fas fa-sync-alt"></i> Actualiser
+          <i className="fas fa-sync-alt"></i> Refresh
         </button>
       </div>
     </div>

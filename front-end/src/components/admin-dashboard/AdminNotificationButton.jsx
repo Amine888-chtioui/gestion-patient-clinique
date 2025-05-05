@@ -6,27 +6,76 @@ import axios from "../../axios";
 const AdminNotificationButton = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
   const [systemStats, setSystemStats] = useState(null);
   const notificationsPanelRef = useRef(null);
+  const pollingIntervalRef = useRef(null); // Reference to store the interval ID
   
-  // Récupérer le nombre de notifications non lues au chargement
+  // Function to fetch unread notifications count
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await axios.get("/api/notifications/unread", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      // Check if there are more unread notifications than before
+      if (response.data.unread_count > unreadCount) {
+        setHasNewNotification(true);
+        
+        // Play notification sound - you'll need to add an audio file to your project
+        try {
+          const audio = new Audio('/notification-sound.mp3');
+          audio.play().catch(e => console.log('Audio play failed:', e));
+        } catch (soundError) {
+          console.log('Could not play notification sound:', soundError);
+        }
+        
+        // Reset the animation after 2 seconds
+        setTimeout(() => setHasNewNotification(false), 2000);
+      }
+      
+      setUnreadCount(response.data.unread_count);
+    } catch (err) {
+      console.error("Error fetching unread notifications:", err.response?.data || err.message);
+    }
+  };
+
+  // Function to fetch system statistics (admin only)
+  const fetchSystemStats = async () => {
+    try {
+      const response = await axios.get("/api/notifications/system", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      setSystemStats(response.data.stats);
+    } catch (err) {
+      console.error("Error fetching notification statistics:", err.response?.data || err.message);
+    }
+  };
+  
+  // Set up polling when component mounts
   useEffect(() => {
+    // Fetch immediately on mount
     fetchUnreadCount();
     fetchSystemStats();
     
-    // Configurer un intervalle pour vérifier périodiquement les nouvelles notifications
-    const interval = setInterval(() => {
+    // Set up polling interval (every 5 seconds)
+    pollingIntervalRef.current = setInterval(() => {
       fetchUnreadCount();
       if (showNotifications) {
         fetchSystemStats();
       }
-    }, 60000); // Toutes les minutes
+    }, 5000);
     
-    // Nettoyer l'intervalle lorsque le composant est démonté
-    return () => clearInterval(interval);
-  }, [showNotifications]);
+    // Clean up interval when component unmounts
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [unreadCount, showNotifications]); // Include dependencies for comparison and conditional fetching
   
-  // Ajouter un écouteur d'événements pour fermer le panneau de notifications lors d'un clic à l'extérieur
+  // Add event listener to close notification panel when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationsPanelRef.current && !notificationsPanelRef.current.contains(event.target)) {
@@ -40,33 +89,7 @@ const AdminNotificationButton = () => {
     };
   }, []);
   
-  // Fonction pour récupérer le nombre de notifications non lues
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await axios.get("/api/notifications/unread", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
-      setUnreadCount(response.data.unread_count);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des notifications non lues:", err);
-    }
-  };
-
-  // Fonction pour récupérer les statistiques système (admin uniquement)
-  const fetchSystemStats = async () => {
-    try {
-      const response = await axios.get("/api/notifications/system", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
-      setSystemStats(response.data.stats);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des statistiques des notifications:", err);
-    }
-  };
-  
-  // Basculer l'affichage du panneau de notifications
+  // Toggle notification panel visibility
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
     if (!showNotifications && !systemStats) {
@@ -74,12 +97,12 @@ const AdminNotificationButton = () => {
     }
   };
   
-  // Fermer le panneau de notifications
+  // Close notification panel
   const closeNotifications = () => {
     setShowNotifications(false);
   };
   
-  // Mettre à jour le compteur de notifications non lues
+  // Update unread count (used by NotificationList)
   const updateUnreadCount = (count) => {
     setUnreadCount(count);
   };
@@ -93,7 +116,9 @@ const AdminNotificationButton = () => {
       >
         <i className="fas fa-bell"></i>
         {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount > 99 ? "99+" : unreadCount}</span>
+          <span className={`notification-badge ${hasNewNotification ? 'new-notification' : ''}`}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
         )}
       </button>
       

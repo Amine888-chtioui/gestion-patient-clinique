@@ -7,19 +7,39 @@ const NotificationButton = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationsPanelRef = useRef(null);
+  const pollingIntervalRef = useRef(null); // Reference to store the interval ID
   
-  // Récupérer le nombre de notifications non lues au chargement
+  // Function to fetch unread notifications count
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await axios.get("/api/notifications/unread", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      setUnreadCount(response.data.unread_count);
+    } catch (err) {
+      console.error("Error fetching unread notifications:", err.response?.data || err.message);
+      // Don't display error here, just keep the counter at its current value
+    }
+  };
+  
+  // Set up polling when component mounts
   useEffect(() => {
+    // Fetch immediately on mount
     fetchUnreadCount();
     
-    // Configurer un intervalle pour vérifier périodiquement les nouvelles notifications
-    const interval = setInterval(fetchUnreadCount, 60000); // Toutes les minutes
+    // Set up polling interval (every 5 seconds)
+    pollingIntervalRef.current = setInterval(fetchUnreadCount, 5000);
     
-    // Nettoyer l'intervalle lorsque le composant est démonté
-    return () => clearInterval(interval);
+    // Clean up interval when component unmounts
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, []);
   
-  // Ajouter un écouteur d'événements pour fermer le panneau de notifications lors d'un clic à l'extérieur
+  // Add event listener to close notification panel when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationsPanelRef.current && !notificationsPanelRef.current.contains(event.target)) {
@@ -33,32 +53,17 @@ const NotificationButton = () => {
     };
   }, []);
   
-  // Fonction pour récupérer le nombre de notifications non lues
-  const fetchUnreadCount = async () => {
-    try {
-      const response = await axios.get("/api/notifications/unread", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
-      setUnreadCount(response.data.unread_count);
-    } catch (err) {
-      console.error("Erreur détaillée:", err.response?.data || err.message);
-      // Ne pas afficher d'erreur ici, juste garder le compteur à 0
-      setUnreadCount(0);
-    }
-  };
-  
-  // Basculer l'affichage du panneau de notifications
+  // Toggle notification panel visibility
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
   };
   
-  // Fermer le panneau de notifications
+  // Close notification panel
   const closeNotifications = () => {
     setShowNotifications(false);
   };
   
-  // Mettre à jour le compteur de notifications non lues
+  // Update unread count (used by NotificationList)
   const updateUnreadCount = (count) => {
     setUnreadCount(count);
   };

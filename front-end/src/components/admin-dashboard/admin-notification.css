@@ -232,3 +232,27 @@
       max-height: calc(100vh - 110px);
     }
   }
+  /* Add this to your admin-dashboard.css or admin-notification.css file */
+@keyframes notification-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.notification-badge.new-notification {
+  animation: notification-pulse 1s ease-in-out;
+}
+
+/* Make sure the badge has a smooth transition when not animating */
+.notification-badge {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}

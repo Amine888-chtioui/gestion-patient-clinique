@@ -250,3 +250,27 @@
       padding: 0.75rem;
     }
   }
+  /* Add this to your doctor-dashboard.css or doctor-notification.css file */
+@keyframes notification-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.notification-badge.new-notification {
+  animation: notification-pulse 1s ease-in-out;
+}
+
+/* Make sure the badge has a smooth transition when not animating */
+.notification-badge {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
