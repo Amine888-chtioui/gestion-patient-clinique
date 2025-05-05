@@ -644,7 +644,18 @@ public function getProfile()
             $appointment->save();
         }
         
-        // Pas de notification envoyée ici, conformément aux instructions
+        // Récupérer le patient pour envoyer une notification
+        $patient = User::find($validatedData['patient_id']);
+        
+        // Envoyer une notification au patient
+        $this->notificationService->sendMedicalRecordNotification(
+            $patient,
+            [
+                'date' => $validatedData['date'],
+                'type' => $validatedData['type'],
+                'doctor' => $user->name
+            ]
+        );
         
         return response()->json([
             'message' => 'Dossier médical créé avec succès',
@@ -656,6 +667,7 @@ public function getProfile()
             ]
         ], 201);
     }
+    
 
     /**
      * Créer une nouvelle ordonnance
@@ -728,7 +740,18 @@ public function getProfile()
             $medication->save();
         }
         
-        // Pas de notification envoyée ici, conformément aux instructions
+        // Récupérer le patient pour envoyer une notification
+        $patient = User::find($validatedData['patient_id']);
+        
+        // Envoyer une notification au patient
+        $this->notificationService->sendPrescriptionNotification(
+            $patient,
+            [
+                'date' => $validatedData['date'],
+                'doctor' => $user->name,
+                'medications_count' => count($validatedData['medications'])
+            ]
+        );
         
         return response()->json([
             'message' => 'Ordonnance créée avec succès',
