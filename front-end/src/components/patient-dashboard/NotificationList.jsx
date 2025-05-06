@@ -155,8 +155,6 @@ const NotificationList = ({ onClose, onCountUpdate }) => {
         return 'fa-file-medical text-info';
       case 'prescription':
         return 'fa-prescription text-primary';
-      case 'invoice':
-        return 'fa-file-invoice-dollar text-success';
       default:
         return 'fa-bell text-primary';
     }

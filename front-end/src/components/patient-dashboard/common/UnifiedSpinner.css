@@ -1,0 +1,105 @@
+/* src/components/patient-dashboard/common/UnifiedSpinner.css */
+
+/* Base styles for the unified spinner container */
+.unified-loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    min-height: 200px;
+    width: 100%;
+    transition: opacity 0.3s ease;
+  }
+  
+  /* Full screen mode for the initial loading */
+  .unified-loading-container.full-screen {
+    min-height: calc(100vh - 150px);
+  }
+  
+  /* The spinner itself */
+  .unified-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(26, 118, 210, 0.1);
+    border-radius: 50%;
+    border-top: 4px solid var(--primary-color, #1a76d2);
+    animation: spinner-rotate 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+  
+  /* Spinner size variations */
+  .unified-spinner.small {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+  }
+  
+  .unified-spinner.medium {
+    width: 40px;
+    height: 40px;
+    border-width: 4px;
+  }
+  
+  .unified-spinner.large {
+    width: 60px;
+    height: 60px;
+    border-width: 5px;
+  }
+  
+  /* Loading text */
+  .unified-loading-text {
+    font-size: 0.95rem;
+    color: var(--text-light, #6c757d);
+    font-weight: 500;
+    text-align: center;
+    margin: 0;
+  }
+  
+  /* Text size variations */
+  .unified-loading-text.small {
+    font-size: 0.8rem;
+  }
+  
+  .unified-loading-text.medium {
+    font-size: 0.95rem;
+  }
+  
+  .unified-loading-text.large {
+    font-size: 1.1rem;
+  }
+  
+  /* Loading animation */
+  @keyframes spinner-rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Section-specific loading - slightly different styling for in-section loading */
+  .section-loading {
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius-md, 0.5rem);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm, 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075));
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .unified-loading-container {
+      padding: 1rem;
+    }
+    
+    .unified-spinner.large {
+      width: 50px;
+      height: 50px;
+    }
+    
+    .unified-loading-text.large {
+      font-size: 1rem;
+    }
+  }

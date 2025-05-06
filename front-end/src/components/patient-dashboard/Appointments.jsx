@@ -1,6 +1,7 @@
 // src/components/patient-dashboard/Appointments.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppointmentEditor from "./AppointmentEditor";
+import UnifiedLoadingSpinner from "./common/UnifiedLoadingSpinner";
 
 const Appointments = ({ 
   appointments, 
@@ -13,6 +14,26 @@ const Appointments = ({
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Fonction pour charger des données additionnelles si nécessaire
+  useEffect(() => {
+    const fetchAdditionalData = async () => {
+      if (appointments.length === 0 || doctors.length === 0) {
+        setLoading(true);
+        try {
+          // Logique de chargement des données additionnelles si nécessaire
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Simulation de délai
+        } catch (error) {
+          console.error('Erreur lors du chargement des données:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAdditionalData();
+  }, [appointments.length, doctors.length]);
 
   // Fonction pour filtrer les rendez-vous
   const filteredAppointments = appointments.filter(appointment => {
@@ -33,6 +54,11 @@ const Appointments = ({
   const handleCancelEdit = () => {
     setEditingAppointment(null);
   };
+
+  // Si on est en cours de chargement, afficher le spinner unifié
+  if (loading) {
+    return <UnifiedLoadingSpinner text="Chargement des rendez-vous en cours..." />;
+  }
 
   // Si on est en mode édition, afficher le formulaire d'édition
   if (editingAppointment) {
@@ -55,6 +81,7 @@ const Appointments = ({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="status-filter"
+            disabled={actionLoading}
           >
             <option value="all">Tous</option>
             <option value="confirmé">Confirmés</option>
@@ -69,15 +96,20 @@ const Appointments = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
+              disabled={actionLoading}
             />
             <i className="fas fa-search search-icon"></i>
           </div>
         </div>
         
-        <button className="btn-outline reset-btn" onClick={() => {
-          setFilter("all");
-          setSearchTerm("");
-        }} disabled={actionLoading}>
+        <button 
+          className="btn-outline reset-btn" 
+          onClick={() => {
+            setFilter("all");
+            setSearchTerm("");
+          }} 
+          disabled={actionLoading}
+        >
           <i className="fas fa-redo-alt"></i> Réinitialiser
         </button>
       </div>
@@ -123,9 +155,11 @@ const Appointments = ({
               </div>
               
               <div className="appointment-footer">
-                <button className="btn-sm btn-outline" 
+                <button 
+                  className="btn-sm btn-outline" 
                   title="Voir les détails" 
-                  disabled={actionLoading}>
+                  disabled={actionLoading}
+                >
                   <i className="fas fa-eye"></i> Détails
                 </button>
                 

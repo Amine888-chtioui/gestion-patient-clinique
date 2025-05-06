@@ -6,14 +6,12 @@ import "../components/patient-dashboard/notification.css";
 import "../components/patient-dashboard/PatientDashboard.css";
 
 // Import des composants communs
-import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
-import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
-import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
-
-// Import des composants de navigation
 import Sidebar from "../components/patient-dashboard/Sidebar";
 import ContentHeader from "../components/patient-dashboard/ContentHeader";
 import MobileNav from "../components/patient-dashboard/MobileNav";
+import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
+import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
+import UnifiedLoadingSpinner from "../components/patient-dashboard/common/UnifiedLoadingSpinner";
 
 // Import des composants de contenu
 import Overview from "../components/patient-dashboard/Overview";
@@ -572,7 +570,7 @@ const PatientDashboard = () => {
 
   // Affichage durant le chargement initial
   if (initialLoading) {
-    return <LoadingSpinner />;
+    return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord..." />;
   }
 
   // Affichage du tableau de bord
@@ -599,9 +597,7 @@ const PatientDashboard = () => {
           {/* Rendu du contenu en fonction de l'onglet actif */}
           {activeTab === "overview" &&
             (loadingStates.overview ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Chargement du tableau de bord..." />
             ) : (
               <Overview
                 user={user}
@@ -615,9 +611,7 @@ const PatientDashboard = () => {
 
           {activeTab === "appointments" &&
             (loadingStates.appointments ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Chargement des rendez-vous..." />
             ) : (
               <Appointments
                 appointments={appointments}
@@ -631,9 +625,7 @@ const PatientDashboard = () => {
 
           {activeTab === "book" &&
             (loadingStates.book ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Préparation du formulaire de réservation..." />
             ) : (
               <ImprovedBookAppointment
                 handleTabChange={handleTabChange}
@@ -644,9 +636,7 @@ const PatientDashboard = () => {
 
           {activeTab === "medicalRecords" &&
             (loadingStates.medicalRecords ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Chargement de votre dossier médical..." />
             ) : (
               <MedicalRecords
                 medicalRecords={medicalRecords}
@@ -657,9 +647,7 @@ const PatientDashboard = () => {
 
           {activeTab === "prescriptions" &&
             (loadingStates.prescriptions ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Chargement des ordonnances..." />
             ) : (
               <Prescriptions
                 prescriptions={prescriptions}
@@ -669,18 +657,14 @@ const PatientDashboard = () => {
 
           {activeTab === "invoices" &&
             (loadingStates.invoices ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Chargement des factures..." />
             ) : (
               <Invoices actionLoading={actionLoading} />
             ))}
 
           {activeTab === "profile" &&
             (loadingStates.profile ? (
-              <div className="section-loader">
-                <div className="loader-indicator"></div>
-              </div>
+              <UnifiedLoadingSpinner text="Chargement du profil..." />
             ) : (
               <Profile
                 user={user}
