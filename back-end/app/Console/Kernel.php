@@ -16,6 +16,9 @@ class Kernel extends ConsoleKernel
         
         // Exécuter la commande de rappel de rendez-vous tous les jours à 9h du matin
         $schedule->command('appointments:send-reminders')->dailyAt('09:00');
+        
+        // Exécuter la commande de rappel de factures tous les jours à 10h du matin
+        $schedule->command('invoices:send-reminders')->dailyAt('10:00');
     }
 
     /**

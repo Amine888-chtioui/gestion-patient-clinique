@@ -146,12 +146,15 @@ class PaymentController extends Controller
             $invoice->processPayment($paymentMethodId);
             
             // Envoyer une notification au patient
-            $this->notificationService->sendNotification(
+            $this->notificationService->sendInvoiceNotification(
                 $invoice->patient,
-                'Paiement réussi',
-                "Votre paiement de {$invoice->total_amount}€ pour la facture #{$invoice->number} a été traité avec succès.",
-                'success',
-                '/patient-invoices/' . $invoice->id
+                [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'amount' => $invoice->total_amount,
+                    'due_date' => $invoice->due_date
+                ],
+                'paid'
             );
             
             return response()->json([
@@ -206,9 +209,26 @@ class PaymentController extends Controller
                 $invoice->payment_date = now();
                 $invoice->save();
                 
-                // Notifications...
+                // Envoyer une notification au patient
+                $this->notificationService->sendInvoiceNotification(
+                    $invoice->patient,
+                    [
+                        'id' => $invoice->id,
+                        'number' => $invoice->number,
+                        'amount' => $invoice->total_amount,
+                        'due_date' => $invoice->due_date
+                    ],
+                    'paid'
+                );
             } elseif ($status === 'failed') {
                 // Gestion des échecs de paiement...
+                $this->notificationService->sendNotification(
+                    $invoice->patient,
+                    'Échec de paiement',
+                    "Votre tentative de paiement pour la facture {$invoice->number} a échoué. Veuillez réessayer ultérieurement.",
+                    'error',
+                    '/patient-invoices/' . $invoice->id
+                );
             }
             
             return response()->json(['message' => 'Webhook traité avec succès']);

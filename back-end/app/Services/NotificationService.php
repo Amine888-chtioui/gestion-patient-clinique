@@ -164,6 +164,42 @@ class NotificationService
         
         return $this->sendNotification($user, $title, $message, 'prescription', $link);
     }
+    
+    /**
+     * Envoyer une notification de facture
+     *
+     * @param User $user
+     * @param array $invoiceDetails
+     * @param string $action
+     * @return Notification
+     */
+    public function sendInvoiceNotification(User $user, array $invoiceDetails, string $action): Notification
+    {
+        $title = '';
+        $message = '';
+        $link = '/patient-invoices/' . $invoiceDetails['id'];
+        
+        switch ($action) {
+            case 'created':
+                $title = 'Nouvelle facture';
+                $message = "Une nouvelle facture ({$invoiceDetails['number']}) d'un montant de {$invoiceDetails['amount']}€ a été émise.";
+                break;
+            case 'paid':
+                $title = 'Facture payée';
+                $message = "Votre paiement pour la facture {$invoiceDetails['number']} a été confirmé.";
+                break;
+            case 'due_soon':
+                $title = 'Échéance de paiement';
+                $message = "La facture {$invoiceDetails['number']} arrive à échéance le {$invoiceDetails['due_date']}.";
+                break;
+            case 'overdue':
+                $title = 'Facture en retard';
+                $message = "La facture {$invoiceDetails['number']} a dépassé sa date d'échéance du {$invoiceDetails['due_date']}.";
+                break;
+        }
+        
+        return $this->sendNotification($user, $title, $message, 'invoice', $link);
+    }
 
     /**
      * Envoyer une notification spécifique au médecin concernant un patient

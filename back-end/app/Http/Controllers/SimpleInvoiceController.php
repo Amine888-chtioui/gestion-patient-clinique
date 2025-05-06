@@ -7,9 +7,23 @@ use App\Models\InvoiceItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class SimpleInvoiceController extends Controller
 {
+    protected $notificationService;
+
+    /**
+     * Créer une nouvelle instance du contrôleur.
+     *
+     * @param  \App\Services\NotificationService  $notificationService
+     * @return void
+     */
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Récupérer la liste des factures
      */
@@ -126,10 +140,25 @@ class SimpleInvoiceController extends Controller
             
             DB::commit();
             
+            // Récupérer la facture avec ses relations
+            $invoice = Invoice::with(['items', 'patient'])->find($invoice->id);
+            
+            // Envoyer une notification au patient
+            $this->notificationService->sendInvoiceNotification(
+                $invoice->patient,
+                [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'amount' => $invoice->total_amount,
+                    'due_date' => $invoice->due_date
+                ],
+                'created'
+            );
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Invoice created successfully',
-                'data' => Invoice::with(['items', 'patient:id,name,email'])->find($invoice->id)
+                'data' => $invoice
             ], 201);
             
         } catch (\Exception $e) {
@@ -314,6 +343,21 @@ class SimpleInvoiceController extends Controller
             $invoice->payment_method = $request->payment_method;
             $invoice->payment_date = $request->payment_date ?? now();
             $invoice->save();
+            
+            // Récupérer le patient
+            $invoice->load('patient');
+            
+            // Envoyer une notification au patient
+            $this->notificationService->sendInvoiceNotification(
+                $invoice->patient,
+                [
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'amount' => $invoice->total_amount,
+                    'due_date' => $invoice->due_date
+                ],
+                'paid'
+            );
             
             return response()->json([
                 'success' => true,
