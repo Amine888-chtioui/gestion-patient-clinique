@@ -11,7 +11,7 @@ const DoctorAppointments = ({
   const [dateFilter, setDateFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filtrer les rendez-vous
+  // Filter appointments based on criteria
   const filteredAppointments = appointments.filter(appointment => {
     const matchesStatus = filter === "all" || appointment.status === filter;
     const matchesDate = !dateFilter || appointment.date === dateFilter;
@@ -24,6 +24,7 @@ const DoctorAppointments = ({
 
   return (
     <div className="appointments-container">
+      {/* Filter and search section */}
       <div className="filter-bar">
         <div className="search-box">
           <i className="fas fa-search"></i>
@@ -65,6 +66,7 @@ const DoctorAppointments = ({
         </div>
       </div>
 
+      {/* Quick date filter tabs */}
       <div className="tabs">
         <button 
           className={`tab ${dateFilter === '' ? 'active' : ''}`}
@@ -86,12 +88,13 @@ const DoctorAppointments = ({
         </button>
         <button 
           className={`tab ${dateFilter && !['', new Date().toISOString().split('T')[0], new Date(Date.now() + 86400000).toISOString().split('T')[0]].includes(dateFilter) ? 'active' : ''}`}
-          onClick={() => {/* Le filtre de date personnalisé est utilisé via l'input date */}}
+          onClick={() => {/* Custom date filter is handled via date input */}}
         >
           Personnalisé
         </button>
       </div>
 
+      {/* Appointments table */}
       <div className="appointments-list">
         {filteredAppointments.length > 0 ? (
           <table className="data-table">
