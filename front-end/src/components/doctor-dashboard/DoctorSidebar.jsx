@@ -7,7 +7,7 @@ const DoctorSidebar = ({
   handleTabChange, 
   handleLogout, 
   actionLoading,
-  profile // Ajout du prop profile
+  profile // Prop for profile data
 }) => (
   <aside className="sidebar">
     <div className="sidebar-header">
@@ -43,9 +43,11 @@ const DoctorSidebar = ({
           { id: "overview", icon: "home", label: "Tableau de bord" },
           { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
           { id: "patients", icon: "user-injured", label: "Patients" },
+          { id: "medical-records", icon: "file-medical", label: "Dossiers médicaux" },
+          { id: "prescriptions", icon: "prescription", label: "Ordonnances" }
         ].map(item => (
           <li key={item.id} className={activeTab === item.id ? "active" : ""}>
-            <button onClick={() => handleTabChange(item.id)}>
+            <button onClick={() => handleTabChange(item.id)} disabled={actionLoading}>
               <i className={`fas fa-${item.icon}`}></i> {item.label}
             </button>
           </li>

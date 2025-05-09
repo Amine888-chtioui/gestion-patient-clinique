@@ -19,6 +19,10 @@ import PrescriptionForm from "../components/doctor-dashboard/PrescriptionForm";
 import PatientDetails from "../components/doctor-dashboard/PatientDetails";
 import DoctorProfile from "../components/doctor-dashboard/DoctorProfile";
 import MobileNav from "../components/doctor-dashboard/MobileNav";
+// Import des nouveaux composants
+import DoctorMedicalRecords from "../components/doctor-dashboard/DoctorMedicalRecords";
+import DoctorPrescriptions from "../components/doctor-dashboard/DoctorPrescriptions";
+import PatientSelector from "../components/doctor-dashboard/PatientSelector";
 
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -33,13 +37,17 @@ const DoctorDashboard = () => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [medicalRecords, setMedicalRecords] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
 
   // États pour les chargements spécifiques des sections
   const [loadingStates, setLoadingStates] = useState({
     overview: false,
     appointments: false,
     patients: false,
-    profile: false
+    profile: false,
+    medicalRecords: false,
+    prescriptions: false
   });
 
   // Registre des sections déjà chargées
@@ -47,7 +55,9 @@ const DoctorDashboard = () => {
     overview: false,
     appointments: false,
     patients: false,
-    profile: true // Le profil est chargé lors de l'initialisation
+    profile: true, // Le profil est chargé lors de l'initialisation
+    medicalRecords: false,
+    prescriptions: false
   });
 
   // États pour les actions
@@ -196,6 +206,32 @@ const DoctorDashboard = () => {
           // Le profil est déjà chargé lors de l'initialisation
           markSectionAsLoaded("profile");
           break;
+        
+        case "medical-records":
+          if (medicalRecords.length === 0) {
+            await fetchMedicalRecords();
+          }
+          
+          if (patients.length === 0) {
+            await fetchPatients();
+          }
+          
+          // Marquer la section comme chargée
+          markSectionAsLoaded("medicalRecords");
+          break;
+          
+        case "prescriptions":
+          if (prescriptions.length === 0) {
+            await fetchPrescriptions();
+          }
+          
+          if (patients.length === 0) {
+            await fetchPatients();
+          }
+          
+          // Marquer la section comme chargée
+          markSectionAsLoaded("prescriptions");
+          break;
           
         default:
           break;
@@ -226,6 +262,26 @@ const DoctorDashboard = () => {
       setPatients(patientsRes.data.patients || []);
     } catch (error) {
       console.warn("Impossible de charger les patients:", error);
+      throw error;
+    }
+  };
+  
+  const fetchMedicalRecords = async () => {
+    try {
+      const recordsRes = await axios.get("/api/doctor/medical-records", getAuthHeaders());
+      setMedicalRecords(recordsRes.data.medicalRecords || []);
+    } catch (error) {
+      console.warn("Impossible de charger les dossiers médicaux:", error);
+      throw error;
+    }
+  };
+  
+  const fetchPrescriptions = async () => {
+    try {
+      const prescriptionsRes = await axios.get("/api/doctor/prescriptions", getAuthHeaders());
+      setPrescriptions(prescriptionsRes.data.prescriptions || []);
+    } catch (error) {
+      console.warn("Impossible de charger les ordonnances:", error);
       throw error;
     }
   };
@@ -369,9 +425,20 @@ const DoctorDashboard = () => {
 
       setActionSuccess("Dossier médical créé avec succès");
       
+      // Rafraîchir les dossiers médicaux si cette section a été chargée
+      if (dataLoaded.medicalRecords) {
+        fetchMedicalRecords();
+      }
+      
       // Réinitialiser la sélection après la création
       setTimeout(() => {
-        handleTabChange("appointments");
+        if (activeTab === "medical-records") {
+          setActiveSubTab(null);
+          setSelectedPatient(null);
+          setSelectedAppointment(null);
+        } else {
+          handleTabChange("medical-records");
+        }
       }, 1500);
       
     } catch (err) {
@@ -402,12 +469,19 @@ const DoctorDashboard = () => {
 
       setActionSuccess("Ordonnance créée avec succès");
       
+      // Rafraîchir les ordonnances si cette section a été chargée
+      if (dataLoaded.prescriptions) {
+        fetchPrescriptions();
+      }
+      
       // Réinitialiser la sélection après la création
       setTimeout(() => {
-        if (selectedAppointment) {
-          handleTabChange("appointments");
+        if (activeTab === "prescriptions") {
+          setActiveSubTab(null);
+          setSelectedPatient(null);
+          setSelectedAppointment(null);
         } else {
-          handleTabChange("patients");
+          handleTabChange("prescriptions");
         }
       }, 1500);
       
@@ -459,7 +533,7 @@ const DoctorDashboard = () => {
         activeSubTab={activeSubTab} 
         selectedPatient={selectedPatient}
         handleTabChange={handleTabChange}
-        handleLogout={handleLogout} // Ajouter cette prop
+        handleLogout={handleLogout}
       />
 
         <div className="content-body">
@@ -503,6 +577,56 @@ const DoctorDashboard = () => {
                 actionLoading={actionLoading}
               />
             )
+          )}
+
+          {/* Nouveaux onglets pour les dossiers médicaux et les ordonnances */}
+          {activeTab === "medical-records" && !activeSubTab && (
+            loadingStates.medicalRecords ? (
+              <UnifiedLoadingSpinner text="Chargement des dossiers médicaux..." color="info" />
+            ) : (
+              <DoctorMedicalRecords
+                patients={patients}
+                handlePatientSelect={handlePatientSelect}
+                handleSubTabChange={handleSubTabChange}
+                actionLoading={actionLoading}
+              />
+            )
+          )}
+
+          {activeTab === "prescriptions" && !activeSubTab && (
+            loadingStates.prescriptions ? (
+              <UnifiedLoadingSpinner text="Chargement des ordonnances..." color="info" />
+            ) : (
+              <DoctorPrescriptions
+                patients={patients}
+                handlePatientSelect={handlePatientSelect}
+                handleSubTabChange={handleSubTabChange}
+                actionLoading={actionLoading}
+              />
+            )
+          )}
+
+          {/* Sous-sections pour la sélection de patient */}
+          {activeSubTab === "select-patient-for-record" && (
+            <PatientSelector
+              patients={patients}
+              handlePatientSelect={handlePatientSelect}
+              handleSubTabChange={handleSubTabChange}
+              actionLoading={actionLoading}
+              title="Sélectionner un patient"
+              subtitle="Choisissez un patient pour créer un dossier médical"
+            />
+          )}
+
+          {activeSubTab === "select-patient-for-prescription" && (
+            <PatientSelector
+              patients={patients}
+              handlePatientSelect={handlePatientSelect}
+              handleSubTabChange={handleSubTabChange}
+              actionLoading={actionLoading}
+              title="Sélectionner un patient"
+              subtitle="Choisissez un patient pour créer une ordonnance"
+            />
           )}
 
           {/* Sous-sections spécifiques qui ne nécessitent pas d'indicateurs de chargement spécifiques */}
@@ -554,7 +678,11 @@ const DoctorDashboard = () => {
         </div>
       </main>
 
-      <MobileNav activeTab={activeTab} handleTabChange={handleTabChange} />
+      <MobileNav 
+        activeTab={activeTab} 
+        handleTabChange={handleTabChange} 
+        appointments={appointments} 
+      />
     </div>
   );
 };
