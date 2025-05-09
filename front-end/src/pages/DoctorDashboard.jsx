@@ -6,7 +6,7 @@ import "../components/doctor-dashboard/doctor-dashboard.css";
 import "../components/doctor-dashboard/doctor-notification.css";
 
 // Import des composants
-import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
+import UnifiedLoadingSpinner from "../components/doctor-dashboard/UnifiedLoadingSpinner";
 import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
 import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
 import DoctorSidebar from "../components/doctor-dashboard/DoctorSidebar";
@@ -19,16 +19,6 @@ import PrescriptionForm from "../components/doctor-dashboard/PrescriptionForm";
 import PatientDetails from "../components/doctor-dashboard/PatientDetails";
 import DoctorProfile from "../components/doctor-dashboard/DoctorProfile";
 import MobileNav from "../components/doctor-dashboard/MobileNav";
-
-// Composant de spinner de chargement pour les sections
-const SectionLoadingSpinner = ({ message = "Chargement en cours...", sectionClass = "" }) => (
-  <div className={`section-loading ${sectionClass}`}>
-    <div className="spinner-container">
-      <div className="spinner"></div>
-    </div>
-    <p className="spinner-message">{message}</p>
-  </div>
-);
 
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -448,7 +438,7 @@ const DoctorDashboard = () => {
 
   // Affichage durant le chargement initial
   if (initialLoading) {
-    return <LoadingSpinner />;
+    return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord..." />;
   }
 
   // Affichage du tableau de bord
@@ -478,10 +468,7 @@ const DoctorDashboard = () => {
           {/* Affichage conditionnel en fonction de l'onglet actif */}
           {activeTab === "overview" && (
             loadingStates.overview ? (
-              <SectionLoadingSpinner 
-                message="Chargement du tableau de bord..." 
-                sectionClass="overview"
-              />
+              <UnifiedLoadingSpinner text="Chargement du tableau de bord..." color="primary" />
             ) : (
               <DoctorOverview
                 user={user}
@@ -495,10 +482,7 @@ const DoctorDashboard = () => {
 
           {activeTab === "appointments" && !activeSubTab && (
             loadingStates.appointments ? (
-              <SectionLoadingSpinner 
-                message="Chargement des rendez-vous..." 
-                sectionClass="appointments"
-              />
+              <UnifiedLoadingSpinner text="Chargement des rendez-vous..." color="info" />
             ) : (
               <DoctorAppointments
                 appointments={appointments}
@@ -511,10 +495,7 @@ const DoctorDashboard = () => {
 
           {activeTab === "patients" && !activeSubTab && (
             loadingStates.patients ? (
-              <SectionLoadingSpinner 
-                message="Chargement des patients..." 
-                sectionClass="patients"
-              />
+              <UnifiedLoadingSpinner text="Chargement des patients..." color="success" />
             ) : (
               <DoctorPatients
                 patients={patients}
@@ -562,10 +543,7 @@ const DoctorDashboard = () => {
 
           {activeTab === "profile" && (
             loadingStates.profile ? (
-              <SectionLoadingSpinner 
-                message="Chargement du profil..." 
-                sectionClass="profile"
-              />
+              <UnifiedLoadingSpinner text="Chargement du profil..." color="warning" />
             ) : (
               <DoctorProfile
                 user={user}

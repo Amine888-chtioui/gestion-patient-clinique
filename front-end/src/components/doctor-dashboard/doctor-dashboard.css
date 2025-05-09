@@ -1166,3 +1166,107 @@
 .profile-menu-item:last-child:hover {
   background-color: rgba(220, 53, 69, 0.1);
 }
+/* Add these styles to your doctor-dashboard.css file */
+
+/* Unified Spinner Component Styles */
+.unified-spinner-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  width: 100%;
+  padding: 2rem;
+  background-color: var(--bg-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.unified-spinner-fullscreen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  z-index: 9999;
+}
+
+.spinner-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  margin-bottom: 1.5rem;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* Color variations */
+.spinner-primary {
+  border-top-color: var(--primary-color);
+}
+
+.spinner-info {
+  border-top-color: var(--info-color);
+}
+
+.spinner-success {
+  border-top-color: var(--success-color);
+}
+
+.spinner-warning {
+  border-top-color: var(--warning-color);
+}
+
+.spinner-danger {
+  border-top-color: var(--danger-color);
+}
+
+.spinner-text {
+  font-size: 1.1rem;
+  color: var(--text-light);
+  text-align: center;
+  font-weight: 500;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .unified-spinner-container {
+    padding: 1.5rem;
+    min-height: 250px;
+  }
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border-width: 3px;
+    margin-bottom: 1rem;
+  }
+  
+  .spinner-text {
+    font-size: 1rem;
+  }
+}
