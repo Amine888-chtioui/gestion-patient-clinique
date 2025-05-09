@@ -119,14 +119,7 @@ function App() {
           />
 
           {/* Routes pour les factures patient (accessibles depuis le dashboard ou directement) */}
-          <Route
-            path="/patient-invoices"
-            element={
-              <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                <PatientInvoicesPage />
-              </ProtectedRoute>
-            }
-          />
+          
           <Route
             path="/patient-invoices/:id"
             element={

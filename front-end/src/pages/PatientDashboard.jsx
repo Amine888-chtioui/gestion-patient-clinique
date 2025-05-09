@@ -1,9 +1,11 @@
-// src/pages/PatientDashboard.jsx
+// Only the imports section of PatientDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
+// Import CSS
 import "../components/patient-dashboard/notification.css";
 import "../components/patient-dashboard/PatientDashboard.css";
+// Don't import modal.css here - it's imported in individual components where needed
 
 // Import des composants communs
 import Sidebar from "../components/patient-dashboard/Sidebar";
@@ -12,11 +14,13 @@ import MobileNav from "../components/patient-dashboard/MobileNav";
 import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
 import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
 import UnifiedLoadingSpinner from "../components/patient-dashboard/common/UnifiedLoadingSpinner";
+// No need to import Modal here
 
-// Import des composants de contenu
+// Import des composants de contenu mis à jour
+// Utiliser les versions améliorées des composants Appointments et MedicalRecords
 import Overview from "../components/patient-dashboard/Overview";
-import Appointments from "../components/patient-dashboard/Appointments";
-import MedicalRecords from "../components/patient-dashboard/MedicalRecords";
+import Appointments from "../components/patient-dashboard/Appointments"; // Version améliorée
+import MedicalRecords from "../components/patient-dashboard/MedicalRecords"; // Version améliorée
 import Prescriptions from "../components/patient-dashboard/Prescriptions";
 import Profile from "../components/patient-dashboard/Profile";
 import ImprovedBookAppointment from "../components/patient-dashboard/ImprovedBookAppointment";
@@ -24,6 +28,7 @@ import Invoices from "../components/patient-dashboard/Invoices";
 
 // Import des styles pour les rendez-vous
 import "../components/patient-dashboard/appointment-booking.css";
+
 
 const PatientDashboard = () => {
   const [user, setUser] = useState(null);
@@ -91,71 +96,72 @@ const PatientDashboard = () => {
 
   // Effet initial pour l'authentification et le chargement des données de base
   useEffect(() => {
-    const initDashboard = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return navigate("/login");
+  const initDashboard = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return navigate("/login");
 
-      try {
-        setInitialLoading(true);
+    try {
+      setInitialLoading(true);
 
-        // Récupérer les informations de l'utilisateur
-        const userResponse = await axios.get("/api/user", getAuthHeaders());
-        setUser(userResponse.data);
+      // Récupérer les informations de l'utilisateur
+      const userResponse = await axios.get("/api/user", getAuthHeaders());
+      setUser(userResponse.data);
 
-        if (userResponse.data.role !== "patient") {
-          setError(
-            "Accès non autorisé. Ce tableau de bord est réservé aux patients."
-          );
-          setTimeout(() => navigate("/"), 3000);
-          return;
-        }
-
-        // Charger le profil
-        try {
-          const profileRes = await axios.get(
-            "/api/patient/profile",
-            getAuthHeaders()
-          );
-          setProfile(profileRes.data.profile || null);
-        } catch (profileErr) {
-          console.warn("Impossible de charger le profil:", profileErr);
-        }
-
-        // Déterminer l'onglet actif à partir de l'URL
-        const pathSegments = location.pathname.split("/").filter(Boolean);
-        let initialTab = "overview";
-
-        if (
-          pathSegments.length >= 3 &&
-          pathSegments[0] === "patient" &&
-          pathSegments[1] === "dashboard"
-        ) {
-          initialTab = pathSegments[2];
-        }
-
-        setActiveTab(initialTab);
-
-        // Charger les données de la section initiale
-        await loadSectionData(initialTab);
-
-        // Désactiver le loading initial
-        setInitialLoading(false);
-      } catch (err) {
-        console.error("Erreur d'initialisation:", err);
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-        } else {
-          setError(
-            "Impossible de charger les données. Veuillez réessayer plus tard."
-          );
-        }
-        setInitialLoading(false);
+      if (userResponse.data.role !== "patient") {
+        setError(
+          "Accès non autorisé. Ce tableau de bord est réservé aux patients."
+        );
+        setTimeout(() => navigate("/"), 3000);
+        return;
       }
-    };
 
-    initDashboard();
-  }, []);
+      // Charger le profil
+      try {
+        const profileRes = await axios.get(
+          "/api/patient/profile",
+          getAuthHeaders()
+        );
+        setProfile(profileRes.data.profile || null);
+      } catch (profileErr) {
+        console.warn("Impossible de charger le profil:", profileErr);
+      }
+
+      // Déterminer l'onglet actif à partir de l'URL
+      const pathSegments = location.pathname.split("/").filter(Boolean);
+      let initialTab = "overview";
+
+      if (
+        pathSegments.length >= 3 &&
+        pathSegments[0] === "patient" &&
+        pathSegments[1] === "dashboard"
+      ) {
+        initialTab = pathSegments[2];
+      }
+
+      setActiveTab(initialTab);
+
+      // Charger les données de la section initiale
+      await loadSectionData(initialTab);
+
+      // Désactiver le loading initial
+      setInitialLoading(false);
+    } catch (err) {
+      console.error("Erreur d'initialisation:", err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else {
+        setError(
+          "Impossible de charger les données. Veuillez réessayer plus tard."
+        );
+      }
+      setInitialLoading(false);
+    }
+  };
+
+  initDashboard();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   // Charge les données pour une section spécifique seulement si elles n'ont pas déjà été chargées
   const loadSectionData = async (section) => {

@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import AppointmentEditor from "./AppointmentEditor";
 import UnifiedLoadingSpinner from "./common/UnifiedLoadingSpinner";
+import Modal from "./common/Modal";
+import "./common/modal.css";
 
 const Appointments = ({ 
   appointments, 
@@ -15,6 +17,10 @@ const Appointments = ({
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // New state for detailed view
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Fonction pour charger des données additionnelles si nécessaire
   useEffect(() => {
@@ -53,6 +59,25 @@ const Appointments = ({
   // Annuler l'édition
   const handleCancelEdit = () => {
     setEditingAppointment(null);
+  };
+  
+  // Nouvelle fonction pour afficher les détails d'un rendez-vous
+  const handleViewDetails = (appointment) => {
+    setSelectedAppointment(appointment);
+    setIsDetailModalOpen(true);
+  };
+  
+  // Fermer le modal de détails
+  const closeDetailModal = () => {
+    setIsDetailModalOpen(false);
+  };
+  
+  // Formatter la date pour un affichage plus lisible
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('fr-FR', options);
   };
 
   // Si on est en cours de chargement, afficher le spinner unifié
@@ -158,6 +183,7 @@ const Appointments = ({
                 <button 
                   className="btn-sm btn-outline" 
                   title="Voir les détails" 
+                  onClick={() => handleViewDetails(appointment)}
                   disabled={actionLoading}
                 >
                   <i className="fas fa-eye"></i> Détails
@@ -204,6 +230,91 @@ const Appointments = ({
           </button>
         </div>
       )}
+      
+      {/* Modal de détails du rendez-vous */}
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={closeDetailModal}
+        title="Détails du rendez-vous"
+        size="medium"
+      >
+        {selectedAppointment && (
+          <>
+            <div className="detail-section">
+              <h4>Informations générales</h4>
+              <div className="detail-row">
+                <span className="detail-label">Statut:</span>
+                <span className="detail-value">
+                  <span className={`status-badge ${selectedAppointment.status.replace(" ", "")}`}>
+                    {selectedAppointment.status}
+                  </span>
+                </span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Date:</span>
+                <span className="detail-value">{formatDate(selectedAppointment.date)}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Heure:</span>
+                <span className="detail-value">{selectedAppointment.time}</span>
+              </div>
+            </div>
+            
+            <div className="detail-section">
+              <h4>Médecin</h4>
+              <div className="detail-row">
+                <span className="detail-label">Nom:</span>
+                <span className="detail-value">{selectedAppointment.doctor}</span>
+              </div>
+              {selectedAppointment.specialty && (
+                <div className="detail-row">
+                  <span className="detail-label">Spécialité:</span>
+                  <span className="detail-value">{selectedAppointment.specialty}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="detail-section">
+              <h4>Motif de consultation</h4>
+              <div className="detail-row">
+                <p>{selectedAppointment.reason || "Aucun motif spécifié"}</p>
+              </div>
+            </div>
+            
+            <div className="detail-actions">
+              {selectedAppointment.status !== "annulé" && new Date(selectedAppointment.date) > new Date() && (
+                <>
+                  <button 
+                    className="btn-outline" 
+                    onClick={() => {
+                      closeDetailModal();
+                      handleEditAppointment(selectedAppointment);
+                    }}
+                    disabled={actionLoading}
+                  >
+                    <i className="fas fa-edit"></i> Modifier
+                  </button>
+                  <button 
+                    className="btn-outline danger" 
+                    onClick={() => {
+                      if (window.confirm("Êtes-vous sûr de vouloir annuler ce rendez-vous ?")) {
+                        handleCancelAppointment(selectedAppointment.id);
+                        closeDetailModal();
+                      }
+                    }}
+                    disabled={actionLoading}
+                  >
+                    <i className="fas fa-times-circle"></i> Annuler
+                  </button>
+                </>
+              )}
+              <button className="btn-primary" onClick={closeDetailModal}>
+                Fermer
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 };
