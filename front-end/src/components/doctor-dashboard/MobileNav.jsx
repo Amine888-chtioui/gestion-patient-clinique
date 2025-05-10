@@ -45,6 +45,13 @@ const MobileNav = ({ activeTab, handleTabChange, appointments = [] }) => {
         <i className="fas fa-prescription"></i>
         <span className="nav-label">Ordonnances</span>
       </div>
+      <div
+        className={`mobile-nav-item ${activeTab === "invoices" ? "active" : ""}`}
+        onClick={() => handleTabChange("invoices")}
+      >
+        <i className="fas fa-file-invoice-dollar"></i>
+        <span className="nav-label">Factures</span>
+      </div>
       
       {nextAppointment && (
         <div className="appointment-card-mini">

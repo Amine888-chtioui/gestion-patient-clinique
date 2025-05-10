@@ -873,6 +873,183 @@ public function getProfile()
         ]);
     }
 
+
+    /**
+ * Get all invoices for the doctor with optional filters.
+ */
+public function getInvoices(Request $request)
+{
+    $user = Auth::user();
+    
+    // Verify user is a doctor
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    try {
+        // Base query for invoices
+        $query = Invoice::query()
+            ->join('users as patients', 'invoices.patient_id', '=', 'patients.id')
+            ->select('invoices.*', 'patients.name as patient_name')
+            ->orderBy('invoices.created_at', 'desc');
+            
+        // Apply filters
+        if ($request->has('status')) {
+            $query->where('invoices.status', $request->status);
+        }
+        
+        if ($request->has('date_from')) {
+            $query->whereDate('invoices.date', '>=', $request->date_from);
+        }
+        
+        if ($request->has('date_to')) {
+            $query->whereDate('invoices.date', '<=', $request->date_to);
+        }
+        
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('invoices.number', 'like', "%{$search}%")
+                  ->orWhere('patients.name', 'like', "%{$search}%");
+            });
+        }
+        
+        // Filter by patients who have had appointments with this doctor
+        $patientIds = Appointment::where('doctor_id', $user->id)
+            ->pluck('patient_id')
+            ->unique()
+            ->toArray();
+        
+        $query->whereIn('invoices.patient_id', $patientIds);
+        
+        // Fetch invoices with patient information
+        $invoices = $query->with(['items'])->get();
+        
+        // Format the response data
+        $formattedInvoices = $invoices->map(function ($invoice) {
+            return [
+                'id' => $invoice->id,
+                'patient_id' => $invoice->patient_id,
+                'patient_name' => $invoice->patient_name,
+                'number' => $invoice->number,
+                'date' => $invoice->date,
+                'due_date' => $invoice->due_date,
+                'amount' => $invoice->amount,
+                'tax_percent' => $invoice->tax_percent,
+                'tax_amount' => $invoice->tax_amount,
+                'total_amount' => $invoice->total_amount,
+                'status' => $invoice->status,
+                'payment_method' => $invoice->payment_method,
+                'payment_date' => $invoice->payment_date,
+                'notes' => $invoice->notes,
+                'created_at' => $invoice->created_at->format('Y-m-d H:i:s'),
+                'items' => $invoice->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'description' => $item->description,
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_price' => $item->total_price,
+                        'type' => $item->type,
+                    ];
+                }),
+            ];
+        });
+        
+        // Calculate some statistics
+        $stats = [
+            'total' => $invoices->count(),
+            'paid' => $invoices->where('status', 'paid')->count(),
+            'unpaid' => $invoices->where('status', 'unpaid')->count(),
+            'overdue' => $invoices->where('status', 'unpaid')
+                ->where('due_date', '<', now()->format('Y-m-d'))
+                ->count(),
+            'total_amount' => $invoices->sum('total_amount'),
+            'paid_amount' => $invoices->where('status', 'paid')->sum('total_amount'),
+            'unpaid_amount' => $invoices->where('status', 'unpaid')->sum('total_amount'),
+        ];
+        
+        return response()->json([
+            'invoices' => $formattedInvoices,
+            'stats' => $stats
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la récupération des factures',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Get invoices for a specific patient of the doctor.
+ */
+public function getPatientInvoices($patientId)
+{
+    $user = Auth::user();
+    
+    // Verify user is a doctor
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Verify this doctor has seen the patient
+    $hasAppointment = Appointment::where('doctor_id', $user->id)
+        ->where('patient_id', $patientId)
+        ->exists();
+    
+    if (!$hasAppointment) {
+        return response()->json(['message' => 'Vous n\'êtes pas autorisé à accéder aux informations de ce patient'], 403);
+    }
+    
+    try {
+        // Fetch the patient's invoices
+        $invoices = Invoice::where('patient_id', $patientId)
+            ->with(['items'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Format the response data
+        $formattedInvoices = $invoices->map(function ($invoice) {
+            return [
+                'id' => $invoice->id,
+                'patient_id' => $invoice->patient_id,
+                'number' => $invoice->number,
+                'date' => $invoice->date,
+                'due_date' => $invoice->due_date,
+                'amount' => $invoice->amount,
+                'tax_percent' => $invoice->tax_percent,
+                'tax_amount' => $invoice->tax_amount,
+                'total_amount' => $invoice->total_amount,
+                'status' => $invoice->status,
+                'payment_method' => $invoice->payment_method,
+                'payment_date' => $invoice->payment_date,
+                'notes' => $invoice->notes,
+                'created_at' => $invoice->created_at->format('Y-m-d H:i:s'),
+                'items' => $invoice->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'description' => $item->description,
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_price' => $item->total_price,
+                        'type' => $item->type,
+                    ];
+                }),
+            ];
+        });
+        
+        return response()->json([
+            'invoices' => $formattedInvoices
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la récupération des factures du patient',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
     public function getMedicalRecords()
 {
     $user = Auth::user();

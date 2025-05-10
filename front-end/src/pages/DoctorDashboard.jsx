@@ -24,6 +24,9 @@ import DoctorMedicalRecords from "../components/doctor-dashboard/DoctorMedicalRe
 import DoctorPrescriptions from "../components/doctor-dashboard/DoctorPrescriptions";
 import PatientSelector from "../components/doctor-dashboard/PatientSelector";
 
+import DoctorInvoices from "../components/doctor-dashboard/DoctorInvoices";
+import "../components/doctor-dashboard/doctor-invoices.css";
+
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -42,23 +45,26 @@ const DoctorDashboard = () => {
 
   // États pour les chargements spécifiques des sections
   const [loadingStates, setLoadingStates] = useState({
-    overview: false,
-    appointments: false,
-    patients: false,
-    profile: false,
-    medicalRecords: false,
-    prescriptions: false
-  });
+  overview: false,
+  appointments: false,
+  patients: false,
+  profile: false,
+  medicalRecords: false,
+  prescriptions: false,
+  invoices: false // Add this line
+});
 
-  // Registre des sections déjà chargées
-  const [dataLoaded, setDataLoaded] = useState({
-    overview: false,
-    appointments: false,
-    patients: false,
-    profile: true, // Le profil est chargé lors de l'initialisation
-    medicalRecords: false,
-    prescriptions: false
-  });
+const [dataLoaded, setDataLoaded] = useState({
+  overview: false,
+  appointments: false,
+  patients: false,
+  profile: true,
+  medicalRecords: false,
+  prescriptions: false,
+  invoices: false // Add this line
+});
+
+  const [invoices, setInvoices] = useState([]);
 
   // États pour les actions
   const [actionLoading, setActionLoading] = useState(false);
@@ -80,6 +86,16 @@ const DoctorDashboard = () => {
       [section]: isLoading
     }));
   };
+
+  const fetchInvoices = async () => {
+  try {
+    const invoicesRes = await axios.get("/api/doctor/invoices", getAuthHeaders());
+    setInvoices(invoicesRes.data.invoices || []);
+  } catch (error) {
+    console.warn("Impossible de charger les factures:", error);
+    throw error;
+  }
+};
 
   // Helper pour marquer une section comme chargée
   const markSectionAsLoaded = (section) => {
@@ -191,6 +207,19 @@ const DoctorDashboard = () => {
           
           // Marquer la section comme chargée
           markSectionAsLoaded("appointments");
+          break;
+
+          case "invoices":
+          if (invoices.length === 0) {
+            await fetchInvoices();
+          }
+          
+          if (patients.length === 0) {
+            await fetchPatients();
+          }
+          
+          // Mark the section as loaded
+          markSectionAsLoaded("invoices");
           break;
           
         case "patients":
@@ -601,6 +630,19 @@ const DoctorDashboard = () => {
                 patients={patients}
                 handlePatientSelect={handlePatientSelect}
                 handleSubTabChange={handleSubTabChange}
+                actionLoading={actionLoading}
+              />
+            )
+          )}
+
+          {activeTab === "invoices" && !activeSubTab && (
+            loadingStates.invoices ? (
+              <UnifiedLoadingSpinner text="Chargement des factures..." color="info" />
+            ) : (
+              <DoctorInvoices
+                patients={patients}
+                selectedPatient={selectedPatient}
+                handlePatientSelect={handlePatientSelect}
                 actionLoading={actionLoading}
               />
             )
