@@ -873,6 +873,94 @@ public function getProfile()
         ]);
     }
 
+    public function getMedicalRecords()
+{
+    $user = Auth::user();
+    
+    // Verify user is a doctor
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    try {
+        // Get all medical records created by this doctor
+        $medicalRecords = MedicalRecord::where('doctor_id', $user->id)
+            ->with(['patient:id,name,email', 'documents'])
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($record) {
+                return [
+                    'id' => $record->id,
+                    'date' => $record->date,
+                    'type' => $record->type,
+                    'patient_id' => $record->patient_id,
+                    'patient_name' => $record->patient->name,
+                    'diagnosis' => $record->diagnosis,
+                    'notes' => $record->notes,
+                    'documents' => $record->documents->map(function ($document) {
+                        return [
+                            'id' => $document->id,
+                            'name' => $document->name,
+                            'type' => $document->type,
+                        ];
+                    }),
+                ];
+            });
+        
+        return response()->json([
+            'medicalRecords' => $medicalRecords
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors de la récupération des dossiers médicaux',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+    /**
+ * Récupérer les ordonnances créées par le médecin
+ */
+public function getPrescriptions()
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un médecin
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer les ordonnances du médecin avec les informations du patient et les médicaments
+    $prescriptions = $user->doctorPrescriptions()
+        ->with(['patient:id,name,email', 'medications'])
+        ->orderBy('date', 'desc')
+        ->get();
+    
+    // Formater les données pour la réponse
+    $formattedPrescriptions = $prescriptions->map(function ($prescription) {
+        return [
+            'id' => $prescription->id,
+            'date' => $prescription->date,
+            'patient_id' => $prescription->patient_id,
+            'patient_name' => $prescription->patient->name,
+            'notes' => $prescription->notes,
+            'medications' => $prescription->medications->map(function ($medication) {
+                return [
+                    'name' => $medication->name,
+                    'dosage' => $medication->dosage,
+                    'frequency' => $medication->frequency,
+                    'duration' => $medication->duration,
+                    'instructions' => $medication->instructions,
+                ];
+            }),
+        ];
+    });
+    
+    return response()->json([
+        'prescriptions' => $formattedPrescriptions
+    ]);
+}
+
     /**
      * Récupérer les dates avec des rendez-vous pour un médecin dans un mois donné
      * 

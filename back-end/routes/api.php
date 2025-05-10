@@ -76,6 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/patients/{id}', [DoctorController::class, 'getPatientDetails']);
         Route::post('/medical-records', [DoctorController::class, 'createMedicalRecord']);
         Route::post('/prescriptions', [DoctorController::class, 'createPrescription']);
+        Route::get('/medical-records', [DoctorController::class, 'getMedicalRecords']);
+        Route::get('/doctor/prescriptions', [DoctorController::class, 'getPrescriptions']);
         Route::get('/documents/{id}/download', [DoctorController::class, 'downloadDocument']);
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::put('/profile', [DoctorController::class, 'updateProfile']);
