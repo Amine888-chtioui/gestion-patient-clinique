@@ -45,37 +45,13 @@ const MobileNav = ({ activeTab, handleTabChange, appointments = [] }) => {
         <i className="fas fa-prescription"></i>
         <span className="nav-label">Ordonnances</span>
       </div>
-      <div
+       <div
         className={`mobile-nav-item ${activeTab === "invoices" ? "active" : ""}`}
         onClick={() => handleTabChange("invoices")}
       >
         <i className="fas fa-file-invoice-dollar"></i>
         <span className="nav-label">Factures</span>
       </div>
-      
-      {nextAppointment && (
-        <div className="appointment-card-mini">
-          <div className="appointment-status">
-            <span className={`status-badge ${nextAppointment.status.replace(" ", "")}`}>
-              {nextAppointment.status}
-            </span>
-            <span className="appointment-time">{nextAppointment.date} {nextAppointment.time}</span>
-          </div>
-          <div className="appointment-info-mini">
-            <span className="patient-name">{nextAppointment.patient_name}</span>
-            <span className="appointment-reason">
-              {nextAppointment.reason && nextAppointment.reason.length > 20
-                ? `${nextAppointment.reason.substring(0, 20)}...`
-                : nextAppointment.reason || "Pas de motif spécifié"}
-            </span>
-          </div>
-          <div className="appointment-actions-mini">
-            <Link to={`/doctor/dashboard/appointments`} className="view-details">
-              <i className="fas fa-eye"></i> Détails
-            </Link>
-          </div>
-        </div>
-      )}
     </nav>
   );
 };

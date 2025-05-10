@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Invoice; // Ajout de cette ligne
 use App\Models\User;
 use App\Models\Appointment;
 use App\Models\MedicalRecord;
@@ -16,6 +16,7 @@ use App\Services\NotificationService;
 use Illuminate\Support\Facades\Hash;
 use App\Models\DoctorProfile;
 use App\Models\Service;
+use Illuminate\Http\Request;
 
 class DoctorController extends Controller
 {

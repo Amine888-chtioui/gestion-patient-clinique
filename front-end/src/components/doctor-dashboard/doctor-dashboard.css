@@ -1270,3 +1270,98 @@
     font-size: 1rem;
   }
 }
+/* Styles améliorés pour la navigation mobile - 
+   Ajoutez ces styles dans votre fichier doctor-dashboard.css */
+
+/* Navigation mobile en bas de l'écran */
+.mobile-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  height: 60px;
+  border-top: 1px solid var(--border-color);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 8px 0;
+}
+
+.mobile-nav-item i {
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+
+.mobile-nav-item .nav-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mobile-nav-item.active {
+  color: var(--primary-color);
+  position: relative;
+}
+
+.mobile-nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 3px;
+  background-color: var(--primary-color);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Effet de animation au tap sur mobile */
+.mobile-nav-item:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+@media (min-width: 769px) {
+  .mobile-nav {
+    display: none; /* Cacher sur desktop */
+  }
+}
+
+/* Adapter le content pour éviter que le contenu soit caché par la nav */
+.main-content {
+  padding-bottom: 70px !important;
+}
+
+/* Médias queries pour ajuster selon les tailles d'écran */
+@media (max-width: 320px) {
+  /* Pour les très petits écrans */
+  .mobile-nav-item i {
+    font-size: 1.1rem;
+  }
+  
+  .mobile-nav-item .nav-label {
+    font-size: 0.65rem;
+  }
+}
+
+@media (min-width: 321px) and (max-width: 375px) {
+  /* Pour les petits écrans */
+  .mobile-nav-item .nav-label {
+    font-size: 0.68rem;
+  }
+}
