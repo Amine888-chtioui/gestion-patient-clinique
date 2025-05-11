@@ -74,6 +74,14 @@ const DoctorInvoices = ({
     setSelectedInvoice(null);
   };
 
+  // Handle selecting a patient from the invoice
+  const handleViewPatient = (patientId) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (patient) {
+      handlePatientSelect(patient);
+    }
+  };
+
   // Format currency
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -89,7 +97,7 @@ const DoctorInvoices = ({
   // If viewing a specific patient's invoices, show a different layout
   if (selectedPatient) {
     return (
-      <div className="patient-invoices-container">
+      <div className="doctor-invoices-container">
         <div className="section-header">
           <div className="header-left">
             <button 
@@ -493,13 +501,7 @@ const DoctorInvoices = ({
                         <button 
                           className="btn-icon" 
                           title="Voir le patient"
-                          onClick={() => {
-                            // Find the patient and select them
-                            const patient = patients.find(p => p.id === invoice.patient_id);
-                            if (patient) {
-                              handlePatientSelect(patient);
-                            }
-                          }}
+                          onClick={() => handleViewPatient(invoice.patient_id)}
                           disabled={actionLoading}
                         >
                           <i className="fas fa-user"></i>
@@ -630,6 +632,13 @@ const DoctorInvoices = ({
                 onClick={handleCloseDetails}
               >
                 Fermer
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={() => handleViewPatient(selectedInvoice.patient_id)}
+                disabled={actionLoading}
+              >
+                <i className="fas fa-user"></i> Voir le patient
               </button>
               <button 
                 className="btn-primary"
