@@ -137,6 +137,24 @@ const Login = () => {
     setGoogleLoading(false);
   };
 
+  // Bouton Google personnalisé avec l'image du logo Google
+  const renderCustomGoogleButton = () => {
+    return (
+      <button 
+        className="social-login-button" 
+        onClick={() => document.querySelector(".google-login-button").click()}
+        disabled={loading || googleLoading}
+      >
+        <img 
+          src="/images/goooogle.png" 
+          alt="Google" 
+          className="google-icon" 
+        />
+        {googleLoading ? 'Connexion avec Google en cours...' : 'Se connecter avec Google'}
+      </button>
+    );
+  };
+
   return (
     <div className="auth-page">
       <div className="auth-left-panel">
@@ -227,22 +245,24 @@ const Login = () => {
           </div>
 
           <div className="social-login-buttons">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              text="continue_with"
-              shape="rectangular"
-              size="large"
-              theme="filled_blue"
-              width="100%"
-              locale="fr"
-              disabled={loading || googleLoading}
-            />
-            {googleLoading && (
-              <div className="google-loading">
-                <i className="fas fa-spinner fa-spin"></i> Connexion avec Google en cours...
-              </div>
-            )}
+            {/* Bouton personnalisé avec logo Google */}
+            {renderCustomGoogleButton()}
+            
+            {/* Bouton Google offert par la bibliothèque (caché pour l'utilisateur) */}
+            <div style={{ display: 'none' }}>
+              <GoogleLogin
+                className="google-login-button"
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                text="continue_with"
+                shape="rectangular"
+                size="large"
+                theme="filled_blue"
+                width="100%"
+                locale="fr"
+                disabled={loading || googleLoading}
+              />
+            </div>
           </div>
 
           <div className="auth-links">

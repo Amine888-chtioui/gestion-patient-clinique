@@ -552,3 +552,83 @@ input[name="code"] {
     transform: translateY(0);
   }
 }
+/* Styles pour le bouton Google à ajouter dans auth-styles.css */
+
+/* Conteneur pour les boutons de connexion sociale */
+.social-login-buttons {
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+/* Styliser le bouton de Google personnalisé - version gris très clair */
+.social-login-button {
+  width: 100%;
+  background-color: #f2f2f2; /* Gris très clair, presque blanc */
+  color: #555; /* Texte gris foncé pour le contraste */
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #e0e0e0; /* Bordure légère */
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.social-login-button:hover {
+  background-color: #e8e8e8; /* Un peu plus foncé au survol */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.social-login-button:active {
+  transform: translateY(0);
+  background-color: #e0e0e0;
+}
+
+/* Style pour l'image du logo Google */
+.google-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.social-login-button:disabled {
+  background-color: #f8f8f8;
+  color: #aaa;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: #eee;
+}
+
+/* Icône de chargement pour Google */
+.google-loading {
+  text-align: center;
+  margin-top: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+/* Styliser le container du bouton Google fourni par la bibliothèque */
+.social-login-buttons > div {
+  width: 100% !important;
+}
+
+/* Masquer le bouton Google par défaut et appliquer notre style custom */
+.social-login-buttons > div > div {
+  border-radius: var(--radius-md) !important;
+  box-shadow: none !important;
+  transition: var(--transition) !important;
+}
+
+.social-login-buttons > div > div:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
