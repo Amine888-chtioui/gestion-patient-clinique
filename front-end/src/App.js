@@ -17,8 +17,10 @@ import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PatientInvoicesPage from "./pages/PatientInvoicesPage";
 import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
+import VerifyCode from "./pages/VerifyCode";
 import "./theme-variables.css";
 import PaymentPage from "./pages/PaymentPage";
+import InvoicePayment from "./components/patient-dashboard/InvoicePayment";
 
 // Remplacez le composant ThemeManager existant par celui-ci:
 
@@ -86,6 +88,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-code" element={<VerifyCode />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Routes protégées pour les patients */}
@@ -145,6 +148,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/payment/:id" element={<InvoicePayment />} />
           
           {/* Redirection des anciennes routes d'invoices vers le dashboard admin */}
           <Route path="/invoices" element={<Navigate to="/admin/dashboard/invoices" replace />} />

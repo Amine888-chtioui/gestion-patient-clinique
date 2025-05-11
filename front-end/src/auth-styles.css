@@ -429,3 +429,126 @@
 .fa-spinner {
   animation: spin 1s linear infinite;
 }
+/* Styles pour la page de réinitialisation de mot de passe */
+
+/* Styles pour l'affichage de la force du mot de passe */
+.password-strength {
+  margin-top: 5px;
+}
+
+.strength-meter {
+  height: 5px;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.strength-bar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.strength-0 {
+  width: 0%;
+  background-color: transparent;
+}
+
+.strength-1 {
+  width: 25%;
+  background-color: #ff3e3e;
+}
+
+.strength-2 {
+  width: 50%;
+  background-color: #ffb03e;
+}
+
+.strength-3 {
+  width: 75%;
+  background-color: #63c76a;
+}
+
+.strength-4 {
+  width: 100%;
+  background-color: #0dc956;
+}
+
+.strength-text {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Styles pour le bouton de renvoi de code */
+.auth-resend {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.auth-resend p {
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.auth-resend-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.auth-resend-button:hover {
+  color: var(--primary-color-dark);
+}
+
+.auth-resend-button:disabled {
+  color: #999;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* Styles pour les liens de navigation entre les pages de réinitialisation */
+.auth-back-link {
+  display: block;
+  color: var(--primary-color);
+  text-decoration: none;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  transition: color 0.3s;
+}
+
+.auth-back-link i {
+  margin-right: 5px;
+}
+
+.auth-back-link:hover {
+  color: var(--primary-color-dark);
+}
+
+/* Styles pour le champ de code de vérification */
+input[name="code"] {
+  text-align: center;
+  letter-spacing: 4px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Animation pour les alertes de succès */
+.auth-alert-success {
+  animation: fadeInUp 0.5s;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

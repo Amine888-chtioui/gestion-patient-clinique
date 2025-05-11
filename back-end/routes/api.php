@@ -26,6 +26,10 @@ use App\Http\Controllers\ServiceController;
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+// Routes pour la réinitialisation de mot de passe
+Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendVerificationCode']);
+Route::post('/verify-code', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'verifyCode']);
+Route::post('/reset-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'resetPassword']);
 
 // Route pour le formulaire de contact (accessible publiquement)
 Route::post('/contact', [AdminController::class, 'storeContact']);
