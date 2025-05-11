@@ -8,8 +8,7 @@ const Register = () => {
     name: "",
     email: "",
     password: "",
-    password_confirmation: "",
-    role: "patient", // Valeur par défaut
+    password_confirmation: ""
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,19 +54,24 @@ const Register = () => {
     setError("");
 
     try {
+      // Préparer les données d'inscription avec le rôle patient par défaut
+      const registrationData = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.password_confirmation,
+        role: "patient" // Rôle patient par défaut
+      };
+
       // Envoyer la requête d'inscription
-      const response = await axios.post("/api/register", form);
+      const response = await axios.post("/api/register", registrationData);
 
       if (response.data && response.data.token) {
         localStorage.setItem("token", response.data.token);
-        localStorage.setItem("userRole", form.role);
+        localStorage.setItem("userRole", "patient");
 
-        // Redirection vers la page d'accueil ou le tableau de bord approprié
-        if (form.role === "patient") {
-          navigate("/patient/dashboard");
-        } else {
-          navigate("/");
-        }
+        // Redirection vers le tableau de bord patient
+        navigate("/patient/dashboard");
       }
     } catch (err) {
       console.error("Erreur d'inscription:", err);
@@ -215,25 +219,6 @@ const Register = () => {
                   placeholder="Confirmez votre mot de passe"
                   required
                 />
-              </div>
-            </div>
-
-            <div className="auth-form-group">
-              <label htmlFor="role">Type de compte</label>
-              <div className="auth-input-group">
-                <i className="fas fa-user-tag"></i>
-                <select
-                  id="role"
-                  name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="patient">Patient</option>
-                  <option value="doctor">
-                    Médecin (en attente d'approbation)
-                  </option>
-                </select>
               </div>
             </div>
 

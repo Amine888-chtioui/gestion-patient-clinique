@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../axios";
 import "../auth-styles.css";
@@ -10,6 +10,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const googleButtonRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -137,24 +138,6 @@ const Login = () => {
     setGoogleLoading(false);
   };
 
-  // Bouton Google personnalisé avec l'image du logo Google
-  const renderCustomGoogleButton = () => {
-    return (
-      <button 
-        className="social-login-button" 
-        onClick={() => document.querySelector(".google-login-button").click()}
-        disabled={loading || googleLoading}
-      >
-        <img 
-          src="/images/goooogle.png" 
-          alt="Google" 
-          className="google-icon" 
-        />
-        {googleLoading ? 'Connexion avec Google en cours...' : 'Se connecter avec Google'}
-      </button>
-    );
-  };
-
   return (
     <div className="auth-page">
       <div className="auth-left-panel">
@@ -245,24 +228,34 @@ const Login = () => {
           </div>
 
           <div className="social-login-buttons">
-            {/* Bouton personnalisé avec logo Google */}
-            {renderCustomGoogleButton()}
-            
-            {/* Bouton Google offert par la bibliothèque (caché pour l'utilisateur) */}
-            <div style={{ display: 'none' }}>
-              <GoogleLogin
-                className="google-login-button"
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                text="continue_with"
-                shape="rectangular"
-                size="large"
-                theme="filled_blue"
-                width="100%"
-                locale="fr"
-                disabled={loading || googleLoading}
+            {/* Bouton personnalisé stylisé avec le logo Google */}
+            <button 
+              className="social-login-button" 
+              disabled={loading || googleLoading}
+            >
+              <img 
+                src="/images/goooogle.png" 
+                alt="Google" 
+                className="google-icon" 
               />
-            </div>
+              {googleLoading ? 'Connexion avec Google en cours...' : 'Se connecter avec Google'}
+              
+              {/* Intégrer le composant GoogleLogin directement dans le bouton */}
+              <div className="google-login-wrapper">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap
+                  type="standard"
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  locale="fr"
+                  disabled={loading || googleLoading}
+                />
+              </div>
+            </button>
           </div>
 
           <div className="auth-links">

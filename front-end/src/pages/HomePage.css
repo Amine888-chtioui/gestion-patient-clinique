@@ -836,3 +836,39 @@ img {
   padding: 5px 15px; /* Padding réduit comme demandé */
   font-size: 0.85rem;
 }
+/* CSS to hide the top bar on smaller screens */
+@media (max-width: 768px) {
+  .top-bar {
+    display: none; /* Hide completely on mobile */
+  }
+  
+  /* Adjust spacing for navbar when top bar is hidden */
+  .navbar {
+    padding-top: 10px;
+  }
+  
+  /* Make sure the hero section adjusts properly */
+  .hero-section {
+    margin-top: 0;
+  }
+}
+
+/* Optional: For medium-sized screens, you can make the top bar more compact instead of hiding it */
+@media (max-width: 992px) and (min-width: 769px) {
+  .top-bar {
+    padding: 2px 5px;
+    font-size: 0.75rem;
+  }
+  
+  .info-item {
+    margin-right: 1rem;
+  }
+  
+  .info-item i {
+    margin-right: 5px;
+  }
+  
+  .social-icons a {
+    margin: 0 5px;
+  }
+}

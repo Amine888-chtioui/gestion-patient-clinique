@@ -1,5 +1,6 @@
 // src/components/admin-dashboard/DoctorsManagement.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "../../axios";
 
 const DoctorsManagement = ({ 
   doctors,
@@ -11,6 +12,7 @@ const DoctorsManagement = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [services, setServices] = useState([]);
   
   // Modèle vide pour un nouveau médecin
   const emptyDoctor = {
@@ -21,11 +23,29 @@ const DoctorsManagement = ({
     phone: "",
     bio: "",
     education: "",
-    experience: ""
+    experience: "",
+    service_id: ""
   };
   
   // État du formulaire (pour ajout ou édition)
   const [formData, setFormData] = useState(emptyDoctor);
+
+  // Charger les services disponibles
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await axios.get("/api/admin/services", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        
+        setServices(response.data.services || []);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des services:", err);
+      }
+    };
+
+    fetchServices();
+  }, []);
   
   // Filtrer les médecins selon le terme de recherche
   const filteredDoctors = doctors.filter(doctor => {
@@ -50,7 +70,8 @@ const DoctorsManagement = ({
   const startEditing = (doctor) => {
     setFormData({
       ...doctor,
-      password: "" // Ne pas afficher le mot de passe actuel
+      password: "", // Ne pas afficher le mot de passe actuel
+      service_id: doctor.service?.id || ""
     });
     setEditingDoctor(doctor.id);
     setShowAddForm(true);
@@ -84,6 +105,13 @@ const DoctorsManagement = ({
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le médecin ${name} ?`)) {
       handleDeleteDoctor(id);
     }
+  };
+
+  // Obtenir le nom d'un service à partir de son ID
+  const getServiceName = (serviceId) => {
+    if (!serviceId) return "Non assigné";
+    const service = services.find(s => s.id === serviceId);
+    return service ? service.name : "Service inconnu";
   };
 
   return (
@@ -208,6 +236,25 @@ const DoctorsManagement = ({
                   />
                 </div>
               </div>
+
+              <div className="form-group">
+                <label htmlFor="service_id">Service</label>
+                <select
+                  id="service_id"
+                  name="service_id"
+                  className="form-control"
+                  value={formData.service_id || ''}
+                  onChange={handleChange}
+                  disabled={actionLoading}
+                >
+                  <option value="">Sélectionner un service</option>
+                  {services.map(service => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             
             <div className="form-section">
@@ -289,6 +336,7 @@ const DoctorsManagement = ({
                   <th>Nom</th>
                   <th>Email</th>
                   <th>Spécialité</th>
+                  <th>Service</th>
                   <th>Téléphone</th>
                   <th>Actions</th>
                 </tr>
@@ -299,6 +347,7 @@ const DoctorsManagement = ({
                     <td>{doctor.name}</td>
                     <td>{doctor.email}</td>
                     <td>{doctor.speciality || "Non spécifiée"}</td>
+                    <td>{doctor.service ? doctor.service.name : "Non assigné"}</td>
                     <td>{doctor.phone || "Non renseigné"}</td>
                     <td className="actions">
                       <button 
