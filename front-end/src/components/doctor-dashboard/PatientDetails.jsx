@@ -1,17 +1,51 @@
 // src/components/doctor-dashboard/PatientDetails.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 
 const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   const [activeTab, setActiveTab] = useState("info");
+  const [invoices, setInvoices] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [invoiceError, setInvoiceError] = useState(null);
 
   // Utilisation des données réelles récupérées de l'API
   const medicalRecords = patient.medical_records || [];
   const prescriptions = patient.prescriptions || [];
   const appointments = patient.appointments || [];
 
+  // Charger les factures du patient quand l'onglet factures est activé ou quand le patient change
+  useEffect(() => {
+    if (activeTab === 'invoices' && patient && patient.id) {
+      fetchPatientInvoices();
+    }
+  }, [activeTab, patient?.id]);
+
+  // Fonction pour récupérer les factures du patient
+  const fetchPatientInvoices = async () => {
+    try {
+      setLoadingInvoices(true);
+      setInvoiceError(null);
+      
+      const response = await axios.get(`/api/doctor/patients/${patient.id}/invoices`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      setInvoices(response.data.invoices || []);
+      setLoadingInvoices(false);
+    } catch (err) {
+      console.error("Erreur lors du chargement des factures:", err);
+      setInvoiceError("Impossible de charger les factures. Veuillez réessayer plus tard.");
+      setLoadingInvoices(false);
+    }
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+  };
+
+  // Format pour la monnaie
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
   // Fonction pour télécharger un document
@@ -103,6 +137,13 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           onClick={() => handleTabChange('appointments')}
         >
           <i className="fas fa-calendar-alt"></i> Rendez-vous
+        </button>
+        {/* Nouvel onglet pour les factures */}
+        <button 
+          className={`patient-tab ${activeTab === 'invoices' ? 'active' : ''}`}
+          onClick={() => handleTabChange('invoices')}
+        >
+          <i className="fas fa-file-invoice-dollar"></i> Factures
         </button>
       </div>
 
@@ -352,6 +393,70 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                 <i className="fas fa-calendar-times"></i>
                 <h4>Aucun rendez-vous</h4>
                 <p>Ce patient n'a pas encore pris de rendez-vous</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Nouvel onglet pour les factures */}
+        {activeTab === 'invoices' && (
+          <div className="patient-invoices-tab">
+            <h3>Factures du patient</h3>
+            {loadingInvoices ? (
+              <div className="loading-state small">
+                <i className="fas fa-spinner fa-spin"></i>
+                <p>Chargement des factures...</p>
+              </div>
+            ) : invoiceError ? (
+              <div className="error-state small">
+                <i className="fas fa-exclamation-circle"></i>
+                <h4>Erreur</h4>
+                <p>{invoiceError}</p>
+              </div>
+            ) : invoices.length > 0 ? (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Numéro</th>
+                    <th>Date</th>
+                    <th>Échéance</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map(invoice => (
+                    <tr key={invoice.id}>
+                      <td>{invoice.number}</td>
+                      <td>{invoice.date}</td>
+                      <td>{invoice.due_date}</td>
+                      <td>{formatCurrency(invoice.total_amount)}</td>
+                      <td>
+                        <span className={`status-badge ${invoice.status}`}>
+                          {invoice.status === 'paid' ? 'Payée' : 
+                           invoice.status === 'overdue' ? 'En retard' : 'Non payée'}
+                        </span>
+                      </td>
+                      <td className="actions">
+                        <button 
+                          className="btn-icon" 
+                          title="Imprimer la facture"
+                          onClick={() => window.print()}
+                          disabled={actionLoading}
+                        >
+                          <i className="fas fa-print"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state small">
+                <i className="fas fa-file-invoice-dollar"></i>
+                <h4>Aucune facture</h4>
+                <p>Ce patient n'a pas encore de factures</p>
               </div>
             )}
           </div>

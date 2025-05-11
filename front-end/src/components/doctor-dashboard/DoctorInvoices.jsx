@@ -74,14 +74,6 @@ const DoctorInvoices = ({
     setSelectedInvoice(null);
   };
 
-  // Handle selecting a patient from the invoice
-  const handleViewPatient = (patientId) => {
-    const patient = patients.find(p => p.id === patientId);
-    if (patient) {
-      handlePatientSelect(patient);
-    }
-  };
-
   // Format currency
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -498,14 +490,7 @@ const DoctorInvoices = ({
                         >
                           <i className="fas fa-eye"></i>
                         </button>
-                        <button 
-                          className="btn-icon" 
-                          title="Voir le patient"
-                          onClick={() => handleViewPatient(invoice.patient_id)}
-                          disabled={actionLoading}
-                        >
-                          <i className="fas fa-user"></i>
-                        </button>
+                        {/* "View Patient" button has been removed here */}
                       </td>
                     </tr>
                   ))}
@@ -633,13 +618,7 @@ const DoctorInvoices = ({
               >
                 Fermer
               </button>
-              <button 
-                className="btn-primary"
-                onClick={() => handleViewPatient(selectedInvoice.patient_id)}
-                disabled={actionLoading}
-              >
-                <i className="fas fa-user"></i> Voir le patient
-              </button>
+              {/* "View Patient" button has been removed here as well */}
               <button 
                 className="btn-primary"
                 onClick={() => window.print()} // Simple solution for printing
