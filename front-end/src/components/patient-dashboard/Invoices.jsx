@@ -89,22 +89,18 @@ const Invoices = ({ actionLoading }) => {
     setSelectedInvoice(invoice);
     setShowDetailsModal(true);
     
-    // Si on n'a pas besoin de charger plus de détails, on peut juste utiliser invoice
-    setInvoiceDetails(invoice);
-    
-    // Si vous avez besoin de charger des détails supplémentaires depuis l'API
-    // décommentez le code ci-dessous
-    /*
     try {
       setLoadingDetails(true);
+      // Récupérer les détails complets de la facture pour s'assurer d'avoir le statut à jour
       const response = await axios.get(`/api/patient/invoices/${invoice.id}`, getAuthHeaders());
       setInvoiceDetails(response.data.invoice);
     } catch (err) {
       console.error("Erreur lors de la récupération des détails de la facture:", err);
+      // En cas d'erreur, utiliser les données de base de la facture
+      setInvoiceDetails(invoice);
     } finally {
       setLoadingDetails(false);
     }
-    */
   };
 
   // Fermer le modal de détails
@@ -148,7 +144,7 @@ const Invoices = ({ actionLoading }) => {
 
   // Traiter le paiement
   const handleProcessPayment = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     if (!selectedInvoice) return;
     
@@ -158,59 +154,47 @@ const Invoices = ({ actionLoading }) => {
     
     try {
       // Dans un environnement réel, vous appelleriez ici votre API de paiement
-      // Exemple d'appel API (si vous avez une API réelle de paiement)
-      /*
+      // Exemple d'appel API avec le backend
       const response = await axios.post(
-        `/api/patient/invoices/${selectedInvoice.id}/pay`,
-        paymentData,
+        `/api/patient/payments/process`,
+        {
+          invoice_id: selectedInvoice.id,
+          payment_method_id: 1, // On utilise un ID de méthode de paiement par défaut
+          payment_session_id: "sess_" + Math.random().toString(36).substr(2, 9) // ID de session simulé
+        },
         getAuthHeaders()
       );
-      */
       
-      // Simuler un appel API avec un délai
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setPaymentSuccess("Paiement effectué avec succès!");
       
-      // Simuler le succès du paiement
-      const response = {
-        success: true,
-        message: "Paiement effectué avec succès!"
-      };
+      // Mise à jour du statut de la facture dans l'état local
+      setInvoices(prevInvoices => 
+        prevInvoices.map(invoice => 
+          invoice.id === selectedInvoice.id 
+            ? { ...invoice, status: 'paid', payment_date: new Date().toISOString() } 
+            : invoice
+        )
+      );
       
-      if (response.success) {
-        setPaymentSuccess(response.message);
-        
-        // IMPORTANT: Mise à jour immédiate du statut dans l'état local
-        setInvoices(prevInvoices => 
-          prevInvoices.map(invoice => 
-            invoice.id === selectedInvoice.id 
-              ? { ...invoice, status: 'paid', payment_date: new Date().toISOString() } 
-              : invoice
-          )
-        );
-        
-        // Si nous avons ouvert les détails de la facture, mettons également à jour ces détails
-        if (invoiceDetails && invoiceDetails.id === selectedInvoice.id) {
-          setInvoiceDetails({
-            ...invoiceDetails,
-            status: 'paid',
-            payment_date: new Date().toISOString()
-          });
-        }
-        
-        // Fermer le modal après 2 secondes
-        setTimeout(() => {
-          closePaymentModal();
-          
-          // Rafraîchir la liste des factures depuis le serveur
-          fetchInvoices();
-        }, 2000);
-      } else {
-        setPaymentError(response.message || "Échec du paiement. Veuillez réessayer.");
+      // Si nous avons ouvert les détails de la facture, mettons également à jour ces détails
+      if (invoiceDetails && invoiceDetails.id === selectedInvoice.id) {
+        setInvoiceDetails({
+          ...invoiceDetails,
+          status: 'paid',
+          payment_date: new Date().toISOString()
+        });
       }
+      
+      // Fermer le modal après 2 secondes et rafraîchir les données
+      setTimeout(() => {
+        closePaymentModal();
+        // Rafraîchir la liste des factures depuis le serveur
+        fetchInvoices();
+      }, 2000);
+      
     } catch (err) {
       console.error("Erreur lors du paiement:", err);
       setPaymentError("Une erreur s'est produite lors du traitement du paiement. Veuillez réessayer.");
-    } finally {
       setPaymentProcessing(false);
     }
   };
@@ -285,6 +269,13 @@ const Invoices = ({ actionLoading }) => {
             <option value="unpaid">Non payées</option>
           </select>
         </div>
+        <button
+          className="btn-secondary"
+          onClick={fetchInvoices}
+          disabled={actionLoading}
+        >
+          <i className="fas fa-sync-alt"></i> Actualiser
+        </button>
       </div>
 
       {invoices.length > 0 ? (
@@ -375,6 +366,13 @@ const Invoices = ({ actionLoading }) => {
                   <span className={getStatusClass(invoiceDetails.status)}>
                     {getStatusLabel(invoiceDetails.status)}
                   </span>
+                  
+                  {invoiceDetails.status === 'paid' && invoiceDetails.payment_date && (
+                    <div className="payment-info">
+                      Payée le {formatDate(invoiceDetails.payment_date)} 
+                      {invoiceDetails.payment_method && ` par ${invoiceDetails.payment_method}`}
+                    </div>
+                  )}
                 </div>
 
                 <div className="invoice-details-grid">
