@@ -26,6 +26,8 @@ use App\Http\Controllers\ServiceController;
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login-with-google', [AuthController::class, 'loginWithGoogle']);
+Route::get('/auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'handleGoogleCallback']);
 // Routes pour la réinitialisation de mot de passe
 Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendVerificationCode']);
 Route::post('/verify-code', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'verifyCode']);

@@ -1,13 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../axios";
 import "../auth-styles.css";
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Vérifier si l'utilisateur est déjà connecté
+    const token = localStorage.getItem("token");
+    const userRole = localStorage.getItem("userRole");
+    
+    if (token) {
+      if (userRole === "admin") {
+        navigate("/admin/dashboard");
+      } else if (userRole === "doctor") {
+        navigate("/doctor/dashboard");
+      } else {
+        navigate("/patient/dashboard");
+      }
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -65,6 +84,57 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Gestion de la connexion Google
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setGoogleLoading(true);
+      setError("");
+
+      // Décoder le token ID pour obtenir les informations de l'utilisateur
+      const decoded = jwtDecode(credentialResponse.credential);
+      
+      console.log("Google user info:", decoded);
+      
+      // Envoyer les données à votre API backend
+      const response = await axios.post("/api/login-with-google", {
+        google_id: decoded.sub,
+        email: decoded.email,
+        name: decoded.name,
+        avatar: decoded.picture
+      });
+
+      // Stockage du token dans le localStorage
+      if (response.data && response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("userRole", response.data.role);
+
+        // Redirection basée sur le rôle de l'utilisateur
+        if (response.data.role === "admin") {
+          navigate("/admin/dashboard");
+        } else if (response.data.role === "doctor") {
+          navigate("/doctor/dashboard");
+        } else {
+          navigate("/patient/dashboard");
+        }
+      } else {
+        setError("Réponse invalide du serveur");
+      }
+    } catch (err) {
+      console.error("Erreur de connexion via Google:", err);
+      setError(
+        err.response?.data?.message ||
+          "Une erreur est survenue lors de la connexion via Google."
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("La connexion avec Google a échoué. Veuillez réessayer.");
+    setGoogleLoading(false);
   };
 
   return (
@@ -141,7 +211,7 @@ const Login = () => {
               </div>
             </div>
 
-            <button type="submit" className="auth-button" disabled={loading}>
+            <button type="submit" className="auth-button" disabled={loading || googleLoading}>
               {loading ? (
                 <>
                   <i className="fas fa-spinner fa-spin"></i> Connexion en cours...
@@ -154,6 +224,25 @@ const Login = () => {
 
           <div className="auth-separator">
             <span>OU</span>
+          </div>
+
+          <div className="social-login-buttons">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              text="continue_with"
+              shape="rectangular"
+              size="large"
+              theme="filled_blue"
+              width="100%"
+              locale="fr"
+              disabled={loading || googleLoading}
+            />
+            {googleLoading && (
+              <div className="google-loading">
+                <i className="fas fa-spinner fa-spin"></i> Connexion avec Google en cours...
+              </div>
+            )}
           </div>
 
           <div className="auth-links">

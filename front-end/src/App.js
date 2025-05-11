@@ -6,7 +6,9 @@ import {
   Route,
   Navigate,
   useLocation,
+  useNavigate  // Ajout de useNavigate ici
 } from "react-router-dom";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import HomePage from "./pages/HomePage";
@@ -21,6 +23,7 @@ import VerifyCode from "./pages/VerifyCode";
 import "./theme-variables.css";
 import PaymentPage from "./pages/PaymentPage";
 import InvoicePayment from "./components/patient-dashboard/InvoicePayment";
+
 
 // Remplacez le composant ThemeManager existant par celui-ci:
 
@@ -79,86 +82,142 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
+// Configuration de l'authentification Google - Vous devez remplacer cet ID client par le vôtre
+const googleClientId = "246362871518-5h6ebt99mhs3qnhq0qq9lkkolhv8hhea.apps.googleusercontent.com";
+
 function App() {
   return (
-    <Router>
-      <ThemeManager>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-code" element={<VerifyCode />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <Router>
+        <ThemeManager>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-code" element={<VerifyCode />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            
+            {/* Route pour gérer le callback OAuth */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
-          {/* Routes protégées pour les patients */}
-          <Route
-            path="/patient/dashboard/*"
-            element={
-              <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                <PatientDashboard />
-              </ProtectedRoute>
-            }
-          />
+            {/* Routes protégées pour les patients */}
+            <Route
+              path="/patient/dashboard/*"
+              element={
+                <ProtectedRoute allowedRoles={["patient", "admin"]}>
+                  <PatientDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Routes protégées pour les médecins */}
-          <Route
-            path="/doctor/dashboard/*"
-            element={
-              <ProtectedRoute allowedRoles={["doctor", "admin"]}>
-                <DoctorDashboard />
-              </ProtectedRoute>
-            }
-          />
+            {/* Routes protégées pour les médecins */}
+            <Route
+              path="/doctor/dashboard/*"
+              element={
+                <ProtectedRoute allowedRoles={["doctor", "admin"]}>
+                  <DoctorDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Routes protégées pour les administrateurs */}
-          <Route
-            path="/admin/dashboard/*"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
+            {/* Routes protégées pour les administrateurs */}
+            <Route
+              path="/admin/dashboard/*"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Routes pour les factures patient (accessibles depuis le dashboard ou directement) */}
-          <Route
-            path="/patient-invoices"
-            element={
-              <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                <PatientInvoicesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/patient-invoices/:id"
-            element={
-              <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                <PatientInvoiceDetailsPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Routes pour les factures patient (accessibles depuis le dashboard ou directement) */}
+            <Route
+              path="/patient-invoices"
+              element={
+                <ProtectedRoute allowedRoles={["patient", "admin"]}>
+                  <PatientInvoicesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patient-invoices/:id"
+              element={
+                <ProtectedRoute allowedRoles={["patient", "admin"]}>
+                  <PatientInvoiceDetailsPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Route pour la page de paiement */}
-          <Route
-           path="/payment/:id"
-           element={
-             <ProtectedRoute allowedRoles={["patient", "admin"]}>
-               <PaymentPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/payment/:id" element={<InvoicePayment />} />
-          
-          {/* Redirection des anciennes routes d'invoices vers le dashboard admin */}
-          <Route path="/invoices" element={<Navigate to="/admin/dashboard/invoices" replace />} />
-          <Route path="/invoices/:id" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/invoices/create" element={<Navigate to="/admin/dashboard/invoices/create" replace />} />
-          <Route path="/invoices/edit/:id" element={<Navigate to="/admin/dashboard" replace />} />
-        </Routes>
-      </ThemeManager>
-    </Router>
+            {/* Route pour la page de paiement */}
+            <Route
+             path="/payment/:id"
+             element={
+               <ProtectedRoute allowedRoles={["patient", "admin"]}>
+                 <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/payment/:id" element={<InvoicePayment />} />
+            
+            {/* Redirection des anciennes routes d'invoices vers le dashboard admin */}
+            <Route path="/invoices" element={<Navigate to="/admin/dashboard/invoices" replace />} />
+            <Route path="/invoices/:id" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/invoices/create" element={<Navigate to="/admin/dashboard/invoices/create" replace />} />
+            <Route path="/invoices/edit/:id" element={<Navigate to="/admin/dashboard" replace />} />
+          </Routes>
+        </ThemeManager>
+      </Router>
+    </GoogleOAuthProvider>
   );
 }
+
+// Composant pour gérer le callback OAuth
+const AuthCallback = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Récupérer les paramètres de l'URL
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const role = params.get('role');
+    const error = params.get('error');
+    
+    if (error) {
+      // En cas d'erreur, rediriger vers la page de connexion avec un message d'erreur
+      navigate('/login', { state: { error } });
+      return;
+    }
+    
+    if (token && role) {
+      // Stocker le token et le rôle
+      localStorage.setItem('token', token);
+      localStorage.setItem('userRole', role);
+      
+      // Rediriger vers le tableau de bord approprié
+      if (role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (role === 'doctor') {
+        navigate('/doctor/dashboard');
+      } else {
+        navigate('/patient/dashboard');
+      }
+    } else {
+      // Paramètres manquants, rediriger vers la page de connexion
+      navigate('/login');
+    }
+  }, [location, navigate]);
+  
+  // Afficher un message de chargement pendant la redirection
+  return (
+    <div className="auth-callback-page">
+      <div className="loading-container">
+        <i className="fas fa-spinner fa-spin"></i>
+        <p>Authentification en cours...</p>
+      </div>
+    </div>
+  );
+};
 
 export default App;

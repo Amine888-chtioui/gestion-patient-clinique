@@ -16,12 +16,15 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
+   // Dans app/Models/User.php
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
         'profile_photo',
+        'google_id',
+        'avatar',
     ];
 
     /**
