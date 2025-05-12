@@ -1,10 +1,17 @@
 // src/components/patient-dashboard/PhotoUpload.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
-const PhotoUpload = ({ onSave, onCancel, actionLoading }) => {
+const PhotoUpload = ({ onSave, onCancel, actionLoading, profile }) => {
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Initialiser l'aperçu avec la photo existante s'il y en a une
+  useEffect(() => {
+    if (profile && profile.photoUrl) {
+      setPreview(profile.photoUrl);
+    }
+  }, [profile]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -48,15 +55,15 @@ const PhotoUpload = ({ onSave, onCancel, actionLoading }) => {
 
   return (
     <div className="photo-upload-container">
-      <h3>Changer la photo de profil</h3>
+      <h3>Photo de profil</h3>
       
       <div className="upload-preview">
         {preview ? (
-          <img src={preview} alt="Aperçu" className="profile-photo-preview" />
+          <img src={preview} alt="Photo de profil" className="profile-photo-preview" />
         ) : (
           <div className="photo-placeholder">
             <i className="fas fa-user-circle"></i>
-            <p>Sélectionnez une photo</p>
+            <p>Aucune photo</p>
           </div>
         )}
       </div>
@@ -79,7 +86,7 @@ const PhotoUpload = ({ onSave, onCancel, actionLoading }) => {
             onClick={triggerFileInput}
             disabled={actionLoading}
           >
-            <i className="fas fa-image"></i> Choisir une photo
+            <i className="fas fa-image"></i> Changer la photo
           </button>
           
           <div className="form-actions">

@@ -3,18 +3,40 @@ import React, { useState } from "react";
 import EditProfileForm from "./EditProfileForm";
 import PhotoUpload from "./PhotoUpload";
 
-const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) => {
+const Profile = ({ user, profile, updateProfile, updatePhoto, updatePassword, actionLoading }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPhoto, setIsChangingPhoto] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: "",
+    password: "",
+    password_confirmation: ""
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
 
   const handleEditClick = () => {
     setIsEditing(true);
     setIsChangingPhoto(false);
+    setIsChangingPassword(false);
   };
 
   const handlePhotoClick = () => {
     setIsChangingPhoto(true);
     setIsEditing(false);
+    setIsChangingPassword(false);
+  };
+
+  const handlePasswordClick = () => {
+    setIsChangingPassword(true);
+    setIsEditing(false);
+    setIsChangingPhoto(false);
+    // Réinitialiser le formulaire de mot de passe
+    setPasswordForm({
+      current_password: "",
+      password: "",
+      password_confirmation: ""
+    });
+    setPasswordErrors({});
   };
 
   const handleCancelEdit = () => {
@@ -23,6 +45,49 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) =
 
   const handleCancelPhotoChange = () => {
     setIsChangingPhoto(false);
+  };
+
+  const handleCancelPasswordChange = () => {
+    setIsChangingPassword(false);
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm({
+      ...passwordForm,
+      [name]: value
+    });
+
+    // Effacer les erreurs lorsque l'utilisateur modifie le champ
+    if (passwordErrors[name]) {
+      setPasswordErrors({
+        ...passwordErrors,
+        [name]: null
+      });
+    }
+  };
+
+  const validatePasswordForm = () => {
+    const newErrors = {};
+    
+    if (!passwordForm.current_password) {
+      newErrors.current_password = "Le mot de passe actuel est requis";
+    }
+    
+    if (!passwordForm.password) {
+      newErrors.password = "Le nouveau mot de passe est requis";
+    } else if (passwordForm.password.length < 8) {
+      newErrors.password = "Le mot de passe doit contenir au moins 8 caractères";
+    }
+    
+    if (!passwordForm.password_confirmation) {
+      newErrors.password_confirmation = "La confirmation du mot de passe est requise";
+    } else if (passwordForm.password !== passwordForm.password_confirmation) {
+      newErrors.password_confirmation = "Les mots de passe ne correspondent pas";
+    }
+    
+    setPasswordErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSaveProfile = (updatedProfile) => {
@@ -35,13 +100,26 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) =
     setIsChangingPhoto(false);
   };
 
+  const handleSavePassword = (e) => {
+    e.preventDefault();
+    
+    if (validatePasswordForm()) {
+      updatePassword(passwordForm);
+      setIsChangingPassword(false);
+    }
+  };
+
   if (isEditing) {
     return (
       <div className="profile-container">
         <div className="profile-info-card">
           <div className="profile-header">
             <div className="profile-avatar">
-              <i className="fas fa-user-circle"></i>
+              {profile?.photoUrl ? (
+                <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+              ) : (
+                <i className="fas fa-user-circle"></i>
+              )}
             </div>
             <div className="profile-title">
               <h3>Modifier mon profil</h3>
@@ -68,7 +146,99 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) =
             onSave={handleSavePhoto} 
             onCancel={handleCancelPhotoChange} 
             actionLoading={actionLoading}
+            profile={profile}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (isChangingPassword) {
+    return (
+      <div className="profile-container">
+        <div className="profile-info-card">
+          <div className="profile-header">
+            <div className="profile-avatar">
+              {profile?.photoUrl ? (
+                <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+              ) : (
+                <i className="fas fa-user-circle"></i>
+              )}
+            </div>
+            <div className="profile-title">
+              <h3>Modification du mot de passe</h3>
+              <p>Sécurisez votre compte avec un nouveau mot de passe</p>
+            </div>
+          </div>
+          
+          <form onSubmit={handleSavePassword} className="edit-profile-form">
+            <div className="form-section">
+              <h4>Changer votre mot de passe</h4>
+              
+              <div className="form-group">
+                <label htmlFor="current_password">Mot de passe actuel</label>
+                <input
+                  type="password"
+                  id="current_password"
+                  name="current_password"
+                  value={passwordForm.current_password}
+                  onChange={handlePasswordChange}
+                  disabled={actionLoading}
+                />
+                {passwordErrors.current_password && (
+                  <span className="error-message">{passwordErrors.current_password}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Nouveau mot de passe</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={passwordForm.password}
+                  onChange={handlePasswordChange}
+                  disabled={actionLoading}
+                />
+                {passwordErrors.password && (
+                  <span className="error-message">{passwordErrors.password}</span>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password_confirmation">Confirmer le nouveau mot de passe</label>
+                <input
+                  type="password"
+                  id="password_confirmation"
+                  name="password_confirmation"
+                  value={passwordForm.password_confirmation}
+                  onChange={handlePasswordChange}
+                  disabled={actionLoading}
+                />
+                {passwordErrors.password_confirmation && (
+                  <span className="error-message">{passwordErrors.password_confirmation}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <button 
+                type="submit" 
+                className="btn-primary" 
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Modification en cours..." : "Changer mon mot de passe"}
+              </button>
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={handleCancelPasswordChange}
+                disabled={actionLoading}
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -178,7 +348,7 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) =
           </button>
           <button
             className="btn-secondary"
-            onClick={() => alert("Fonctionnalité en cours de développement")}
+            onClick={handlePasswordClick}
             disabled={actionLoading}
           >
             <i className="fas fa-key"></i> Changer le mot de passe

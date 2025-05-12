@@ -234,7 +234,7 @@ const Login = () => {
               disabled={loading || googleLoading}
             >
               <img 
-                src="/images/goooogle.png" 
+                src="/images/google.png" 
                 alt="Google" 
                 className="google-icon" 
               />
