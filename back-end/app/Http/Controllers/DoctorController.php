@@ -795,102 +795,84 @@ public function getProfile()
 
 
     public function getAvailability(Request $request, $doctor_id)
-{
-    \Log::info('Requête reçue pour getAvailability', [
-        'doctor_id' => $doctor_id,
-        'params' => $request->all(),
-        'route_parameters' => $request->route()->parameters(),
-    ]);
-    
-    // Valider les paramètres de la requête
-    $validatedData = $request->validate([
-        'date' => 'required|date',
-    ]);
-    
-    // Vérifier que l'utilisateur spécifié est bien un médecin
-    $doctor = User::find($doctor_id);
-    if (!$doctor || !$doctor->isDoctor()) {
-        return response()->json(['message' => 'Médecin non trouvé'], 404);
-    }
-    
-    // Récupérer l'utilisateur connecté (patient)
-    $currentUser = Auth::user();
-    
-    // Définir les plages horaires générales de disponibilité (8h à 18h)
-    $startHour = 8;
-    $endHour = 18;
-    
-    // Définir la durée d'un rendez-vous en minutes (30 minutes par défaut)
-    $appointmentDuration = 30;
-    
-    // Préparer les créneaux disponibles (format 24h)
-    $allTimeSlots = [];
-    for ($hour = $startHour; $hour < $endHour; $hour++) {
-        $allTimeSlots[] = sprintf('%02d:00', $hour);
-        $allTimeSlots[] = sprintf('%02d:30', $hour);
-    }
-    
-    // Récupérer les rendez-vous existants pour ce médecin à cette date
-    $existingAppointments = Appointment::where('doctor_id', $doctor_id)
-        ->where('date', $validatedData['date'])
-        ->where('status', '!=', 'annulé')  // Ignorer les rendez-vous annulés
-        ->get();
-    
-    // Déterminer les créneaux disponibles et indisponibles
-    $availability = [];
-    
-    foreach ($allTimeSlots as $timeSlot) {
-        // Convertir en objet DateTime pour comparer facilement
-        $slotTime = \DateTime::createFromFormat('H:i', $timeSlot);
+    {
+        \Log::info('Requête reçue pour getAvailability', [
+            'doctor_id' => $doctor_id,
+            'params' => $request->all(),
+            'route_parameters' => $request->route()->parameters(),
+        ]);
         
-        // Vérifier si ce créneau est déjà pris et par qui
-        $existingAppointment = $existingAppointments->first(function($appointment) use ($timeSlot) {
-            return $appointment->time === $timeSlot;
-        });
+        // Valider les paramètres de la requête
+        $validatedData = $request->validate([
+            'date' => 'required|date',
+        ]);
         
-        // Vérifier si ce créneau est dans le passé pour la date d'aujourd'hui
-        $isPast = false;
-        if ($validatedData['date'] === date('Y-m-d')) {
-            $currentTime = new \DateTime();
-            $isPast = $slotTime <= $currentTime;
+        // Vérifier que l'utilisateur spécifié est bien un médecin
+        $doctor = User::find($doctor_id);
+        if (!$doctor || !$doctor->isDoctor()) {
+            return response()->json(['message' => 'Médecin non trouvé'], 404);
         }
         
-        // Déterminer la disponibilité finale
-        $status = 'available';
+        // Définir les plages horaires générales de disponibilité (8h à 18h)
+        $startHour = 8;
+        $endHour = 18;
         
-        if ($existingAppointment) {
-            // Vérifier si ce rendez-vous appartient au patient actuel
-            if ($existingAppointment->patient_id === $currentUser->id) {
-                $status = 'already_booked'; // Rendez-vous du patient actuel
-            } else {
-                $status = 'booked'; // Rendez-vous d'un autre patient
+        // Définir la durée d'un rendez-vous en minutes (30 minutes par défaut)
+        $appointmentDuration = 30;
+        
+        // Préparer les créneaux disponibles (format 24h)
+        $allTimeSlots = [];
+        for ($hour = $startHour; $hour < $endHour; $hour++) {
+            $allTimeSlots[] = sprintf('%02d:00', $hour);
+            $allTimeSlots[] = sprintf('%02d:30', $hour);
+        }
+        
+        // Récupérer les rendez-vous existants pour ce médecin à cette date
+        $existingAppointments = Appointment::where('doctor_id', $doctor_id)
+            ->where('date', $validatedData['date'])
+            ->where('status', '!=', 'annulé')  // Ignorer les rendez-vous annulés
+            ->pluck('time')
+            ->toArray();
+        
+        // Déterminer les créneaux disponibles et indisponibles
+        $availability = [];
+        
+        foreach ($allTimeSlots as $timeSlot) {
+            // Convertir en objet DateTime pour comparer facilement
+            $slotTime = \DateTime::createFromFormat('H:i', $timeSlot);
+            
+            // Vérifier si ce créneau est déjà pris
+            $isBooked = in_array($timeSlot, $existingAppointments);
+            
+            // Vérifier si ce créneau est dans le passé pour la date d'aujourd'hui
+            $isPast = false;
+            if ($validatedData['date'] === date('Y-m-d')) {
+                $currentTime = new \DateTime();
+                $isPast = $slotTime <= $currentTime;
             }
-        } elseif ($isPast) {
-            $status = 'past';
+            
+            // Déterminer la disponibilité finale
+            $status = 'available';
+            if ($isBooked) {
+                $status = 'booked';
+            } elseif ($isPast) {
+                $status = 'past';
+            }
+            
+            $availability[] = [
+                'time' => $timeSlot,
+                'status' => $status
+            ];
         }
         
-        $availability[] = [
-            'time' => $timeSlot,
-            'status' => $status,
-            // Ajouter l'ID du rendez-vous si c'est un rendez-vous du patient actuel
-            'appointment_id' => ($status === 'already_booked') ? $existingAppointment->id : null
-        ];
+        // Retourner les résultats
+        return response()->json([
+            'doctor_id' => $doctor_id,
+            'doctor_name' => $doctor->name,
+            'date' => $validatedData['date'],
+            'time_slots' => $availability
+        ]);
     }
-    
-    // Retourner les résultats
-    return response()->json([
-        'doctor_id' => $doctor_id,
-        'doctor_name' => $doctor->name,
-        'date' => $validatedData['date'],
-        'time_slots' => $availability,
-        'legend' => [
-            'available' => 'Disponible',
-            'already_booked' => 'Déjà réservé par vous',
-            'booked' => 'Déjà pris',
-            'past' => 'Passé'
-        ]
-    ]);
-}
 
 
     /**
