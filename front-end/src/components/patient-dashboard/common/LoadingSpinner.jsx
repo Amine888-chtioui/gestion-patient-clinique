@@ -9,7 +9,7 @@ import "./UnifiedSpinner.css"; // Import the unified spinner styles
 const LoadingSpinner = ({ text = "Chargement en cours..." }) => {
   return (
     <div className="unified-loading-container full-screen">
-      <div className="unified-spinner medium"></div>
+      <span className="unified-spinner medium"></span>
       <p className="unified-loading-text medium">{text}</p>
     </div>
   );

@@ -1,13 +1,16 @@
 // src/components/patient-dashboard/Invoices.jsx
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
+import { useNavigate } from "react-router-dom";
 import "./common/modal.css"; // Importation du CSS pour le modal
+import UnifiedLoadingSpinner from "./common/UnifiedLoadingSpinner"; // Import du spinner unifié
 
 const Invoices = ({ actionLoading }) => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const navigate = useNavigate();
   
   // États pour le modal de détails
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -245,12 +248,20 @@ const Invoices = ({ actionLoading }) => {
     }
   };
 
+  // Affichage pendant le chargement des données
   if (loading) {
-    return <div className="loading-indicator">Chargement des factures...</div>;
+    return <UnifiedLoadingSpinner text="Chargement des factures..." />;
   }
 
+  // Affichage en cas d'erreur
   if (error) {
-    return <div className="error-message">{error}</div>;
+    return (
+      <div className="error-message">
+        <i className="fas fa-exclamation-triangle"></i>
+        <h3>Une erreur est survenue</h3>
+        <p>{error}</p>
+      </div>
+    );
   }
 
   return (
@@ -358,7 +369,7 @@ const Invoices = ({ actionLoading }) => {
             
             {loadingDetails ? (
               <div className="modal-body">
-                <div className="loading-indicator">Chargement des détails...</div>
+                <UnifiedLoadingSpinner text="Chargement des détails..." />
               </div>
             ) : (
               <div className="modal-body">
@@ -515,8 +526,15 @@ const Invoices = ({ actionLoading }) => {
                 </div>
               )}
 
+              {/* État de traitement du paiement */}
+              {paymentProcessing && (
+                <div className="payment-processing">
+                  <UnifiedLoadingSpinner text="Traitement du paiement en cours..." />
+                </div>
+              )}
+
               {/* Formulaire de paiement */}
-              {!paymentSuccess && (
+              {!paymentSuccess && !paymentProcessing && (
                 <form onSubmit={handleProcessPayment} className="payment-form">
                   <h4>Informations de paiement</h4>
                   
@@ -632,11 +650,7 @@ const Invoices = ({ actionLoading }) => {
                         className="btn-primary"
                         disabled={paymentProcessing}
                       >
-                        {paymentProcessing ? (
-                          <><i className="fas fa-spinner fa-spin"></i> Traitement en cours...</>
-                        ) : (
-                          <><i className="fas fa-lock"></i> Payer {formatAmount(selectedInvoice.total_amount)}</>
-                        )}
+                        <i className="fas fa-lock"></i> Payer {formatAmount(selectedInvoice.total_amount)}
                       </button>
                     ) : (
                       <button 
