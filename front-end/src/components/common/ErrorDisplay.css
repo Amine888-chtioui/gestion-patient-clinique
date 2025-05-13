@@ -1,0 +1,117 @@
+/* src/components/common/ErrorDisplay.css */
+
+.error-display-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid #dee2e6;
+  text-align: center;
+  min-height: 200px;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.error-display-container.full-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 100vh;
+  z-index: 1000;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  background-color: rgba(248, 249, 250, 0.95);
+}
+
+.error-icon {
+  font-size: 3rem;
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.error-title {
+  font-size: 1.5rem;
+  color: #343a40;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  font-size: 1rem;
+  color: #6c757d;
+  max-width: 600px;
+  margin-bottom: 1.5rem;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-color, #1976d2);
+  color: white;
+}
+
+.btn-secondary {
+  background-color: #f8f9fa;
+  color: #343a40;
+  border: 1px solid #dee2e6;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark, #1565c0);
+}
+
+.btn-secondary:hover {
+  background-color: #e9ecef;
+}
+
+/* Adaptations pour les différents tableaux de bord */
+.patient-dashboard .error-icon {
+  color: #1a76d2; /* Bleu patient */
+}
+
+.doctor-dashboard .error-icon {
+  color: #2a8d8e; /* Vert-bleu médecin */
+}
+
+.admin-dashboard .error-icon {
+  color: #6c5ce7; /* Violet admin */
+}
+
+/* Media queries */
+@media (max-width: 768px) {
+  .error-display-container {
+    padding: 1.5rem;
+  }
+  
+  .error-icon {
+    font-size: 2.5rem;
+  }
+  
+  .error-title {
+    font-size: 1.3rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 300px;
+  }
+}

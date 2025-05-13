@@ -1,14 +1,16 @@
-// src/pages/DoctorDashboard.jsx
+// src/pages/DoctorDashboard.jsx - Mise à jour des importations
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
 import "../components/doctor-dashboard/doctor-dashboard.css";
 import "../components/doctor-dashboard/doctor-notification.css";
 
-// Import des composants
-import UnifiedLoadingSpinner from "../components/doctor-dashboard/UnifiedLoadingSpinner";
-import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
-import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
+// Import des composants communs
+import ErrorDisplay from "../components/common/ErrorDisplay";
+import ActionMessages from "../components/common/ActionMessages";
+import UnifiedLoadingSpinner from "../components/common/UnifiedLoadingSpinner";
+
+// Import des composants spécifiques au médecin
 import DoctorSidebar from "../components/doctor-dashboard/DoctorSidebar";
 import ContentHeader from "../components/doctor-dashboard/ContentHeader";
 import DoctorOverview from "../components/doctor-dashboard/DoctorOverview";
@@ -26,6 +28,8 @@ import PatientSelector from "../components/doctor-dashboard/PatientSelector";
 
 import DoctorInvoices from "../components/doctor-dashboard/DoctorInvoices";
 import "../components/doctor-dashboard/doctor-invoices.css";
+
+// Le reste du fichier reste identique...
 
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);

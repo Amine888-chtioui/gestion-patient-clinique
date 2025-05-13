@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import { useNavigate } from "react-router-dom";
-import "./common/modal.css"; // Importation du CSS pour le modal
-import UnifiedLoadingSpinner from "./common/UnifiedLoadingSpinner"; // Import du spinner unifié
+import "../common/modal.css"; // Importation du CSS pour le modal
+import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner"; // Import du spinner unifié
 
 const Invoices = ({ actionLoading }) => {
   const [invoices, setInvoices] = useState([]);
@@ -11,13 +11,13 @@ const Invoices = ({ actionLoading }) => {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const navigate = useNavigate();
-  
+
   // États pour le modal de détails
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [invoiceDetails, setInvoiceDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  
+
   // États pour le modal de paiement
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -30,10 +30,10 @@ const Invoices = ({ actionLoading }) => {
     cvv: "",
     name_on_card: "",
   });
-  
+
   // Fonction utilitaire pour les en-têtes d'autorisation
   const getAuthHeaders = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
 
   useEffect(() => {
@@ -43,23 +43,24 @@ const Invoices = ({ actionLoading }) => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      
+
       // Construire les paramètres de requête
       const params = {};
       if (statusFilter && statusFilter !== "all") {
         params.status = statusFilter;
       }
-      
+
       const response = await axios.get("/api/patient/invoices", {
         ...getAuthHeaders(),
-        params
+        params,
       });
-      
+
       setInvoices(response.data.invoices.data || []);
-      
     } catch (err) {
       console.error("Erreur lors de la récupération des factures:", err);
-      setError("Impossible de charger les factures. Veuillez réessayer plus tard.");
+      setError(
+        "Impossible de charger les factures. Veuillez réessayer plus tard."
+      );
     } finally {
       setLoading(false);
     }
@@ -70,18 +71,17 @@ const Invoices = ({ actionLoading }) => {
     try {
       const response = await axios.get(`/api/patient/invoices/${id}/download`, {
         ...getAuthHeaders(),
-        responseType: 'blob'
+        responseType: "blob",
       });
-      
+
       // Créer une URL pour le blob et télécharger le fichier
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `facture-${id}.pdf`);
+      link.setAttribute("download", `facture-${id}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
     } catch (err) {
       console.error("Erreur lors du téléchargement de la facture:", err);
     }
@@ -91,14 +91,20 @@ const Invoices = ({ actionLoading }) => {
   const handleViewDetails = async (invoice) => {
     setSelectedInvoice(invoice);
     setShowDetailsModal(true);
-    
+
     try {
       setLoadingDetails(true);
       // Récupérer les détails complets de la facture pour s'assurer d'avoir le statut à jour
-      const response = await axios.get(`/api/patient/invoices/${invoice.id}`, getAuthHeaders());
+      const response = await axios.get(
+        `/api/patient/invoices/${invoice.id}`,
+        getAuthHeaders()
+      );
       setInvoiceDetails(response.data.invoice);
     } catch (err) {
-      console.error("Erreur lors de la récupération des détails de la facture:", err);
+      console.error(
+        "Erreur lors de la récupération des détails de la facture:",
+        err
+      );
       // En cas d'erreur, utiliser les données de base de la facture
       setInvoiceDetails(invoice);
     } finally {
@@ -141,20 +147,20 @@ const Invoices = ({ actionLoading }) => {
     const { name, value } = e.target;
     setPaymentData({
       ...paymentData,
-      [name]: value
+      [name]: value,
     });
   };
 
   // Traiter le paiement
   const handleProcessPayment = async (e) => {
     if (e) e.preventDefault();
-    
+
     if (!selectedInvoice) return;
-    
+
     setPaymentProcessing(true);
     setPaymentError(null);
     setPaymentSuccess(null);
-    
+
     try {
       // Dans un environnement réel, vous appelleriez ici votre API de paiement
       // Exemple d'appel API avec le backend
@@ -163,50 +169,55 @@ const Invoices = ({ actionLoading }) => {
         {
           invoice_id: selectedInvoice.id,
           payment_method_id: 1, // On utilise un ID de méthode de paiement par défaut
-          payment_session_id: "sess_" + Math.random().toString(36).substr(2, 9) // ID de session simulé
+          payment_session_id: "sess_" + Math.random().toString(36).substr(2, 9), // ID de session simulé
         },
         getAuthHeaders()
       );
-      
+
       setPaymentSuccess("Paiement effectué avec succès!");
-      
+
       // Mise à jour du statut de la facture dans l'état local
-      setInvoices(prevInvoices => 
-        prevInvoices.map(invoice => 
-          invoice.id === selectedInvoice.id 
-            ? { ...invoice, status: 'paid', payment_date: new Date().toISOString() } 
+      setInvoices((prevInvoices) =>
+        prevInvoices.map((invoice) =>
+          invoice.id === selectedInvoice.id
+            ? {
+                ...invoice,
+                status: "paid",
+                payment_date: new Date().toISOString(),
+              }
             : invoice
         )
       );
-      
+
       // Si nous avons ouvert les détails de la facture, mettons également à jour ces détails
       if (invoiceDetails && invoiceDetails.id === selectedInvoice.id) {
         setInvoiceDetails({
           ...invoiceDetails,
-          status: 'paid',
-          payment_date: new Date().toISOString()
+          status: "paid",
+          payment_date: new Date().toISOString(),
         });
       }
-      
+
       // Fermer le modal après 2 secondes et rafraîchir les données
       setTimeout(() => {
         closePaymentModal();
         // Rafraîchir la liste des factures depuis le serveur
         fetchInvoices();
       }, 2000);
-      
     } catch (err) {
       console.error("Erreur lors du paiement:", err);
-      setPaymentError("Une erreur s'est produite lors du traitement du paiement. Veuillez réessayer.");
+      setPaymentError(
+        "Une erreur s'est produite lors du traitement du paiement. Veuillez réessayer."
+      );
       setPaymentProcessing(false);
     }
   };
 
   // Formater un montant en euros
   const formatAmount = (amount) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
     }).format(amount);
   };
 
@@ -214,35 +225,35 @@ const Invoices = ({ actionLoading }) => {
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR');
+    return date.toLocaleDateString("fr-FR");
   };
 
   // Obtenir la classe CSS en fonction du statut
   const getStatusClass = (status) => {
     switch (status) {
-      case 'paid':
-        return 'status-badge confirmed';
-      case 'unpaid':
-      case 'pending':
-        return 'status-badge pending';
-      case 'overdue':
-        return 'status-badge cancelled';
+      case "paid":
+        return "status-badge confirmed";
+      case "unpaid":
+      case "pending":
+        return "status-badge pending";
+      case "overdue":
+        return "status-badge cancelled";
       default:
-        return 'status-badge';
+        return "status-badge";
     }
   };
 
   // Obtenir le libellé du statut
   const getStatusLabel = (status) => {
     switch (status) {
-      case 'paid':
-        return 'Payée';
-      case 'unpaid':
-        return 'Non payée';
-      case 'draft':
-        return 'Brouillon';
-      case 'cancelled':
-        return 'Annulée';
+      case "paid":
+        return "Payée";
+      case "unpaid":
+        return "Non payée";
+      case "draft":
+        return "Brouillon";
+      case "cancelled":
+        return "Annulée";
       default:
         return status;
     }
@@ -267,7 +278,7 @@ const Invoices = ({ actionLoading }) => {
   return (
     <div className="invoices-container">
       <h3>Mes factures</h3>
-      
+
       <div className="filter-bar">
         <div className="filter-item">
           <select
@@ -303,7 +314,7 @@ const Invoices = ({ actionLoading }) => {
               </tr>
             </thead>
             <tbody>
-              {invoices.map(invoice => (
+              {invoices.map((invoice) => (
                 <tr key={invoice.id || Math.random()}>
                   <td>{invoice.number || `FAC-${invoice.id}`}</td>
                   <td>{formatDate(invoice.date)}</td>
@@ -315,27 +326,28 @@ const Invoices = ({ actionLoading }) => {
                     </span>
                   </td>
                   <td className="actions">
-                    <button 
-                      className="btn-icon" 
-                      title="Voir les détails" 
+                    <button
+                      className="btn-icon"
+                      title="Voir les détails"
                       onClick={() => handleViewDetails(invoice)}
                       disabled={actionLoading}
                     >
                       <i className="fas fa-eye"></i>
                     </button>
-                    <button 
-                      className="btn-icon" 
-                      title="Télécharger" 
+                    <button
+                      className="btn-icon"
+                      title="Télécharger"
                       onClick={() => handleDownloadInvoice(invoice.id)}
                       disabled={actionLoading}
                     >
                       <i className="fas fa-download"></i>
                     </button>
                     {/* Bouton pour payer les factures non payées */}
-                    {(invoice.status === 'unpaid' || invoice.status === 'pending') && (
-                      <button 
-                        className="btn-icon payment-icon" 
-                        title="Payer cette facture" 
+                    {(invoice.status === "unpaid" ||
+                      invoice.status === "pending") && (
+                      <button
+                        className="btn-icon payment-icon"
+                        title="Payer cette facture"
                         onClick={() => handleOpenPaymentModal(invoice)}
                         disabled={actionLoading}
                       >
@@ -352,21 +364,30 @@ const Invoices = ({ actionLoading }) => {
         <div className="empty-state">
           <i className="fas fa-file-invoice-dollar"></i>
           <h3>Aucune facture trouvée</h3>
-          <p>Vous n'avez pas encore de factures ou aucune facture ne correspond à vos critères de recherche.</p>
+          <p>
+            Vous n'avez pas encore de factures ou aucune facture ne correspond à
+            vos critères de recherche.
+          </p>
         </div>
       )}
 
       {/* Modal de détails de facture */}
       {showDetailsModal && invoiceDetails && (
         <div className="modal-overlay" onClick={closeDetailsModal}>
-          <div className="modal-content modal-content-large" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content modal-content-large"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3>Détails de la facture {invoiceDetails.number || `#${invoiceDetails.id}`}</h3>
+              <h3>
+                Détails de la facture{" "}
+                {invoiceDetails.number || `#${invoiceDetails.id}`}
+              </h3>
               <button className="modal-close" onClick={closeDetailsModal}>
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             {loadingDetails ? (
               <div className="modal-body">
                 <UnifiedLoadingSpinner text="Chargement des détails..." />
@@ -377,13 +398,15 @@ const Invoices = ({ actionLoading }) => {
                   <span className={getStatusClass(invoiceDetails.status)}>
                     {getStatusLabel(invoiceDetails.status)}
                   </span>
-                  
-                  {invoiceDetails.status === 'paid' && invoiceDetails.payment_date && (
-                    <div className="payment-info">
-                      Payée le {formatDate(invoiceDetails.payment_date)} 
-                      {invoiceDetails.payment_method && ` par ${invoiceDetails.payment_method}`}
-                    </div>
-                  )}
+
+                  {invoiceDetails.status === "paid" &&
+                    invoiceDetails.payment_date && (
+                      <div className="payment-info">
+                        Payée le {formatDate(invoiceDetails.payment_date)}
+                        {invoiceDetails.payment_method &&
+                          ` par ${invoiceDetails.payment_method}`}
+                      </div>
+                    )}
                 </div>
 
                 <div className="invoice-details-grid">
@@ -391,19 +414,27 @@ const Invoices = ({ actionLoading }) => {
                     <h4>Informations générales</h4>
                     <div className="detail-row">
                       <span className="detail-label">Numéro de facture:</span>
-                      <span className="detail-value">{invoiceDetails.number || `#${invoiceDetails.id}`}</span>
+                      <span className="detail-value">
+                        {invoiceDetails.number || `#${invoiceDetails.id}`}
+                      </span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Date d'émission:</span>
-                      <span className="detail-value">{formatDate(invoiceDetails.date)}</span>
+                      <span className="detail-value">
+                        {formatDate(invoiceDetails.date)}
+                      </span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Date d'échéance:</span>
-                      <span className="detail-value">{formatDate(invoiceDetails.due_date)}</span>
+                      <span className="detail-value">
+                        {formatDate(invoiceDetails.due_date)}
+                      </span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Montant total:</span>
-                      <span className="detail-value">{formatAmount(invoiceDetails.total_amount)}</span>
+                      <span className="detail-value">
+                        {formatAmount(invoiceDetails.total_amount)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -427,21 +458,36 @@ const Invoices = ({ actionLoading }) => {
                             <td>{item.description}</td>
                             <td>{item.quantity}</td>
                             <td>{formatAmount(item.unit_price)}</td>
-                            <td>{formatAmount(item.quantity * item.unit_price)}</td>
+                            <td>
+                              {formatAmount(item.quantity * item.unit_price)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
                         <tr>
-                          <td colSpan="3" className="text-right">Sous-total:</td>
-                          <td>{formatAmount(invoiceDetails.amount || invoiceDetails.total_amount)}</td>
+                          <td colSpan="3" className="text-right">
+                            Sous-total:
+                          </td>
+                          <td>
+                            {formatAmount(
+                              invoiceDetails.amount ||
+                                invoiceDetails.total_amount
+                            )}
+                          </td>
                         </tr>
                         <tr>
-                          <td colSpan="3" className="text-right">TVA ({invoiceDetails.tax_percent || 20}%):</td>
-                          <td>{formatAmount(invoiceDetails.tax_amount || 0)}</td>
+                          <td colSpan="3" className="text-right">
+                            TVA ({invoiceDetails.tax_percent || 20}%):
+                          </td>
+                          <td>
+                            {formatAmount(invoiceDetails.tax_amount || 0)}
+                          </td>
                         </tr>
                         <tr className="total-row">
-                          <td colSpan="3" className="text-right">Total:</td>
+                          <td colSpan="3" className="text-right">
+                            Total:
+                          </td>
                           <td>{formatAmount(invoiceDetails.total_amount)}</td>
                         </tr>
                       </tfoot>
@@ -459,19 +505,26 @@ const Invoices = ({ actionLoading }) => {
 
                 {/* Actions de facture */}
                 <div className="detail-actions">
-                  <button className="btn-outline" onClick={() => handleDownloadInvoice(invoiceDetails.id)}>
+                  <button
+                    className="btn-outline"
+                    onClick={() => handleDownloadInvoice(invoiceDetails.id)}
+                  >
                     <i className="fas fa-download"></i> Télécharger
                   </button>
-                  
-                  {(invoiceDetails.status === 'unpaid' || invoiceDetails.status === 'pending') && (
-                    <button className="btn-primary" onClick={() => {
-                      closeDetailsModal();
-                      handleOpenPaymentModal(invoiceDetails);
-                    }}>
+
+                  {(invoiceDetails.status === "unpaid" ||
+                    invoiceDetails.status === "pending") && (
+                    <button
+                      className="btn-primary"
+                      onClick={() => {
+                        closeDetailsModal();
+                        handleOpenPaymentModal(invoiceDetails);
+                      }}
+                    >
                       <i className="fas fa-credit-card"></i> Payer maintenant
                     </button>
                   )}
-                  
+
                   <button className="btn-secondary" onClick={closeDetailsModal}>
                     Fermer
                   </button>
@@ -484,32 +537,47 @@ const Invoices = ({ actionLoading }) => {
 
       {/* Modal de paiement */}
       {showPaymentModal && selectedInvoice && (
-        <div className="modal-overlay" onClick={paymentProcessing ? null : closePaymentModal}>
-          <div className="modal-content modal-content-medium" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={paymentProcessing ? null : closePaymentModal}
+        >
+          <div
+            className="modal-content modal-content-medium"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3>Paiement de la facture {selectedInvoice.number || `#${selectedInvoice.id}`}</h3>
+              <h3>
+                Paiement de la facture{" "}
+                {selectedInvoice.number || `#${selectedInvoice.id}`}
+              </h3>
               {!paymentProcessing && (
                 <button className="modal-close" onClick={closePaymentModal}>
                   <i className="fas fa-times"></i>
                 </button>
               )}
             </div>
-            
+
             <div className="modal-body">
               {/* Récapitulatif de la facture */}
               <div className="payment-summary">
                 <h4>Récapitulatif</h4>
                 <div className="detail-row">
                   <span className="detail-label">Numéro de facture:</span>
-                  <span className="detail-value">{selectedInvoice.number || `#${selectedInvoice.id}`}</span>
+                  <span className="detail-value">
+                    {selectedInvoice.number || `#${selectedInvoice.id}`}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Date d'émission:</span>
-                  <span className="detail-value">{formatDate(selectedInvoice.date)}</span>
+                  <span className="detail-value">
+                    {formatDate(selectedInvoice.date)}
+                  </span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Montant à payer:</span>
-                  <span className="detail-value payment-amount">{formatAmount(selectedInvoice.total_amount)}</span>
+                  <span className="detail-value payment-amount">
+                    {formatAmount(selectedInvoice.total_amount)}
+                  </span>
                 </div>
               </div>
 
@@ -519,7 +587,7 @@ const Invoices = ({ actionLoading }) => {
                   <i className="fas fa-check-circle"></i> {paymentSuccess}
                 </div>
               )}
-              
+
               {paymentError && (
                 <div className="payment-error">
                   <i className="fas fa-exclamation-circle"></i> {paymentError}
@@ -537,7 +605,7 @@ const Invoices = ({ actionLoading }) => {
               {!paymentSuccess && !paymentProcessing && (
                 <form onSubmit={handleProcessPayment} className="payment-form">
                   <h4>Informations de paiement</h4>
-                  
+
                   <div className="form-group">
                     <label htmlFor="payment_method">Méthode de paiement</label>
                     <select
@@ -552,8 +620,8 @@ const Invoices = ({ actionLoading }) => {
                       <option value="transfer">Virement bancaire</option>
                     </select>
                   </div>
-                  
-                  {paymentData.payment_method === 'card' && (
+
+                  {paymentData.payment_method === "card" && (
                     <>
                       <div className="form-group">
                         <label htmlFor="name_on_card">Nom sur la carte</label>
@@ -568,7 +636,7 @@ const Invoices = ({ actionLoading }) => {
                           disabled={paymentProcessing}
                         />
                       </div>
-                      
+
                       <div className="form-group">
                         <label htmlFor="card_number">Numéro de carte</label>
                         <input
@@ -583,7 +651,7 @@ const Invoices = ({ actionLoading }) => {
                           disabled={paymentProcessing}
                         />
                       </div>
-                      
+
                       <div className="form-row">
                         <div className="form-group">
                           <label htmlFor="expiry_date">Date d'expiration</label>
@@ -599,7 +667,7 @@ const Invoices = ({ actionLoading }) => {
                             disabled={paymentProcessing}
                           />
                         </div>
-                        
+
                         <div className="form-group">
                           <label htmlFor="cvv">CVV</label>
                           <input
@@ -617,17 +685,22 @@ const Invoices = ({ actionLoading }) => {
                       </div>
                     </>
                   )}
-                  
-                  {paymentData.payment_method === 'transfer' && (
+
+                  {paymentData.payment_method === "transfer" && (
                     <div className="transfer-info">
-                      <p>Pour effectuer un virement bancaire, utilisez les informations suivantes:</p>
+                      <p>
+                        Pour effectuer un virement bancaire, utilisez les
+                        informations suivantes:
+                      </p>
                       <div className="detail-row">
                         <span className="detail-label">Bénéficiaire:</span>
                         <span className="detail-value">Centre Médical</span>
                       </div>
                       <div className="detail-row">
                         <span className="detail-label">IBAN:</span>
-                        <span className="detail-value">FR76 1234 5678 9012 3456 7890 123</span>
+                        <span className="detail-value">
+                          FR76 1234 5678 9012 3456 7890 123
+                        </span>
                       </div>
                       <div className="detail-row">
                         <span className="detail-label">BIC:</span>
@@ -635,26 +708,31 @@ const Invoices = ({ actionLoading }) => {
                       </div>
                       <div className="detail-row">
                         <span className="detail-label">Référence:</span>
-                        <span className="detail-value">{selectedInvoice.number || `FAC-${selectedInvoice.id}`}</span>
+                        <span className="detail-value">
+                          {selectedInvoice.number ||
+                            `FAC-${selectedInvoice.id}`}
+                        </span>
                       </div>
                       <p className="transfer-note">
-                        Veuillez noter que le paiement sera validé une fois que nous aurons reçu la confirmation de votre banque.
+                        Veuillez noter que le paiement sera validé une fois que
+                        nous aurons reçu la confirmation de votre banque.
                       </p>
                     </div>
                   )}
-                  
+
                   <div className="payment-actions">
-                    {paymentData.payment_method === 'card' ? (
-                      <button 
-                        type="submit" 
+                    {paymentData.payment_method === "card" ? (
+                      <button
+                        type="submit"
                         className="btn-primary"
                         disabled={paymentProcessing}
                       >
-                        <i className="fas fa-lock"></i> Payer {formatAmount(selectedInvoice.total_amount)}
+                        <i className="fas fa-lock"></i> Payer{" "}
+                        {formatAmount(selectedInvoice.total_amount)}
                       </button>
                     ) : (
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="btn-primary"
                         onClick={handleProcessPayment}
                         disabled={paymentProcessing}
@@ -662,9 +740,9 @@ const Invoices = ({ actionLoading }) => {
                         J'ai effectué le virement
                       </button>
                     )}
-                    
-                    <button 
-                      type="button" 
+
+                    <button
+                      type="button"
                       className="btn-secondary"
                       onClick={closePaymentModal}
                       disabled={paymentProcessing}
@@ -678,7 +756,9 @@ const Invoices = ({ actionLoading }) => {
               {/* Section de sécurité */}
               <div className="payment-security">
                 <i className="fas fa-shield-alt"></i>
-                <p>Paiement sécurisé - Vos données sont chiffrées et sécurisées.</p>
+                <p>
+                  Paiement sécurisé - Vos données sont chiffrées et sécurisées.
+                </p>
               </div>
             </div>
           </div>

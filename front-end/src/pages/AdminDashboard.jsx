@@ -1,4 +1,4 @@
-// src/pages/AdminDashboard.jsx
+// src/pages/AdminDashboard.jsx - Mise à jour des importations
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
@@ -7,9 +7,9 @@ import "../styles/invoices.css";
 import "../components/admin-dashboard/services-management.css";
 
 // Import des composants communs
-import LoadingSpinner from "../components/patient-dashboard/common/LoadingSpinner";
-import ErrorDisplay from "../components/patient-dashboard/common/ErrorDisplay";
-import ActionMessages from "../components/patient-dashboard/common/ActionMessages";
+import UnifiedLoadingSpinner from "../components/common/UnifiedLoadingSpinner";
+import ErrorDisplay from "../components/common/ErrorDisplay";
+import ActionMessages from "../components/common/ActionMessages";
 
 // Import des composants de navigation
 import AdminSidebar from "../components/admin-dashboard/AdminSidebar";
@@ -39,6 +39,8 @@ import "../components/admin-dashboard/admin-profile.css";
 import "../components/admin-dashboard/admin-dashboard.css";
 
 import ContactsManagement from "../components/admin-dashboard/ContactsManagement";
+
+// Le reste du fichier reste identique...
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -692,9 +694,9 @@ const AdminDashboard = () => {
   };
 
   // Affichage durant le chargement initial du composant
-  if (initialLoading) {
-    return <LoadingSpinner />;
-  }
+if (initialLoading) {
+  return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord administrateur..." />;
+}
 
   // Affichage en cas d'erreur globale
   if (error) {
