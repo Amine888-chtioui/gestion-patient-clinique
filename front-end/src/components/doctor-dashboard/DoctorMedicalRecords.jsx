@@ -1,6 +1,7 @@
 // src/components/doctor-dashboard/DoctorMedicalRecords.jsx
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
+import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner";
 
 const DoctorMedicalRecords = ({ 
   patients, 
@@ -64,17 +65,12 @@ const DoctorMedicalRecords = ({
   // Sort dates in descending order
   const sortedDates = Object.keys(groupedRecords).sort((a, b) => new Date(b) - new Date(a));
 
+  // Display loading spinner while data is being fetched
   if (loading) {
-    return (
-      <div className="section-loading">
-        <div className="spinner-container">
-          <div className="spinner"></div>
-        </div>
-        <p className="spinner-message">Chargement des dossiers médicaux...</p>
-      </div>
-    );
+    return <UnifiedLoadingSpinner text="Chargement des dossiers médicaux..." color="primary" />;
   }
 
+  // Display error message if loading fails
   if (error) {
     return (
       <div className="error-state">

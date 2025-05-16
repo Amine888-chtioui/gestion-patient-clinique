@@ -1,7 +1,20 @@
 // src/components/admin-dashboard/AdminOverview.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import axios from "../../axios";
 
 const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
+  const [invoiceStats, setInvoiceStats] = useState({
+    total_invoices: 0,
+    paid_invoices: 0,
+    unpaid_invoices: 0,
+    total_revenue: 0,
+    average_invoice_amount: 0,
+    invoices_by_month: {},
+    payment_methods: {}
+  });
+  const [loadingInvoiceStats, setLoadingInvoiceStats] = useState(true);
+
   // Extraire les statistiques ou utiliser des valeurs par défaut
   const {
     total_patients = 0,
@@ -17,6 +30,89 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
     appointments_by_month = {},
     appointments_by_status = {}
   } = stats || {};
+
+  // Charger les statistiques de facturation au chargement du composant
+  useEffect(() => {
+    const fetchInvoiceStats = async () => {
+      try {
+        setLoadingInvoiceStats(true);
+        const response = await axios.get("/api/admin/invoice-statistics", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        setInvoiceStats(response.data);
+      } catch (error) {
+        console.error("Erreur lors du chargement des statistiques de facturation:", error);
+        // En cas d'erreur, on conserve les statistiques par défaut
+      } finally {
+        setLoadingInvoiceStats(false);
+      }
+    };
+
+    fetchInvoiceStats();
+  }, []);
+
+  // Transformer les données pour les graphiques
+  const appointmentsByMonthData = Object.entries(appointments_by_month || {}).map(([month, count]) => ({
+    name: getMonthName(parseInt(month)),
+    value: count
+  }));
+
+  const appointmentsByStatusData = [
+    { name: 'Confirmés', value: confirmed_appointments },
+    { name: 'En attente', value: pending_appointments },
+    { name: 'Annulés', value: canceled_appointments }
+  ];
+
+  // Transformer les données des factures pour les graphiques
+  const invoicesByMonthData = Object.entries(invoiceStats.invoices_by_month || {}).map(([month, data]) => ({
+    name: getMonthName(parseInt(month)),
+    montant: data.amount || 0,
+    nombre: data.count || 0
+  }));
+
+  const invoicesStatusData = [
+    { name: 'Payées', value: invoiceStats.paid_invoices },
+    { name: 'Non payées', value: invoiceStats.unpaid_invoices }
+  ];
+
+  const paymentMethodsData = Object.entries(invoiceStats.payment_methods || {}).map(([method, count]) => ({
+    name: getPaymentMethodName(method),
+    value: count
+  }));
+
+  // Couleurs pour les graphiques
+  const COLORS = ['#28a745', '#ffc107', '#dc3545'];
+  const INVOICE_COLORS = ['#4CAF50', '#F44336'];
+  const PAYMENT_COLORS = ['#2196F3', '#FF9800', '#9C27B0', '#607D8B', '#795548'];
+
+  // Obtenir le nom du mois
+  function getMonthName(monthNumber) {
+    const months = [
+      "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+      "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
+    ];
+    return months[monthNumber - 1];
+  }
+
+  // Obtenir le nom de la méthode de paiement
+  function getPaymentMethodName(code) {
+    const methods = {
+      'card': 'Carte bancaire',
+      'cash': 'Espèces',
+      'transfer': 'Virement',
+      'check': 'Chèque',
+      'insurance': 'Assurance'
+    };
+    return methods[code] || code;
+  }
+
+  // Formater les montants en euros
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(amount);
+  };
 
   return (
     <div className="overview-container">
@@ -60,21 +156,22 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
 
         <div className="stat-card">
           <div className="stat-icon">
-            <i className="fas fa-clock"></i>
+            <i className="fas fa-file-invoice-dollar"></i>
           </div>
           <div className="stat-info">
-            <h3>RDV en attente</h3>
-            <p className="stat-value">{pending_appointments}</p>
+            <h3>Factures</h3>
+            <p className="stat-value">{invoiceStats.total_invoices}</p>
+            <p className="stat-text">{invoiceStats.unpaid_invoices} en attente</p>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon">
-            <i className="fas fa-file-medical"></i>
+            <i className="fas fa-money-bill-wave"></i>
           </div>
           <div className="stat-info">
-            <h3>Dossiers médicaux</h3>
-            <p className="stat-value">{medical_records_count}</p>
+            <h3>Revenus</h3>
+            <p className="stat-value">{formatCurrency(invoiceStats.total_revenue)}</p>
           </div>
         </div>
 
@@ -89,26 +186,193 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
         </div>
       </div>
 
-      <div className="chart-container">
-        <h3>Rendez-vous par mois</h3>
-        <div className="chart-wrapper">
-          {/* Ici, vous pourriez intégrer un graphique avec vos statistiques */}
-          <div style={{ padding: "20px", textAlign: "center" }}>
-            <i className="fas fa-chart-line" style={{ fontSize: "3rem", color: "#6a1b9a", marginBottom: "1rem" }}></i>
-            <p>Graphique à implémenter avec une bibliothèque comme Chart.js ou Recharts</p>
-            <p>Données disponibles dans stats.appointments_by_month</p>
+      {/* Section des statistiques détaillées */}
+      <div className="detailed-statistics">
+        <h3>Statistiques détaillées</h3>
+        
+        <div className="statistics-grid">
+          {/* Graphique des rendez-vous par mois */}
+          <div className="chart-container">
+            <h4>Rendez-vous par mois</h4>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={appointmentsByMonthData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#6a1b9a" name="Nombre de rendez-vous" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Graphique de la répartition des rendez-vous par statut */}
+          <div className="chart-container">
+            <h4>Répartition des rendez-vous par statut</h4>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={appointmentsByStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                  label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                >
+                  {appointmentsByStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      </div>
-
-      <div className="chart-container">
-        <h3>Répartition des rendez-vous par statut</h3>
-        <div className="chart-wrapper">
-          {/* Ici, vous pourriez intégrer un graphique en camembert */}
-          <div style={{ padding: "20px", textAlign: "center" }}>
-            <i className="fas fa-chart-pie" style={{ fontSize: "3rem", color: "#6a1b9a", marginBottom: "1rem" }}></i>
-            <p>Graphique à implémenter avec une bibliothèque comme Chart.js ou Recharts</p>
-            <p>Données disponibles dans stats.appointments_by_status</p>
+        
+        {/* Section des statistiques de facturation */}
+        <div className="finance-statistics">
+          <h3>Statistiques financières</h3>
+          
+          {loadingInvoiceStats ? (
+            <div className="loading-indicator">Chargement des statistiques financières...</div>
+          ) : (
+            <div className="statistics-grid">
+              {/* Graphique des factures par mois (montant) */}
+              <div className="chart-container">
+                <h4>Montant des factures par mois</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={invoicesByMonthData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => formatCurrency(value)} />
+                    <Legend />
+                    <Bar dataKey="montant" fill="#1976d2" name="Montant total" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Graphique des factures par mois (nombre) */}
+              <div className="chart-container">
+                <h4>Nombre de factures par mois</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={invoicesByMonthData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="nombre" fill="#ff9800" name="Nombre de factures" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Graphique des factures par statut */}
+              <div className="chart-container">
+                <h4>Statut des factures</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={invoicesStatusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      {invoicesStatusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={INVOICE_COLORS[index % INVOICE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Graphique des méthodes de paiement */}
+              <div className="chart-container">
+                <h4>Méthodes de paiement</h4>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={paymentMethodsData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      {paymentMethodsData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Métriques avancées */}
+        <div className="advanced-metrics">
+          <h4>Métriques avancées</h4>
+          
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <h5>Taux de conversion des rendez-vous</h5>
+              <p className="metric-value">
+                {total_appointments > 0 
+                  ? `${Math.round((confirmed_appointments / total_appointments) * 100)}%` 
+                  : '0%'}
+              </p>
+              <p className="metric-description">
+                Pourcentage de rendez-vous confirmés sur le total
+              </p>
+            </div>
+            
+            <div className="metric-card">
+              <h5>Revenu moyen par patient</h5>
+              <p className="metric-value">
+                {total_patients > 0 
+                  ? formatCurrency(invoiceStats.total_revenue / total_patients) 
+                  : formatCurrency(0)}
+              </p>
+              <p className="metric-description">
+                Montant moyen généré par patient
+              </p>
+            </div>
+            
+            <div className="metric-card">
+              <h5>Montant moyen des factures</h5>
+              <p className="metric-value">
+                {formatCurrency(invoiceStats.average_invoice_amount)}
+              </p>
+              <p className="metric-description">
+                Montant moyen par facture
+              </p>
+            </div>
+            
+            <div className="metric-card">
+              <h5>Taux de paiement</h5>
+              <p className="metric-value">
+                {invoiceStats.total_invoices > 0 
+                  ? `${Math.round((invoiceStats.paid_invoices / invoiceStats.total_invoices) * 100)}%` 
+                  : '0%'}
+              </p>
+              <p className="metric-description">
+                Pourcentage de factures payées
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -128,9 +392,9 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
             <i className="fas fa-calendar-plus"></i>
             Créer un rendez-vous
           </button>
-          <button className="action-btn" onClick={() => handleTabChange("users")} disabled={actionLoading}>
-            <i className="fas fa-user-cog"></i>
-            Gérer les utilisateurs
+          <button className="action-btn" onClick={() => handleTabChange("invoices")} disabled={actionLoading}>
+            <i className="fas fa-file-invoice-dollar"></i>
+            Gérer les factures
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-// src/pages/AdminDashboard.jsx - Mise à jour des importations
+// src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
@@ -40,8 +40,6 @@ import "../components/admin-dashboard/admin-dashboard.css";
 
 import ContactsManagement from "../components/admin-dashboard/ContactsManagement";
 
-// Le reste du fichier reste identique...
-
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -59,7 +57,8 @@ const AdminDashboard = () => {
     payments: false,
     invoices: false,
     profile: false,
-    services: false
+    services: false,
+    contacts: false
   });
   // Ajouter un nouvel état pour le profil admin
   const [adminProfile, setAdminProfile] = useState(null);
@@ -99,9 +98,6 @@ const AdminDashboard = () => {
 
   // Effet pour le chargement initial et l'authentification
   useEffect(() => {
-
-    
-
     const initDashboard = async () => {
       const token = localStorage.getItem("token");
       if (!token) return navigate("/login");
@@ -694,9 +690,9 @@ const AdminDashboard = () => {
   };
 
   // Affichage durant le chargement initial du composant
-if (initialLoading) {
-  return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord administrateur..." />;
-}
+  if (initialLoading) {
+    return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord administrateur..." />;
+  }
 
   // Affichage en cas d'erreur globale
   if (error) {
@@ -736,13 +732,11 @@ if (initialLoading) {
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
 
-          {/* Rendu conditionnel des sections avec indicateurs de chargement locaux */}
+          {/* Rendu conditionnel des sections avec le UnifiedLoadingSpinner */}
           {activeTab === "overview" && (
             <>
               {loadingStates.overview ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement du tableau de bord..." />
               ) : (
                 <AdminOverview
                   stats={stats}
@@ -756,9 +750,7 @@ if (initialLoading) {
           {activeTab === "patients" && (
             <>
               {loadingStates.patients ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des patients..." />
               ) : (
                 <PatientsManagement
                   patients={patients}
@@ -775,9 +767,7 @@ if (initialLoading) {
           {activeTab === "doctors" && (
             <>
               {loadingStates.doctors ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des médecins..." />
               ) : (
                 <DoctorsManagement
                   doctors={doctors}
@@ -793,9 +783,7 @@ if (initialLoading) {
           {activeTab === "appointments" && (
             <>
               {loadingStates.appointments ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des rendez-vous..." />
               ) : (
                 <AppointmentsManagement
                   appointments={appointments}
@@ -813,9 +801,7 @@ if (initialLoading) {
           {activeTab === "medicalRecords" && (
             <>
               {loadingStates.medicalRecords ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des dossiers médicaux..." />
               ) : (
                 <MedicalRecordsManagement
                   medicalRecords={medicalRecords}
@@ -830,9 +816,7 @@ if (initialLoading) {
           {activeTab === "statistics" && (
             <>
               {loadingStates.statistics ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des statistiques..." />
               ) : (
                 <StatisticsView
                   stats={stats}
@@ -845,9 +829,7 @@ if (initialLoading) {
           {activeTab === "users" && (
             <>
               {loadingStates.users ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des utilisateurs..." />
               ) : (
                 <UsersManagement
                   users={users}
@@ -863,9 +845,7 @@ if (initialLoading) {
           {activeTab === "services" && (
             <>
               {loadingStates.services ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des services..." />
               ) : (
                 <ServicesManagement
                   actionLoading={actionLoading}
@@ -878,28 +858,25 @@ if (initialLoading) {
           )}
           
           {activeTab === "profile" && (
-              <>
-                {loadingStates.profile ? (
-                  <div className="section-loader">
-                    <div className="loader-indicator"></div>
-                  </div>
-                ) : (
-                  <AdminProfile
-                    user={user}
-                    actionLoading={actionLoading}
-                    setActionLoading={setActionLoading}
-                    setActionError={setActionError}
-                    setActionSuccess={setActionSuccess}
-                  />
-                )}
-              </>
-            )}
+            <>
+              {loadingStates.profile ? (
+                <UnifiedLoadingSpinner size="medium" text="Chargement du profil..." />
+              ) : (
+                <AdminProfile
+                  user={user}
+                  actionLoading={actionLoading}
+                  setActionLoading={setActionLoading}
+                  setActionError={setActionError}
+                  setActionSuccess={setActionSuccess}
+                />
+              )}
+            </>
+          )}
+          
           {activeTab === "contacts" && (
             <>
               {loadingStates.contacts ? (
-                <div className="section-loader">
-                  <div className="loader-indicator"></div>
-                </div>
+                <UnifiedLoadingSpinner size="medium" text="Chargement des messages..." />
               ) : (
                 <ContactsManagement
                   actionLoading={actionLoading}

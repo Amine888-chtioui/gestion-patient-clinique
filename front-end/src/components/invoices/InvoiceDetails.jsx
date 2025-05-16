@@ -1,335 +1,208 @@
 // src/components/invoices/InvoiceDetails.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../axios";
+import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
+import ErrorDisplay from "../../components/common/ErrorDisplay";
 
 const InvoiceDetails = ({ onInvoiceAction }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentData, setPaymentData] = useState({
-    payment_method: "card",
-    payment_date: new Date().toISOString().split("T")[0],
-  });
-
-  const { id } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
   
-  // Extraire l'ID de l'URL si non fourni par les params
-  const invoiceId = id || location.pathname.split('/').pop();
-
   useEffect(() => {
     fetchInvoiceDetails();
-  }, [invoiceId]);
-
+  }, [id]);
+  
   const fetchInvoiceDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/invoices/${invoiceId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      const response = await axios.get(`/api/invoices/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
+      
       setInvoice(response.data.data);
+      setLoading(false);
     } catch (err) {
       console.error("Erreur lors de la récupération des détails de la facture:", err);
       setError("Impossible de charger les détails de la facture. Veuillez réessayer plus tard.");
-    } finally {
       setLoading(false);
     }
   };
-
-  const handleEditInvoice = () => {
-    if (onInvoiceAction) {
-      onInvoiceAction('edit', invoiceId);
-    } else {
-      navigate(`/admin/dashboard/invoices/edit/${invoiceId}`);
-    }
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
-
-  const handleDeleteInvoice = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette facture ?")) return;
-
-    try {
-      await axios.delete(`/api/invoices/${invoiceId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      
-      if (onInvoiceAction) {
-        onInvoiceAction('list');
-      } else {
-        navigate("/admin/dashboard/invoices");
-      }
-    } catch (err) {
-      console.error("Erreur lors de la suppression de la facture:", err);
-      alert("Impossible de supprimer la facture. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
-    }
-  };
-
-  const handleBackToList = () => {
-    if (onInvoiceAction) {
-      onInvoiceAction('list');
-    } else {
-      navigate("/admin/dashboard/invoices");
-    }
-  };
-
-  const handlePaymentChange = (e) => {
-    setPaymentData({ ...paymentData, [e.target.name]: e.target.value });
-  };
-
-  const handlePayInvoice = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(
-        `/api/invoices/${invoiceId}/pay`,
-        paymentData,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-      setShowPaymentModal(false);
-      fetchInvoiceDetails(); // Rafraîchir les données
-    } catch (err) {
-      console.error("Erreur lors du paiement de la facture:", err);
-      alert("Impossible de marquer la facture comme payée. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
-    }
-  };
-
-  // Formater un montant en devise
+  
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-    }).format(amount);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
-
-  // Traduction des statuts
-  const getStatusLabel = (status) => {
-    const statuses = {
-      pending: "En attente",
-      paid: "Payée",
-      cancelled: "Annulée",
-      overdue: "En retard",
-    };
-    return statuses[status] || status;
-  };
-
-  // Classes pour les badges de statut
+  
   const getStatusClass = (status) => {
     switch (status) {
-      case "paid":
-        return "status-badge-success";
-      case "pending":
-        return "status-badge-warning";
-      case "cancelled":
-        return "status-badge-danger";
-      case "overdue":
-        return "status-badge-danger";
+      case 'paid':
+        return 'status-paid';
+      case 'unpaid':
+        return 'status-unpaid';
+      case 'overdue':
+        return 'status-overdue';
+      case 'cancelled':
+        return 'status-cancelled';
       default:
-        return "status-badge-secondary";
+        return '';
     }
   };
-
-  // Traduction des méthodes de paiement
-  const getPaymentMethodLabel = (method) => {
-    const methods = {
-      cash: "Espèces",
-      card: "Carte bancaire",
-      transfer: "Virement bancaire",
-      check: "Chèque",
-      insurance: "Assurance",
-    };
-    return methods[method] || method;
+  
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'paid':
+        return 'Payée';
+      case 'unpaid':
+        return 'Non payée';
+      case 'overdue':
+        return 'En retard';
+      case 'cancelled':
+        return 'Annulée';
+      default:
+        return status;
+    }
   };
-
-  if (loading) return <div className="loading-spinner">Chargement...</div>;
-  if (error) return <div className="error-message">{error}</div>;
-  if (!invoice) return <div className="error-message">Facture non trouvée</div>;
-
+  
+  if (loading) {
+    return <UnifiedLoadingSpinner size="medium" text="Chargement des détails de la facture..." />;
+  }
+  
+  if (error) {
+    return <ErrorDisplay error={error} />;
+  }
+  
+  if (!invoice) {
+    return <ErrorDisplay error="Impossible de trouver la facture demandée." />;
+  }
+  
   return (
     <div className="invoice-details-container">
-      <div className="details-header">
-        <button className="btn-secondary" onClick={handleBackToList}>
-          <i className="fas fa-arrow-left"></i> Retour
-        </button>
-        <h2>Facture {invoice.number}</h2>
+      <div className="invoice-details-header">
+        <h2>Facture #{invoice.number}</h2>
         <div className="header-actions">
-          {invoice.status !== "paid" && (
-            <>
-              <button className="btn-success" onClick={() => setShowPaymentModal(true)}>
-                <i className="fas fa-check-circle"></i> Marquer comme payée
-              </button>
-              <button className="btn-primary" onClick={handleEditInvoice}>
-                <i className="fas fa-edit"></i> Modifier
-              </button>
-              <button className="btn-danger" onClick={handleDeleteInvoice}>
-                <i className="fas fa-trash-alt"></i> Supprimer
-              </button>
-            </>
-          )}
-          <button className="btn-outline" onClick={() => window.print()}>
-            <i className="fas fa-print"></i> Imprimer
+          <button className="btn-outline" onClick={() => onInvoiceAction('list')}>
+            <i className="fas fa-arrow-left"></i> Retour à la liste
+          </button>
+          <button className="btn-outline" onClick={() => onInvoiceAction('edit', invoice.id)}>
+            <i className="fas fa-edit"></i> Modifier
+          </button>
+          <button className="btn-primary">
+            <i className="fas fa-file-pdf"></i> Télécharger PDF
           </button>
         </div>
       </div>
-
+      
       <div className="invoice-status">
-        <span className={`status-badge ${getStatusClass(invoice.status)}`}>
-          {getStatusLabel(invoice.status)}
+        <span className={`status-badge large ${getStatusClass(invoice.status)}`}>
+          {getStatusText(invoice.status)}
         </span>
-        {invoice.status === "paid" && invoice.payment_date && (
-          <div className="payment-info">
-            Payée le {new Date(invoice.payment_date).toLocaleDateString()} par {getPaymentMethodLabel(invoice.payment_method)}
+      </div>
+      
+      <div className="invoice-content">
+        <div className="invoice-info">
+          <div className="info-item">
+            <span className="info-label">Date d'émission:</span>
+            <span className="info-value">{formatDate(invoice.issue_date)}</span>
+          </div>
+          <div className="info-item">
+            <span className="info-label">Date d'échéance:</span>
+            <span className="info-value">{formatDate(invoice.due_date)}</span>
+          </div>
+          {invoice.payment_date && (
+            <div className="info-item">
+              <span className="info-label">Date de paiement:</span>
+              <span className="info-value">{formatDate(invoice.payment_date)}</span>
+            </div>
+          )}
+          {invoice.payment_method && (
+            <div className="info-item">
+              <span className="info-label">Méthode de paiement:</span>
+              <span className="info-value">{invoice.payment_method}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="invoice-parties">
+          <div className="party-section clinic">
+            <h3>Clinique</h3>
+            <p>{invoice.clinic?.name || "Clinique Médicale"}</p>
+            <p>{invoice.clinic?.address || "123 Rue Médicale, Ville, Pays"}</p>
+            <p>Tél: {invoice.clinic?.phone || "01 23 45 67 89"}</p>
+            <p>Email: {invoice.clinic?.email || "contact@clinique.com"}</p>
+          </div>
+          
+          <div className="party-section patient">
+            <h3>Patient</h3>
+            <p>{invoice.patient?.name || "N/A"}</p>
+            <p>{invoice.patient?.address || "Adresse non spécifiée"}</p>
+            {invoice.patient?.phone && <p>Tél: {invoice.patient.phone}</p>}
+            {invoice.patient?.email && <p>Email: {invoice.patient.email}</p>}
+          </div>
+        </div>
+        
+        <div className="invoice-items">
+          <h3>Détails des prestations</h3>
+          <table className="items-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Prix unitaire</th>
+                <th>Quantité</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items && invoice.items.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.description}</td>
+                  <td>{formatCurrency(item.unit_price)}</td>
+                  <td>{item.quantity}</td>
+                  <td>{formatCurrency(item.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="invoice-summary">
+          <div className="summary-row">
+            <span className="summary-label">Sous-total:</span>
+            <span className="summary-value">{formatCurrency(invoice.subtotal_amount)}</span>
+          </div>
+          {invoice.tax_amount > 0 && (
+            <div className="summary-row">
+              <span className="summary-label">TVA ({invoice.tax_rate}%):</span>
+              <span className="summary-value">{formatCurrency(invoice.tax_amount)}</span>
+            </div>
+          )}
+          {invoice.discount_amount > 0 && (
+            <div className="summary-row">
+              <span className="summary-label">Remise:</span>
+              <span className="summary-value">-{formatCurrency(invoice.discount_amount)}</span>
+            </div>
+          )}
+          <div className="summary-row total">
+            <span className="summary-label">Total:</span>
+            <span className="summary-value">{formatCurrency(invoice.total_amount)}</span>
+          </div>
+        </div>
+        
+        {invoice.notes && (
+          <div className="invoice-notes">
+            <h3>Notes</h3>
+            <p>{invoice.notes}</p>
           </div>
         )}
       </div>
-
-      <div className="invoice-info-grid">
-        <div className="invoice-info-card">
-          <h3>Informations</h3>
-          <div className="info-group">
-            <div className="info-row">
-              <span className="info-label">Numéro de facture:</span>
-              <span className="info-value">{invoice.number}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Date:</span>
-              <span className="info-value">{new Date(invoice.date).toLocaleDateString()}</span>
-            </div>
-            <div className="info-row">
-              <span className="info-label">Échéance:</span>
-              <span className="info-value">{new Date(invoice.due_date).toLocaleDateString()}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="invoice-info-card">
-          <h3>Patient</h3>
-          {invoice.patient ? (
-            <div className="info-group">
-              <div className="info-row">
-                <span className="info-label">Nom:</span>
-                <span className="info-value">{invoice.patient.name}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Email:</span>
-                <span className="info-value">{invoice.patient.email}</span>
-              </div>
-            </div>
-          ) : (
-            <p>Information patient non disponible</p>
-          )}
-        </div>
-      </div>
-
-      <div className="invoice-items-container">
-        <h3>Détail des prestations</h3>
-        <table className="invoice-items-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Quantité</th>
-              <th>Prix unitaire</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.items && invoice.items.length > 0 ? (
-              invoice.items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.description}</td>
-                  <td>{item.quantity}</td>
-                  <td>{formatCurrency(item.unit_price)}</td>
-                  <td>{formatCurrency(item.total_price)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="no-items">Aucun élément</td>
-              </tr>
-            )}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan="3" className="text-right">Sous-total:</td>
-              <td>{formatCurrency(invoice.amount)}</td>
-            </tr>
-            <tr>
-              <td colSpan="3" className="text-right">TVA ({invoice.tax_percent}%):</td>
-              <td>{formatCurrency(invoice.tax_amount)}</td>
-            </tr>
-            <tr className="total-row">
-              <td colSpan="3" className="text-right">Total:</td>
-              <td>{formatCurrency(invoice.total_amount)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      {invoice.notes && (
-        <div className="invoice-notes">
-          <h3>Notes</h3>
-          <p>{invoice.notes}</p>
-        </div>
-      )}
-
-      {/* Modal de paiement */}
-      {showPaymentModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Marquer comme payée</h3>
-              <button className="close-btn" onClick={() => setShowPaymentModal(false)}>
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <form onSubmit={handlePayInvoice}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label htmlFor="payment_method">Méthode de paiement</label>
-                  <select
-                    id="payment_method"
-                    name="payment_method"
-                    value={paymentData.payment_method}
-                    onChange={handlePaymentChange}
-                    required
-                  >
-                    <option value="cash">Espèces</option>
-                    <option value="card">Carte bancaire</option>
-                    <option value="transfer">Virement bancaire</option>
-                    <option value="check">Chèque</option>
-                    <option value="insurance">Assurance</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="payment_date">Date de paiement</label>
-                  <input
-                    type="date"
-                    id="payment_date"
-                    name="payment_date"
-                    value={paymentData.payment_date}
-                    onChange={handlePaymentChange}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="submit" className="btn-success">
-                  <i className="fas fa-check"></i> Confirmer le paiement
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowPaymentModal(false)}
-                >
-                  Annuler
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1162,3 +1162,279 @@ body {
   align-items: center;
   gap: 12px;
 }
+/* Styles pour les statistiques détaillées */
+.detailed-statistics {
+  margin-top: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.detailed-statistics h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+}
+
+.detailed-statistics h4 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #6a1b9a;
+}
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.advanced-metrics {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.metric-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card h5 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #6a1b9a;
+  margin-bottom: 0.5rem;
+}
+
+.metric-description {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .statistics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* Styles améliorés pour la navigation mobile */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 999;
+  height: 65px;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 10px;
+  border-top: 1px solid #eee;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 10px 0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  color: #6c757d;
+  height: 100%;
+}
+
+.mobile-nav-item i {
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-item.active {
+  color: var(--primary-color);
+}
+
+.mobile-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 3px;
+  background-color: var(--primary-color);
+  border-radius: 10px 10px 0 0;
+}
+
+.mobile-nav-item:hover {
+  color: var(--primary-color);
+}
+
+/* Menu déroulant "Plus" */
+.mobile-more-menu {
+  position: fixed;
+  bottom: 65px;
+  left: 0;
+  right: 0;
+  background-color: white;
+  box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  z-index: 998;
+  padding: 15px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  animation: slide-up 0.3s ease;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.mobile-more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 10px;
+  border-radius: 10px;
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+}
+
+.mobile-more-item i {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  color: var(--primary-color);
+}
+
+.mobile-more-item span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.mobile-more-item.active {
+  background-color: var(--primary-light);
+}
+
+.mobile-more-item:hover {
+  background-color: var(--primary-light);
+  transform: translateY(-3px);
+}
+
+/* Overlay pour fermer le menu lorsqu'on clique en dehors */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 65px;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 997;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Ajustements pour l'espace en bas sur mobile */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+    margin-bottom: 65px; /* Espace pour la barre de navigation mobile */
+  }
+
+  .mobile-nav {
+    display: flex;
+  }
+  
+  /* Ajuster la mise en page du contenu pour mobile */
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .statistics-grid,
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Ajustement pour les petits écrans */
+  @media (max-width: 480px) {
+    .mobile-more-menu {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (max-width: 360px) {
+    .mobile-more-menu {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+}

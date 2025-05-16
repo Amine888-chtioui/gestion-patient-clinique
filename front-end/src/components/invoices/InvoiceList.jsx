@@ -1,217 +1,215 @@
 // src/components/invoices/InvoiceList.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "../../axios";
+import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
+import ErrorDisplay from "../../components/common/ErrorDisplay";
 
 const InvoiceList = ({ onInvoiceAction }) => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    status: "",
-    patient_id: "",
-  });
-
-  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     fetchInvoices();
-  }, [filters]);
+  }, []);
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const params = {};
-      if (filters.status) params.status = filters.status;
-      if (filters.patient_id) params.patient_id = filters.patient_id;
-
       const response = await axios.get("/api/invoices", {
-        params,
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
-
+      
       setInvoices(response.data.data || []);
+      setLoading(false);
     } catch (err) {
       console.error("Erreur lors de la récupération des factures:", err);
       setError("Impossible de charger les factures. Veuillez réessayer plus tard.");
-    } finally {
       setLoading(false);
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters({ ...filters, [name]: value });
+  const handleStatusChange = (e) => {
+    setStatusFilter(e.target.value);
   };
 
-  const handleViewInvoice = (id) => {
-    if (onInvoiceAction) {
-      onInvoiceAction('details', id);
-    } else {
-      navigate(`/admin/dashboard/invoices/${id}`);
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const filteredInvoices = invoices.filter(invoice => {
+    // Filtre par statut
+    if (statusFilter !== "all" && invoice.status !== statusFilter) {
+      return false;
     }
-  };
-
-  const handleCreateInvoice = () => {
-    if (onInvoiceAction) {
-      onInvoiceAction('create');
-    } else {
-      navigate("/admin/dashboard/invoices/create");
+    
+    // Filtre par terme de recherche
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (invoice.number && invoice.number.toLowerCase().includes(searchLower)) ||
+        (invoice.patient && invoice.patient.name && invoice.patient.name.toLowerCase().includes(searchLower))
+      );
     }
+    
+    return true;
+  });
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
-  // Formater un montant en devise
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-    }).format(amount);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
 
-  // Traduction des statuts
-  const getStatusLabel = (status) => {
-    const statuses = {
-      pending: "En attente",
-      paid: "Payée",
-      cancelled: "Annulée",
-      overdue: "En retard",
-    };
-    return statuses[status] || status;
-  };
+  const getStatusBadge = (status) => {
+    // Pour le cas où le statut est "pending" en anglais, mais affiché comme "En attente" en français
+    if (status === "pending") {
+      return (
+        <span className="status-badge pending">
+          En attente
+        </span>
+      );
+    }
 
-  // Classes pour les badges de statut
-  const getStatusClass = (status) => {
+    // Pour les autres statuts
     switch (status) {
-      case "paid":
-        return "status-badge-success";
-      case "pending":
-        return "status-badge-warning";
-      case "cancelled":
-        return "status-badge-danger";
-      case "overdue":
-        return "status-badge-danger";
+      case 'paid':
+        return <span className="status-badge status-paid">Payée</span>;
+      case 'unpaid':
+        return <span className="status-badge status-unpaid">Non payée</span>;
+      case 'overdue':
+        return <span className="status-badge status-overdue">En retard</span>;
+      case 'cancelled':
+        return <span className="status-badge status-cancelled">Annulée</span>;
       default:
-        return "status-badge-secondary";
+        return <span className="status-badge">{status}</span>;
     }
   };
 
-  if (loading) return <div className="loading-spinner">Chargement...</div>;
-  if (error) return <div className="error-message">{error}</div>;
+  if (loading) {
+    return <UnifiedLoadingSpinner size="medium" text="Chargement des factures..." />;
+  }
+
+  if (error) {
+    return <ErrorDisplay error={error} />;
+  }
 
   return (
-    <div className="invoice-list-container">
-      <div className="list-header">
-        <h2>Gestion des factures</h2>
-        <button className="btn-primary" onClick={handleCreateInvoice}>
-          <i className="fas fa-plus"></i> Nouvelle facture
+    <div className="invoices-container">
+      <div className="invoices-header">
+        <h2>Liste des factures</h2>
+        <button 
+          className="btn-primary"
+          onClick={() => onInvoiceAction('create')}
+        >
+          <i className="fas fa-plus"></i> Créer une facture
         </button>
       </div>
 
-      <div className="filters-panel">
-        <div className="filter-item">
-          <label htmlFor="status">Statut</label>
-          <select
-            id="status"
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
+      <div className="filters-container">
+        <div className="search-box">
+          <i className="fas fa-search"></i>
+          <input 
+            type="text" 
+            placeholder="Rechercher une facture..." 
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </div>
+        
+        <div className="filter-group">
+          <label htmlFor="status-filter">Statut:</label>
+          <select 
+            id="status-filter"
+            value={statusFilter}
+            onChange={handleStatusChange}
+            className="form-control"
           >
-            <option value="">Tous les statuts</option>
+            <option value="all">Tous les statuts</option>
+            <option value="paid">Payée</option>
+            <option value="unpaid">Non payée</option>
             <option value="pending">En attente</option>
-            <option value="paid">Payées</option>
-            <option value="cancelled">Annulées</option>
             <option value="overdue">En retard</option>
+            <option value="cancelled">Annulée</option>
           </select>
         </div>
-
-        <div className="filter-item">
-          <label htmlFor="patient_id">Patient</label>
-          <select
-            id="patient_id"
-            name="patient_id"
-            value={filters.patient_id}
-            onChange={handleFilterChange}
-          >
-            <option value="">Tous les patients</option>
-            {/* Option: Ajouter ici la liste des patients */}
-          </select>
-        </div>
-
-        <button className="btn-outline" onClick={() => setFilters({ status: "", patient_id: "" })}>
-          <i className="fas fa-sync"></i> Réinitialiser
+        
+        <button className="btn-outline btn-refresh" onClick={fetchInvoices}>
+          <i className="fas fa-sync-alt"></i> Actualiser
         </button>
       </div>
 
-      {invoices.length > 0 ? (
-        <div className="table-responsive">
-          <table className="data-table">
+      <div className="table-container">
+        {filteredInvoices.length > 0 ? (
+          <table className="invoices-table">
             <thead>
               <tr>
                 <th>Numéro</th>
-                <th>Patient</th>
                 <th>Date</th>
-                <th>Échéance</th>
+                <th>Patient</th>
                 <th>Montant</th>
                 <th>Statut</th>
+                <th>Échéance</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {invoices.map((invoice) => (
+              {filteredInvoices.map(invoice => (
                 <tr key={invoice.id}>
                   <td>{invoice.number}</td>
-                  <td>{invoice.patient ? invoice.patient.name : "N/A"}</td>
-                  <td>{new Date(invoice.date).toLocaleDateString()}</td>
-                  <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
+                  <td>{formatDate(invoice.issue_date)}</td>
+                  <td>{invoice.patient ? invoice.patient.name : 'N/A'}</td>
                   <td>{formatCurrency(invoice.total_amount)}</td>
                   <td>
-                    <span className={`status-badge ${getStatusClass(invoice.status)}`}>
-                      {getStatusLabel(invoice.status)}
-                    </span>
+                    {getStatusBadge(invoice.status)}
                   </td>
+                  <td>{formatDate(invoice.due_date)}</td>
                   <td className="actions">
-                    <button
-                      className="btn-icon"
+                    <button 
+                      className="btn-icon" 
                       title="Voir les détails"
-                      onClick={() => handleViewInvoice(invoice.id)}
+                      onClick={() => onInvoiceAction('details', invoice.id)}
                     >
                       <i className="fas fa-eye"></i>
                     </button>
-                    <button
-                      className="btn-icon"
+                    <button 
+                      className="btn-icon" 
                       title="Modifier"
-                      onClick={() => onInvoiceAction ? onInvoiceAction('edit', invoice.id) : navigate(`/admin/dashboard/invoices/edit/${invoice.id}`)}
+                      onClick={() => onInvoiceAction('edit', invoice.id)}
                     >
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button
-                      className="btn-icon danger"
-                      title="Supprimer"
-                      onClick={() => {
-                        if (window.confirm("Êtes-vous sûr de vouloir supprimer cette facture?")) {
-                          // Implémenter la suppression ici
-                          alert("Fonctionnalité à implémenter");
-                        }
-                      }}
+                    <button 
+                      className="btn-icon btn-pdf" 
+                      title="Télécharger PDF"
                     >
-                      <i className="fas fa-trash-alt"></i>
+                      <i className="fas fa-file-pdf"></i>
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      ) : (
-        <div className="empty-state">
-          <i className="fas fa-file-invoice-dollar"></i>
-          <h3>Aucune facture trouvée</h3>
-          <p>Créez une nouvelle facture ou modifiez vos critères de recherche</p>
-          <button className="btn-primary" onClick={handleCreateInvoice}>
-            <i className="fas fa-plus"></i> Créer une facture
-          </button>
-        </div>
-      )}
+        ) : (
+          <div className="empty-state">
+            <i className="fas fa-file-invoice-dollar"></i>
+            <h3>Aucune facture trouvée</h3>
+            <p>Créez une nouvelle facture ou modifiez vos filtres de recherche</p>
+            <button 
+              className="btn-primary"
+              onClick={() => onInvoiceAction('create')}
+            >
+              <i className="fas fa-plus"></i> Créer une facture
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

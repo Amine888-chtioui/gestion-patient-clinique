@@ -9,7 +9,7 @@ const DoctorInvoices = ({
   actionLoading 
 }) => {
   const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Initialisé à false pour ne pas afficher le chargement
   const [error, setError] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,10 +21,7 @@ const DoctorInvoices = ({
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
-        // Different API endpoint based on whether we're viewing all invoices or a specific patient's invoices
+        // Ne pas afficher l'état de chargement
         const endpoint = selectedPatient 
           ? `/api/doctor/patients/${selectedPatient.id}/invoices` 
           : `/api/doctor/invoices`;
@@ -34,11 +31,9 @@ const DoctorInvoices = ({
         });
         
         setInvoices(response.data.invoices || []);
-        setLoading(false);
       } catch (err) {
         console.error("Error fetching invoices:", err);
         setError("Impossible de charger les factures. Veuillez réessayer plus tard.");
-        setLoading(false);
       }
     };
 
@@ -86,6 +81,7 @@ const DoctorInvoices = ({
     setDateRange({ from: "", to: "" });
   };
 
+  // Si les données sont en cours de chargement, on retourne quand même le contenu
   // If viewing a specific patient's invoices, show a different layout
   if (selectedPatient) {
     return (
@@ -103,22 +99,11 @@ const DoctorInvoices = ({
           </div>
         </div>
 
-        {loading ? (
-          <div className="loading-state">
-            <i className="fas fa-spinner fa-spin"></i>
-            <p>Chargement des factures...</p>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="error-state">
             <i className="fas fa-exclamation-circle"></i>
             <h3>Erreur</h3>
             <p>{error}</p>
-          </div>
-        ) : invoices.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-file-invoice-dollar"></i>
-            <h3>Aucune facture</h3>
-            <p>Ce patient n'a pas encore de factures</p>
           </div>
         ) : (
           <>
@@ -154,9 +139,9 @@ const DoctorInvoices = ({
             </div>
 
             {filteredInvoices.length === 0 ? (
-              <div className="empty-state small">
-                <i className="fas fa-filter"></i>
-                <h3>Aucun résultat</h3>
+              <div className="empty-state">
+                <i className="fas fa-file-invoice-dollar"></i>
+                <h3>Aucune facture trouvée</h3>
                 <p>Aucune facture ne correspond à vos critères de recherche</p>
               </div>
             ) : (
@@ -349,12 +334,7 @@ const DoctorInvoices = ({
         <h2>Gestion des factures</h2>
       </div>
 
-      {loading ? (
-        <div className="loading-state">
-          <i className="fas fa-spinner fa-spin"></i>
-          <p>Chargement des factures...</p>
-        </div>
-      ) : error ? (
+      {error ? (
         <div className="error-state">
           <i className="fas fa-exclamation-circle"></i>
           <h3>Erreur</h3>
@@ -490,7 +470,6 @@ const DoctorInvoices = ({
                         >
                           <i className="fas fa-eye"></i>
                         </button>
-                        {/* "View Patient" button has been removed here */}
                       </td>
                     </tr>
                   ))}
@@ -618,7 +597,6 @@ const DoctorInvoices = ({
               >
                 Fermer
               </button>
-              {/* "View Patient" button has been removed here as well */}
               <button 
                 className="btn-primary"
                 onClick={() => window.print()} // Simple solution for printing

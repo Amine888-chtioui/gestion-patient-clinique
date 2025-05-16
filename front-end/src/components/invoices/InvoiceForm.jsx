@@ -2,170 +2,192 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../axios";
+import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
+import ErrorDisplay from "../../components/common/ErrorDisplay";
 
 const InvoiceForm = ({ onInvoiceAction }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEditMode = !!id;
-
-  const [loading, setLoading] = useState(isEditMode);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(id ? true : false);
   const [error, setError] = useState(null);
   const [patients, setPatients] = useState([]);
+  const [patientsLoading, setPatientsLoading] = useState(true);
+  
+  // État du formulaire
   const [formData, setFormData] = useState({
     patient_id: "",
-    date: new Date().toISOString().split("T")[0],
-    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-    notes: "",
-    items: [{ description: "", quantity: 1, unit_price: "" }], // Initialiser avec une chaîne vide au lieu de 0
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: "",
+    items: [{ description: "", unit_price: 0, quantity: 1, total: 0 }],
+    subtotal_amount: 0,
+    tax_rate: 20,
+    tax_amount: 0,
+    discount_amount: 0,
+    total_amount: 0,
+    status: "unpaid",
+    notes: ""
   });
-
+  
+  // Chargement des patients
   useEffect(() => {
     fetchPatients();
-    if (isEditMode) {
-      fetchInvoiceData();
+    
+    // Si c'est une modification, charger les données de la facture
+    if (id) {
+      fetchInvoice();
+    } else {
+      // Définir la date d'échéance par défaut (aujourd'hui + 30 jours)
+      const today = new Date();
+      const dueDate = new Date();
+      dueDate.setDate(today.getDate() + 30);
+      
+      setFormData(prev => ({
+        ...prev,
+        due_date: dueDate.toISOString().split('T')[0]
+      }));
     }
   }, [id]);
-
+  
+  // Mettre à jour le sous-total lorsque les articles changent
+  useEffect(() => {
+    updateTotals();
+  }, [formData.items, formData.tax_rate, formData.discount_amount]);
+  
   const fetchPatients = async () => {
     try {
+      setPatientsLoading(true);
       const response = await axios.get("/api/admin/patients", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
       setPatients(response.data.patients || []);
+      setPatientsLoading(false);
     } catch (err) {
       console.error("Erreur lors de la récupération des patients:", err);
+      setPatientsLoading(false);
     }
   };
-
-  const fetchInvoiceData = async () => {
+  
+  const fetchInvoice = async () => {
     try {
-      setLoading(true);
+      setInitialLoading(true);
       const response = await axios.get(`/api/invoices/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
+      // Formater les données pour le formulaire
       const invoice = response.data.data;
       setFormData({
-        patient_id: invoice.patient_id.toString(),
-        date: invoice.date,
-        due_date: invoice.due_date,
-        notes: invoice.notes || "",
-        items: invoice.items && invoice.items.length > 0 
-          ? invoice.items.map(item => ({
-              id: item.id,
-              description: item.description,
-              quantity: item.quantity,
-              unit_price: item.unit_price.toString() // Convertir en chaîne
-            }))
-          : [{ description: "", quantity: 1, unit_price: "" }], // Initialiser avec une chaîne vide
+        patient_id: invoice.patient_id || "",
+        issue_date: invoice.issue_date || new Date().toISOString().split('T')[0],
+        due_date: invoice.due_date || "",
+        items: invoice.items || [{ description: "", unit_price: 0, quantity: 1, total: 0 }],
+        subtotal_amount: invoice.subtotal_amount || 0,
+        tax_rate: invoice.tax_rate || 20,
+        tax_amount: invoice.tax_amount || 0,
+        discount_amount: invoice.discount_amount || 0,
+        total_amount: invoice.total_amount || 0,
+        status: invoice.status || "unpaid",
+        notes: invoice.notes || ""
       });
+      
+      setInitialLoading(false);
     } catch (err) {
-      console.error("Erreur lors de la récupération des données de la facture:", err);
-      setError("Impossible de charger les données de la facture. Veuillez réessayer plus tard.");
-    } finally {
-      setLoading(false);
+      console.error("Erreur lors de la récupération de la facture:", err);
+      setError("Impossible de charger la facture pour modification.");
+      setInitialLoading(false);
     }
   };
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
+  
   const handleItemChange = (index, field, value) => {
-    const updatedItems = [...formData.items];
+    const newItems = [...formData.items];
+    newItems[index][field] = value;
     
-    // Si le champ est unit_price, laisser vide si la valeur est 0
-    if (field === "unit_price" && value === "0") {
-      value = "";
+    // Calculer le total de la ligne si le prix ou la quantité change
+    if (field === "unit_price" || field === "quantity") {
+      newItems[index].total = newItems[index].unit_price * newItems[index].quantity;
     }
     
-    // Pour quantity et unit_price, convertir en nombre seulement pour le calcul
-    const parsedValue = (field === "quantity" || field === "unit_price") && value !== ""
-      ? parseFloat(value) || "" 
-      : value;
-    
-    updatedItems[index] = { ...updatedItems[index], [field]: parsedValue };
-    setFormData({ ...formData, items: updatedItems });
+    setFormData(prev => ({
+      ...prev,
+      items: newItems
+    }));
   };
-
+  
   const addItem = () => {
-    setFormData({
-      ...formData,
-      items: [...formData.items, { description: "", quantity: 1, unit_price: "" }], // Initialiser avec une chaîne vide
-    });
+    setFormData(prev => ({
+      ...prev,
+      items: [...prev.items, { description: "", unit_price: 0, quantity: 1, total: 0 }]
+    }));
   };
-
+  
   const removeItem = (index) => {
-    if (formData.items.length === 1) return;
-    const updatedItems = [...formData.items];
-    updatedItems.splice(index, 1);
-    setFormData({ ...formData, items: updatedItems });
+    if (formData.items.length > 1) {
+      const newItems = formData.items.filter((_, i) => i !== index);
+      setFormData(prev => ({
+        ...prev,
+        items: newItems
+      }));
+    }
   };
-
-  const calculateItemTotal = (item) => {
-    const quantity = parseFloat(item.quantity) || 0;
-    const unitPrice = parseFloat(item.unit_price) || 0;
-    return quantity * unitPrice;
+  
+  const updateTotals = () => {
+    // Calculer le sous-total
+    const subtotal = formData.items.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
+    
+    // Calculer la TVA
+    const taxAmount = (subtotal * (parseFloat(formData.tax_rate) || 0)) / 100;
+    
+    // Calculer le total
+    const total = subtotal + taxAmount - (parseFloat(formData.discount_amount) || 0);
+    
+    setFormData(prev => ({
+      ...prev,
+      subtotal_amount: subtotal,
+      tax_amount: taxAmount,
+      total_amount: total
+    }));
   };
-
-  const calculateTotal = () => {
-    return formData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
-  };
-
-  const handleCancel = () => {
+  
+  // Gérer l'annulation du formulaire
+  const handleCancel = (e) => {
+    e.preventDefault();
     if (onInvoiceAction) {
       onInvoiceAction('list');
     } else {
+      // Fallback si onInvoiceAction n'est pas disponible
       navigate('/admin/dashboard/invoices');
     }
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      
-      // Validation de base
-      if (!formData.patient_id) {
-        alert("Veuillez sélectionner un patient");
-        setLoading(false);
-        return;
+      if (id) {
+        // Mise à jour d'une facture existante
+        await axios.put(`/api/invoices/${id}`, formData, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+      } else {
+        // Création d'une nouvelle facture
+        await axios.post("/api/invoices", formData, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
       }
-
-      if (!formData.items.every(item => item.description && item.quantity > 0 && item.unit_price)) {
-        alert("Veuillez compléter tous les champs des éléments de facture");
-        setLoading(false);
-        return;
-      }
-
-      // Préparer les données pour l'envoi
-      const dataToSend = {
-        ...formData,
-        items: formData.items.map(item => ({
-          ...item,
-          unit_price: parseFloat(item.unit_price) || 0,
-          quantity: parseFloat(item.quantity) || 0
-        }))
-      };
-
-      const endpoint = isEditMode 
-        ? `/api/invoices/${id}` 
-        : "/api/invoices";
       
-      const method = isEditMode ? "put" : "post";
-
-      const response = await axios[method](
-        endpoint,
-        dataToSend,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }
-      );
-
-      // Redirection vers la liste des factures
+      // Rediriger vers la liste des factures
       if (onInvoiceAction) {
         onInvoiceAction('list');
       } else {
@@ -173,185 +195,288 @@ const InvoiceForm = ({ onInvoiceAction }) => {
       }
     } catch (err) {
       console.error("Erreur lors de l'enregistrement de la facture:", err);
-      setError("Impossible d'enregistrer la facture. " + (err.response?.data?.message || "Veuillez réessayer plus tard."));
+      setError(err.response?.data?.message || "Une erreur est survenue lors de l'enregistrement de la facture.");
     } finally {
       setLoading(false);
     }
   };
-
-  if (loading && isEditMode) return <div className="loading-spinner">Chargement...</div>;
-  if (error) return <div className="error-message">{error}</div>;
-
+  
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+  };
+  
+  if (initialLoading) {
+    return <UnifiedLoadingSpinner size="medium" text="Chargement du formulaire..." />;
+  }
+  
+  if (error) {
+    return <ErrorDisplay error={error} />;
+  }
+  
   return (
     <div className="invoice-form-container">
-      <div className="form-header">
-        <h2>{isEditMode ? "Modifier la facture" : "Créer une nouvelle facture"}</h2>
-        <button className="btn-secondary" onClick={handleCancel}>
+      <div className="invoice-form-header">
+        <h2>{id ? "Modifier la facture" : "Créer une nouvelle facture"}</h2>
+        <button className="btn-outline" onClick={handleCancel}>
           <i className="fas fa-times"></i> Annuler
         </button>
       </div>
-
+      
       <form onSubmit={handleSubmit}>
-        <div className="form-sections">
-          <div className="form-section">
-            <h3>Informations générales</h3>
-            
+        <div className="form-section">
+          <h3>Informations générales</h3>
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="patient_id">Patient*</label>
+              {patientsLoading ? (
+                <div className="select-loading">Chargement des patients...</div>
+              ) : (
+                <select
+                  id="patient_id"
+                  name="patient_id"
+                  value={formData.patient_id}
+                  onChange={handleChange}
+                  required
+                  className="form-control"
+                  disabled={loading}
+                >
+                  <option value="">Sélectionner un patient</option>
+                  {patients.map(patient => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="status">Statut*</label>
               <select
-                id="patient_id"
-                name="patient_id"
-                value={formData.patient_id}
+                id="status"
+                name="status"
+                value={formData.status}
                 onChange={handleChange}
                 required
-                disabled={isEditMode}
+                className="form-control"
+                disabled={loading}
               >
-                <option value="">Sélectionnez un patient</option>
-                {patients.map(patient => (
-                  <option key={patient.id} value={patient.id}>
-                    {patient.name} ({patient.email})
-                  </option>
-                ))}
+                <option value="unpaid">Non payée</option>
+                <option value="paid">Payée</option>
+                <option value="pending">En attente</option>
+                <option value="overdue">En retard</option>
+                <option value="cancelled">Annulée</option>
               </select>
             </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="date">Date de facture*</label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="due_date">Date d'échéance*</label>
-                <input
-                  type="date"
-                  id="due_date"
-                  name="due_date"
-                  value={formData.due_date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
+          </div>
+          
+          <div className="form-row">
             <div className="form-group">
-              <label htmlFor="notes">Notes</label>
-              <textarea
-                id="notes"
-                name="notes"
-                value={formData.notes}
+              <label htmlFor="issue_date">Date d'émission*</label>
+              <input
+                type="date"
+                id="issue_date"
+                name="issue_date"
+                value={formData.issue_date}
                 onChange={handleChange}
-                rows="3"
+                required
+                className="form-control"
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="due_date">Date d'échéance*</label>
+              <input
+                type="date"
+                id="due_date"
+                name="due_date"
+                value={formData.due_date}
+                onChange={handleChange}
+                required
+                className="form-control"
+                disabled={loading}
               />
             </div>
           </div>
-
-          <div className="form-section">
-            <div className="section-header">
-              <h3>Éléments de la facture</h3>
-              <button type="button" className="btn-outline" onClick={addItem}>
-                <i className="fas fa-plus"></i> Ajouter un élément
-              </button>
-            </div>
-
-            <div className="invoice-items">
+        </div>
+        
+        <div className="form-section">
+          <h3>Prestations</h3>
+          <table className="items-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Prix unitaire</th>
+                <th>Quantité</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
               {formData.items.map((item, index) => (
-                <div key={index} className="invoice-item">
-                  <div className="item-header">
-                    <h4>Élément #{index + 1}</h4>
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={(e) => handleItemChange(index, "description", e.target.value)}
+                      placeholder="Description de la prestation"
+                      className="form-control"
+                      required
+                      disabled={loading}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      value={item.unit_price}
+                      onChange={(e) => handleItemChange(index, "unit_price", parseFloat(e.target.value) || 0)}
+                      min="0"
+                      step="0.01"
+                      className="form-control"
+                      required
+                      disabled={loading}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(index, "quantity", parseInt(e.target.value) || 0)}
+                      min="1"
+                      className="form-control"
+                      required
+                      disabled={loading}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      value={formatCurrency(item.total)}
+                      readOnly
+                      className="form-control-plaintext"
+                      disabled
+                    />
+                  </td>
+                  <td>
                     <button
                       type="button"
                       className="btn-icon danger"
                       onClick={() => removeItem(index)}
-                      disabled={formData.items.length <= 1}
+                      disabled={formData.items.length <= 1 || loading}
                     >
-                      <i className="fas fa-trash-alt"></i>
+                      <i className="fas fa-trash"></i>
                     </button>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor={`item-description-${index}`}>Description*</label>
-                    <input
-                      type="text"
-                      id={`item-description-${index}`}
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                      required
-                      placeholder="Ex: Consultation médicale"
-                    />
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor={`item-quantity-${index}`}>Quantité*</label>
-                      <input
-                        type="number"
-                        id={`item-quantity-${index}`}
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                        min="1"
-                        step="1"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor={`item-price-${index}`}>Prix unitaire (€)*</label>
-                      <input
-                        type="number"
-                        id={`item-price-${index}`}
-                        value={item.unit_price}
-                        onChange={(e) => handleItemChange(index, "unit_price", e.target.value)}
-                        min="0"
-                        step="0.01"
-                        required
-                        placeholder="Entrez le prix unitaire"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Total</label>
-                      <div className="calculated-value">
-                        {calculateItemTotal(item).toFixed(2)} €
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  </td>
+                </tr>
               ))}
-            </div>
-
-            <div className="invoice-summary">
-              <div className="summary-row">
-                <div className="summary-label">Sous-total:</div>
-                <div className="summary-value">{calculateTotal().toFixed(2)} €</div>
+            </tbody>
+          </table>
+          
+          <button
+            type="button"
+            className="btn-outline add-item"
+            onClick={addItem}
+            disabled={loading}
+          >
+            <i className="fas fa-plus"></i> Ajouter une prestation
+          </button>
+        </div>
+        
+        <div className="form-section">
+          <div className="invoice-totals">
+            <div className="totals-group">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="tax_rate">Taux de TVA (%)</label>
+                  <input
+                    type="number"
+                    id="tax_rate"
+                    name="tax_rate"
+                    value={formData.tax_rate}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    className="form-control"
+                    disabled={loading}
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="discount_amount">Remise</label>
+                  <input
+                    type="number"
+                    id="discount_amount"
+                    name="discount_amount"
+                    value={formData.discount_amount}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.01"
+                    className="form-control"
+                    disabled={loading}
+                  />
+                </div>
               </div>
-              <div className="summary-row">
-                <div className="summary-label">TVA (20%):</div>
-                <div className="summary-value">{(calculateTotal() * 0.2).toFixed(2)} €</div>
-              </div>
-              <div className="summary-row total">
-                <div className="summary-label">Total:</div>
-                <div className="summary-value">{(calculateTotal() * 1.2).toFixed(2)} €</div>
+              
+              <div className="totals-summary">
+                <div className="summary-row">
+                  <span className="summary-label">Sous-total:</span>
+                  <span className="summary-value">{formatCurrency(formData.subtotal_amount)}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">TVA ({formData.tax_rate}%):</span>
+                  <span className="summary-value">{formatCurrency(formData.tax_amount)}</span>
+                </div>
+                {formData.discount_amount > 0 && (
+                  <div className="summary-row">
+                    <span className="summary-label">Remise:</span>
+                    <span className="summary-value">-{formatCurrency(formData.discount_amount)}</span>
+                  </div>
+                )}
+                <div className="summary-row total">
+                  <span className="summary-label">Total:</span>
+                  <span className="summary-value">{formatCurrency(formData.total_amount)}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
+        
+        <div className="form-section">
+          <h3>Notes</h3>
+          <div className="form-group">
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows="3"
+              className="form-control"
+              placeholder="Notes ou instructions supplémentaires (optionnel)"
+              disabled={loading}
+            ></textarea>
+          </div>
+        </div>
+        
         <div className="form-actions">
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+          >
             {loading ? (
-              <span><i className="fas fa-spinner fa-spin"></i> Enregistrement...</span>
+              <><i className="fas fa-spinner fa-spin"></i> Enregistrement...</>
             ) : (
-              <span><i className="fas fa-save"></i> {isEditMode ? "Mettre à jour" : "Créer la facture"}</span>
+              <><i className="fas fa-save"></i> {id ? "Mettre à jour" : "Créer la facture"}</>
             )}
           </button>
-          <button type="button" className="btn-secondary" onClick={handleCancel}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleCancel}
+            disabled={loading}
+          >
             Annuler
           </button>
         </div>

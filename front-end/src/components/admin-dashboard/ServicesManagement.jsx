@@ -1,4 +1,3 @@
-// src/components/admin-dashboard/ServicesManagement.jsx
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 
@@ -281,8 +280,22 @@ const ServicesManagement = ({ actionLoading, setActionLoading, setActionError, s
   }
 
   return (
-    <div className="services-management">
-      <div className="data-table-header">
+    <div className="services-management" style={{
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      padding: '1.5rem',
+      margin: '0',
+      overflow: 'hidden'
+    }}>
+      <div className="data-table-header" style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        paddingBottom: '1rem',
+        borderBottom: '1px solid #e9ecef'
+      }}>
         <h3>Gestion des services</h3>
         <button 
           className="btn-primary" 
@@ -542,19 +555,38 @@ const ServicesManagement = ({ actionLoading, setActionLoading, setActionError, s
       {/* Liste des services */}
       {!selectedService && !showForm && (
         <>
-          <div className="search-box">
-            <i className="fas fa-search"></i>
+          <div className="search-box" style={{
+            position: 'relative',
+            marginBottom: '1.5rem'
+          }}>
+            <i className="fas fa-search" style={{
+              position: 'absolute',
+              left: '1rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#6c757d'
+            }}></i>
             <input 
               type="text" 
               placeholder="Rechercher un service..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem 0.75rem 2.5rem',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                fontSize: '0.95rem'
+              }}
             />
           </div>
           
           <div className="data-table-container">
             {filteredServices.length > 0 ? (
-              <table className="data-table">
+              <table className="data-table" style={{
+                width: '100%',
+                borderCollapse: 'collapse'
+              }}>
                 <thead>
                   <tr>
                     <th>Nom</th>
@@ -584,17 +616,40 @@ const ServicesManagement = ({ actionLoading, setActionLoading, setActionError, s
                         )}
                       </td>
                       <td>
-                        <span className={`status-badge ${service.is_active ? "confirmé" : "annulé"}`}>
+                        <span className={`status-badge ${service.is_active ? "confirmé" : "annulé"}`} style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '50px',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          background: service.is_active ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+                          color: service.is_active ? '#28a745' : '#dc3545'
+                        }}>
                           {service.is_active ? "Actif" : "Inactif"}
                         </span>
                       </td>
                       <td>{service.doctors_count || 0}</td>
-                      <td className="actions">
+                      <td className="actions" style={{
+                        display: 'flex',
+                        gap: '0.5rem'
+                      }}>
                         <button 
                           className="btn-icon" 
                           title="Voir les détails" 
                           onClick={() => handleViewDetails(service.id)}
                           disabled={actionLoading}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6c757d',
+                            cursor: 'pointer'
+                          }}
                         >
                           <i className="fas fa-eye"></i>
                         </button>
@@ -603,6 +658,18 @@ const ServicesManagement = ({ actionLoading, setActionLoading, setActionError, s
                           title="Modifier" 
                           onClick={() => handleEdit(service)}
                           disabled={actionLoading}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#6c757d',
+                            cursor: 'pointer'
+                          }}
                         >
                           <i className="fas fa-edit"></i>
                         </button>
@@ -611,6 +678,18 @@ const ServicesManagement = ({ actionLoading, setActionLoading, setActionError, s
                           title="Supprimer" 
                           onClick={() => handleDelete(service.id)}
                           disabled={actionLoading}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#dc3545',
+                            cursor: 'pointer'
+                          }}
                         >
                           <i className="fas fa-trash-alt"></i>
                         </button>
@@ -620,8 +699,19 @@ const ServicesManagement = ({ actionLoading, setActionLoading, setActionError, s
                 </tbody>
               </table>
             ) : (
-              <div className="empty-state">
-                <i className="fas fa-hospital"></i>
+              <div className="empty-state" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem',
+                textAlign: 'center'
+              }}>
+                <i className="fas fa-hospital" style={{
+                  fontSize: '3rem',
+                  color: '#ced4da',
+                  marginBottom: '1rem'
+                }}></i>
                 <h3>Aucun service trouvé</h3>
                 <p>Ajoutez de nouveaux services ou modifiez votre recherche</p>
               </div>
