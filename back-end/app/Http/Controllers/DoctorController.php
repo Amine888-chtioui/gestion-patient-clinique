@@ -768,30 +768,170 @@ public function getProfile()
      * Télécharger un document
      */
     public function downloadDocument($id)
-    {
-        $user = Auth::user();
-        
-        // Vérifier que l'utilisateur est un médecin
-        if (!$user->isDoctor()) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
-        
-        // Récupérer le document
-        $document = Document::with('medicalRecord')->findOrFail($id);
-        
-        // Vérifier que le document a été créé par ce médecin
-        if ($document->medicalRecord->doctor_id !== $user->id) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
-        
-        // Vérifier que le fichier existe
-        if (!Storage::exists($document->file_path)) {
-            return response()->json(['message' => 'Fichier non trouvé'], 404);
-        }
-        
-        // Retourner le fichier
-        return Storage::download($document->file_path, $document->name);
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un médecin
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
     }
+    
+    // Récupérer le document avec sa relation au dossier médical
+    $document = Document::with('medicalRecord')->findOrFail($id);
+    
+    // Vérifier que le médecin a le droit d'accéder à ce document
+    // Soit il est l'auteur du dossier médical, soit il a un rendez-vous avec ce patient
+    $isAuthor = $document->medicalRecord->doctor_id === $user->id;
+    $hasAppointment = Appointment::where('doctor_id', $user->id)
+        ->where('patient_id', $document->medicalRecord->patient_id)
+        ->exists();
+    
+    if (!$isAuthor && !$hasAppointment) {
+        return response()->json(['message' => 'Vous n\'êtes pas autorisé à accéder à ce document'], 403);
+    }
+    
+    // Vérifier que le fichier existe physiquement
+    $filePath = storage_path('app/' . $document->file_path);
+    if (!file_exists($filePath)) {
+        return response()->json(['message' => 'Fichier non trouvé'], 404);
+    }
+    
+    // Générer l'en-tête Content-Disposition pour définir le nom du fichier
+    $headers = [
+        'Content-Type' => $document->type,
+        'Content-Disposition' => 'attachment; filename="' . $document->name . '"',
+    ];
+    
+    // Journaliser le téléchargement
+    Log::info('Document téléchargé', [
+        'document_id' => $document->id,
+        'document_name' => $document->name,
+        'doctor_id' => $user->id,
+        'doctor_name' => $user->name,
+    ]);
+    
+    // Retourner le fichier
+    return response()->download($filePath, $document->name, $headers);
+}
+
+    public function previewDocument($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un médecin
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer le document
+    $document = Document::with('medicalRecord')->findOrFail($id);
+    
+    // Vérifier que le médecin a le droit d'accéder à ce document
+    $isAuthor = $document->medicalRecord->doctor_id === $user->id;
+    $hasAppointment = Appointment::where('doctor_id', $user->id)
+        ->where('patient_id', $document->medicalRecord->patient_id)
+        ->exists();
+    
+    if (!$isAuthor && !$hasAppointment) {
+        return response()->json(['message' => 'Vous n\'êtes pas autorisé à accéder à ce document'], 403);
+    }
+    
+    // Vérifier que le fichier existe
+    $filePath = storage_path('app/' . $document->file_path);
+    if (!file_exists($filePath)) {
+        return response()->json(['message' => 'Fichier non trouvé'], 404);
+    }
+    
+    // Déterminer le type MIME
+    $type = $document->type;
+    
+    // Pour certains types de fichiers, on peut prévisualiser directement
+    $previewableTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/svg+xml',
+        'image/webp',
+        'text/plain',
+        'text/html'
+    ];
+    
+    if (in_array($type, $previewableTypes)) {
+        // Pour les images et PDF, on les renvoie directement
+        $headers = [
+            'Content-Type' => $type,
+            'Content-Disposition' => 'inline; filename="' . $document->name . '"',
+        ];
+        
+        return response()->file($filePath, $headers);
+    } else {
+        // Pour les autres types, on renvoie un aperçu limité ou un message
+        return response()->json([
+            'message' => 'Prévisualisation non disponible pour ce type de fichier',
+            'document' => [
+                'id' => $document->id,
+                'name' => $document->name,
+                'type' => $document->type,
+                'size' => filesize($filePath),
+                'created_at' => $document->created_at,
+            ]
+        ]);
+    }
+}
+
+    /**
+     * Récupérer la disponibilité d'un médecin pour une date donnée
+     */
+    public function getDocumentDetails($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un médecin
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer le document avec sa relation au dossier médical
+    $document = Document::with('medicalRecord')->findOrFail($id);
+    
+    // Vérifier que le médecin a le droit d'accéder à ce document
+    $isAuthor = $document->medicalRecord->doctor_id === $user->id;
+    $hasAppointment = Appointment::where('doctor_id', $user->id)
+        ->where('patient_id', $document->medicalRecord->patient_id)
+        ->exists();
+    
+    if (!$isAuthor && !$hasAppointment) {
+        return response()->json(['message' => 'Vous n\'êtes pas autorisé à accéder à ce document'], 403);
+    }
+    
+    // Vérifier que le fichier existe pour obtenir sa taille
+    $filePath = storage_path('app/' . $document->file_path);
+    $fileSize = file_exists($filePath) ? filesize($filePath) : null;
+    
+    // Retourner les informations du document
+    return response()->json([
+        'document' => [
+            'id' => $document->id,
+            'name' => $document->name,
+            'type' => $document->type,
+            'file_path' => $document->file_path,
+            'size' => $fileSize,
+            'created_at' => $document->created_at,
+            'updated_at' => $document->updated_at,
+            'medical_record_id' => $document->medical_record_id,
+            'medical_record' => [
+                'id' => $document->medicalRecord->id,
+                'patient_id' => $document->medicalRecord->patient_id,
+                'patient_name' => $document->medicalRecord->patient->name,
+                'date' => $document->medicalRecord->date,
+                'type' => $document->medicalRecord->type,
+                'diagnosis' => $document->medicalRecord->diagnosis,
+            ]
+        ]
+    ]);
+}
+
 
 
     public function getAvailability(Request $request, $doctor_id)

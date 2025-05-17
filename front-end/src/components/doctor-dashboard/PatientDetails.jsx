@@ -8,6 +8,11 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [invoiceError, setInvoiceError] = useState(null);
 
+  // Ajout d'états locaux pour gérer le téléchargement des documents
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
+
   // Utilisation des données réelles récupérées de l'API
   const medicalRecords = patient.medical_records || [];
   const prescriptions = patient.prescriptions || [];
@@ -15,7 +20,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
 
   // Charger les factures du patient quand l'onglet factures est activé ou quand le patient change
   useEffect(() => {
-    if (activeTab === 'invoices' && patient && patient.id) {
+    if (activeTab === "invoices" && patient && patient.id) {
       fetchPatientInvoices();
     }
   }, [activeTab, patient?.id]);
@@ -25,16 +30,21 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
     try {
       setLoadingInvoices(true);
       setInvoiceError(null);
-      
-      const response = await axios.get(`/api/doctor/patients/${patient.id}/invoices`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
+
+      const response = await axios.get(
+        `/api/doctor/patients/${patient.id}/invoices`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
       setInvoices(response.data.invoices || []);
       setLoadingInvoices(false);
     } catch (err) {
       console.error("Erreur lors du chargement des factures:", err);
-      setInvoiceError("Impossible de charger les factures. Veuillez réessayer plus tard.");
+      setInvoiceError(
+        "Impossible de charger les factures. Veuillez réessayer plus tard."
+      );
       setLoadingInvoices(false);
     }
   };
@@ -45,43 +55,64 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
 
   // Format pour la monnaie
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR",
+    }).format(amount);
   };
 
-  // Fonction pour télécharger un document
+  // Fonction pour télécharger un document - version corrigée
   const handleDownloadDocument = async (docId) => {
     try {
-      const response = await axios.get(`/api/doctor/documents/${docId}/download`, {
-        headers: { 
-          Authorization: `Bearer ${localStorage.getItem("token")}` 
-        },
-        responseType: 'blob'
-      });
-      
-      // Création du lien de téléchargement
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Extraction du nom du fichier
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = 'document.pdf';
+      setIsDownloading(true); // Utiliser l'état local pour indiquer le chargement
+      setDownloadError(null); // Réinitialiser les erreurs
+
+      const response = await axios.get(
+        `/api/doctor/documents/${docId}/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          responseType: "blob",
+        }
+      );
+
+      // Extraction du nom du fichier depuis l'en-tête de la réponse
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = "document.pdf";
+
       if (contentDisposition) {
         const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
         const matches = filenameRegex.exec(contentDisposition);
-        if (matches != null && matches[1]) {
-          filename = matches[1].replace(/['"]/g, '');
+        if (matches && matches[1]) {
+          filename = matches[1].replace(/['"]/g, "");
         }
       }
-      
-      link.setAttribute('download', filename);
+
+      // Création d'un objet URL pour le fichier téléchargé
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      // Création d'un lien temporaire pour déclencher le téléchargement
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+
       document.body.appendChild(link);
       link.click();
+
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
+
+      setDownloadSuccess(`Document "${filename}" téléchargé avec succès`);
+      setTimeout(() => setDownloadSuccess(null), 3000);
     } catch (err) {
       console.error("Erreur lors du téléchargement:", err);
-      alert("Impossible de télécharger le document. Veuillez réessayer plus tard.");
+      setDownloadError(
+        "Impossible de télécharger le document. Veuillez réessayer plus tard."
+      );
+      setTimeout(() => setDownloadError(null), 5000);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -96,106 +127,131 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           <p>{patient.email}</p>
         </div>
         <div className="patient-actions">
-          <button 
+          <button
             className="btn-outline"
             onClick={() => handleSubTabChange("record")}
-            disabled={actionLoading}
+            disabled={actionLoading || isDownloading}
           >
             <i className="fas fa-file-medical"></i> Nouvelle consultation
           </button>
-          <button 
+          <button
             className="btn-outline"
             onClick={() => handleSubTabChange("prescription")}
-            disabled={actionLoading}
+            disabled={actionLoading || isDownloading}
           >
             <i className="fas fa-prescription"></i> Nouvelle ordonnance
           </button>
         </div>
       </div>
 
+      {/* Messages de statut pour le téléchargement */}
+      {downloadSuccess && (
+        <div className="alert alert-success">
+          <i className="fas fa-check-circle"></i> {downloadSuccess}
+        </div>
+      )}
+
+      {downloadError && (
+        <div className="alert alert-danger">
+          <i className="fas fa-exclamation-circle"></i> {downloadError}
+        </div>
+      )}
+
       <div className="patient-tabs">
-        <button 
-          className={`patient-tab ${activeTab === 'info' ? 'active' : ''}`}
-          onClick={() => handleTabChange('info')}
+        <button
+          className={`patient-tab ${activeTab === "info" ? "active" : ""}`}
+          onClick={() => handleTabChange("info")}
         >
           <i className="fas fa-info-circle"></i> Informations
         </button>
-        <button 
-          className={`patient-tab ${activeTab === 'records' ? 'active' : ''}`}
-          onClick={() => handleTabChange('records')}
+        <button
+          className={`patient-tab ${activeTab === "records" ? "active" : ""}`}
+          onClick={() => handleTabChange("records")}
         >
           <i className="fas fa-file-medical"></i> Dossier médical
         </button>
-        <button 
-          className={`patient-tab ${activeTab === 'prescriptions' ? 'active' : ''}`}
-          onClick={() => handleTabChange('prescriptions')}
+        <button
+          className={`patient-tab ${
+            activeTab === "prescriptions" ? "active" : ""
+          }`}
+          onClick={() => handleTabChange("prescriptions")}
         >
           <i className="fas fa-prescription"></i> Ordonnances
         </button>
-        <button 
-          className={`patient-tab ${activeTab === 'appointments' ? 'active' : ''}`}
-          onClick={() => handleTabChange('appointments')}
+        <button
+          className={`patient-tab ${
+            activeTab === "appointments" ? "active" : ""
+          }`}
+          onClick={() => handleTabChange("appointments")}
         >
           <i className="fas fa-calendar-alt"></i> Rendez-vous
         </button>
         {/* Nouvel onglet pour les factures */}
-        <button 
-          className={`patient-tab ${activeTab === 'invoices' ? 'active' : ''}`}
-          onClick={() => handleTabChange('invoices')}
+        <button
+          className={`patient-tab ${activeTab === "invoices" ? "active" : ""}`}
+          onClick={() => handleTabChange("invoices")}
         >
           <i className="fas fa-file-invoice-dollar"></i> Factures
         </button>
       </div>
 
       <div className="patient-content">
-        {activeTab === 'info' && (
+        {activeTab === "info" && (
           <div className="patient-info-tab">
             {/* Nouvelles sections d'informations sans cadres */}
             <div className="patient-info-container">
               <h3 className="section-title">Informations personnelles</h3>
-              
+
               <div className="info-form">
                 <div className="form-row">
                   <div className="form-group">
                     <label>Nom complet</label>
                     <div className="info-value">{patient.name}</div>
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Email</label>
                     <div className="info-value">{patient.email}</div>
                   </div>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group">
                     <label>Téléphone</label>
-                    <div className="info-value">{patient.phone || "Non renseigné"}</div>
+                    <div className="info-value">
+                      {patient.phone || "Non renseigné"}
+                    </div>
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Date de naissance</label>
-                    <div className="info-value">{patient.date_of_birth || "Non renseignée"}</div>
+                    <div className="info-value">
+                      {patient.date_of_birth || "Non renseignée"}
+                    </div>
                   </div>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group full-width">
                     <label>Adresse</label>
-                    <div className="info-value">{patient.address || "Non renseignée"}</div>
+                    <div className="info-value">
+                      {patient.address || "Non renseignée"}
+                    </div>
                   </div>
                 </div>
               </div>
-              
+
               <h3 className="section-title">Informations médicales</h3>
-              
+
               <div className="info-form">
                 <div className="form-row">
                   <div className="form-group">
                     <label>Groupe sanguin</label>
-                    <div className="info-value">{patient.blood_type || "Non renseigné"}</div>
+                    <div className="info-value">
+                      {patient.blood_type || "Non renseigné"}
+                    </div>
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Allergies</label>
                     <div className="info-value">
@@ -205,28 +261,32 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group">
                     <label>Maladies chroniques</label>
                     <div className="info-value">
-                      {patient.chronic_diseases && patient.chronic_diseases.length > 0
+                      {patient.chronic_diseases &&
+                      patient.chronic_diseases.length > 0
                         ? patient.chronic_diseases.join(", ")
                         : "Aucune maladie chronique renseignée"}
                     </div>
                   </div>
-                  
+
                   <div className="form-group">
                     <label>Contact d'urgence</label>
-                    <div className="info-value">{patient.emergency_contact || "Non renseigné"}</div>
+                    <div className="info-value">
+                      {patient.emergency_contact || "Non renseigné"}
+                    </div>
                   </div>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group full-width">
                     <label>Antécédents médicaux</label>
                     <div className="info-value medical-history">
-                      {patient.medical_history || "Aucun antécédent médical renseigné"}
+                      {patient.medical_history ||
+                        "Aucun antécédent médical renseigné"}
                     </div>
                   </div>
                 </div>
@@ -235,12 +295,12 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           </div>
         )}
 
-        {activeTab === 'records' && (
+        {activeTab === "records" && (
           <div className="patient-records-tab">
             <h3>Dossier médical</h3>
             {medicalRecords.length > 0 ? (
               <div className="records-timeline">
-                {medicalRecords.map(record => (
+                {medicalRecords.map((record) => (
                   <div key={record.id} className="record-item">
                     <div className="record-date">
                       <span className="date">{record.date}</span>
@@ -249,19 +309,29 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                     <div className="record-content">
                       <h4>Consultation avec Dr. {record.doctor_name}</h4>
                       <div className="record-details">
-                        <p><strong>Diagnostic:</strong> {record.diagnosis}</p>
-                        <p><strong>Notes:</strong> {record.notes}</p>
+                        <p>
+                          <strong>Diagnostic:</strong> {record.diagnosis}
+                        </p>
+                        <p>
+                          <strong>Notes:</strong> {record.notes}
+                        </p>
                         {record.documents && record.documents.length > 0 && (
                           <div className="record-documents">
-                            <p><strong>Documents:</strong></p>
+                            <p>
+                              <strong>Documents:</strong>
+                            </p>
                             <ul>
                               {record.documents.map((doc, index) => (
                                 <li key={index}>
-                                  <a href="#" onClick={(e) => {
-                                    e.preventDefault();
-                                    handleDownloadDocument(doc.id);
-                                  }}>
-                                    <i className="fas fa-file-download"></i> {doc.name}
+                                  <a
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      handleDownloadDocument(doc.id);
+                                    }}
+                                  >
+                                    <i className="fas fa-file-download"></i>{" "}
+                                    {doc.name}
                                   </a>
                                 </li>
                               ))}
@@ -278,10 +348,10 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                 <i className="fas fa-folder-open"></i>
                 <h4>Aucun dossier médical</h4>
                 <p>Ce patient n'a pas encore de dossier médical</p>
-                <button 
+                <button
                   className="btn-primary"
                   onClick={() => handleSubTabChange("record")}
-                  disabled={actionLoading}
+                  disabled={actionLoading || isDownloading}
                 >
                   Créer un dossier médical
                 </button>
@@ -289,17 +359,19 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
             )}
           </div>
         )}
-        
-        {activeTab === 'prescriptions' && (
+
+        {activeTab === "prescriptions" && (
           <div className="patient-prescriptions-tab">
             <h3>Ordonnances</h3>
             {prescriptions.length > 0 ? (
               <div className="prescriptions-list">
-                {prescriptions.map(prescription => (
+                {prescriptions.map((prescription) => (
                   <div key={prescription.id} className="prescription-card">
                     <div className="prescription-header">
                       <h4>Ordonnance du {prescription.date}</h4>
-                      <span className="prescription-doctor">Dr. {prescription.doctor_name}</span>
+                      <span className="prescription-doctor">
+                        Dr. {prescription.doctor_name}
+                      </span>
                     </div>
                     <div className="prescription-body">
                       <h5>Médicaments prescrits:</h5>
@@ -311,12 +383,19 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                               <span>{med.name}</span>
                             </div>
                             <div className="medication-details">
-                              <span className="detail"><strong>Dosage:</strong> {med.dosage}</span>
-                              <span className="detail"><strong>Fréquence:</strong> {med.frequency}</span>
-                              <span className="detail"><strong>Durée:</strong> {med.duration}</span>
+                              <span className="detail">
+                                <strong>Dosage:</strong> {med.dosage}
+                              </span>
+                              <span className="detail">
+                                <strong>Fréquence:</strong> {med.frequency}
+                              </span>
+                              <span className="detail">
+                                <strong>Durée:</strong> {med.duration}
+                              </span>
                               {med.instructions && (
                                 <span className="detail full-width">
-                                  <strong>Instructions:</strong> {med.instructions}
+                                  <strong>Instructions:</strong>{" "}
+                                  {med.instructions}
                                 </span>
                               )}
                             </div>
@@ -325,15 +404,17 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                       </ul>
                       {prescription.notes && (
                         <div className="prescription-notes">
-                          <p><strong>Notes:</strong> {prescription.notes}</p>
+                          <p>
+                            <strong>Notes:</strong> {prescription.notes}
+                          </p>
                         </div>
                       )}
                     </div>
                     <div className="prescription-footer">
-                      <button 
+                      <button
                         className="btn-outline"
                         onClick={() => window.print()}
-                        disabled={actionLoading}
+                        disabled={actionLoading || isDownloading}
                       >
                         <i className="fas fa-print"></i> Imprimer
                       </button>
@@ -346,10 +427,10 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                 <i className="fas fa-prescription-bottle"></i>
                 <h4>Aucune ordonnance</h4>
                 <p>Ce patient n'a pas encore d'ordonnance</p>
-                <button 
+                <button
                   className="btn-primary"
                   onClick={() => handleSubTabChange("prescription")}
-                  disabled={actionLoading}
+                  disabled={actionLoading || isDownloading}
                 >
                   Créer une ordonnance
                 </button>
@@ -358,7 +439,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           </div>
         )}
 
-        {activeTab === 'appointments' && (
+        {activeTab === "appointments" && (
           <div className="patient-appointments-tab">
             <h3>Historique des rendez-vous</h3>
             {appointments.length > 0 ? (
@@ -373,13 +454,18 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.map(appointment => (
+                  {appointments.map((appointment) => (
                     <tr key={appointment.id}>
                       <td>{appointment.date}</td>
                       <td>{appointment.time}</td>
                       <td>{appointment.reason || "Non spécifié"}</td>
                       <td>
-                        <span className={`status-badge ${appointment.status.replace(" ", "")}`}>
+                        <span
+                          className={`status-badge ${appointment.status.replace(
+                            " ",
+                            ""
+                          )}`}
+                        >
                           {appointment.status}
                         </span>
                       </td>
@@ -399,7 +485,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
         )}
 
         {/* Nouvel onglet pour les factures */}
-        {activeTab === 'invoices' && (
+        {activeTab === "invoices" && (
           <div className="patient-invoices-tab">
             <h3>Factures du patient</h3>
             {loadingInvoices ? (
@@ -426,7 +512,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map(invoice => (
+                  {invoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td>{invoice.number}</td>
                       <td>{invoice.date}</td>
@@ -434,13 +520,16 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
                       <td>{formatCurrency(invoice.total_amount)}</td>
                       <td>
                         <span className={`status-badge ${invoice.status}`}>
-                          {invoice.status === 'paid' ? 'Payée' : 
-                           invoice.status === 'overdue' ? 'En retard' : 'Non payée'}
+                          {invoice.status === "paid"
+                            ? "Payée"
+                            : invoice.status === "overdue"
+                            ? "En retard"
+                            : "Non payée"}
                         </span>
                       </td>
                       <td className="actions">
-                        <button 
-                          className="btn-icon" 
+                        <button
+                          className="btn-icon"
                           title="Imprimer la facture"
                           onClick={() => window.print()}
                           disabled={actionLoading}

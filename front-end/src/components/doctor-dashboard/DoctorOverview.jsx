@@ -1,5 +1,6 @@
 // src/components/doctor-dashboard/DoctorOverview.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "../../axios";
 
 const DoctorOverview = ({ 
   user, 
@@ -8,12 +9,42 @@ const DoctorOverview = ({
   handleTabChange, 
   actionLoading 
 }) => {
+  const [invoices, setInvoices] = useState([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
+
   // Calculer le nombre de rendez-vous aujourd'hui
   const today = new Date().toISOString().split('T')[0];
   const appointmentsToday = appointments.filter(apt => apt.date === today);
   
   // Calculer le nombre de rendez-vous en attente
   const pendingAppointments = appointments.filter(apt => apt.status === "en attente");
+
+  // Récupérer les factures du médecin lors du chargement du composant
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setInvoicesLoading(true);
+        const response = await axios.get("/api/doctor/invoices", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        
+        // Récupérer seulement les 5 factures les plus récentes
+        const sortedInvoices = response.data.invoices || [];
+        setInvoices(sortedInvoices.slice(0, 5));
+        setInvoicesLoading(false);
+      } catch (err) {
+        console.error("Erreur lors du chargement des factures:", err);
+        setInvoicesLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  // Format pour la monnaie
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+  };
 
   return (
     <div className="overview-container">
@@ -64,13 +95,13 @@ const DoctorOverview = ({
             <i className="fas fa-user-injured"></i>
             Gérer les patients
           </button>
-          <button className="action-btn" onClick={() => alert("Fonctionnalité en cours de développement")} disabled={actionLoading}>
+          <button className="action-btn" onClick={() => handleTabChange("prescriptions")} disabled={actionLoading}>
             <i className="fas fa-prescription"></i>
             Créer une ordonnance
           </button>
-          <button className="action-btn" onClick={() => alert("Fonctionnalité en cours de développement")} disabled={actionLoading}>
-            <i className="fas fa-file-medical"></i>
-            Rapports d'activité
+          <button className="action-btn" onClick={() => handleTabChange("invoices")} disabled={actionLoading}>
+            <i className="fas fa-file-invoice-dollar"></i>
+            Voir les factures
           </button>
         </div>
       </div>
@@ -132,6 +163,57 @@ const DoctorOverview = ({
             </div>
           ) : (
             <p className="no-data">Aucun rendez-vous à venir</p>
+          )}
+        </div>
+
+        {/* Nouvelle section pour les factures récentes */}
+        <div className="dashboard-section">
+          <h3>Factures récentes</h3>
+          {invoicesLoading ? (
+            <div className="loading-mini">
+              <i className="fas fa-spinner fa-spin"></i> Chargement des factures...
+            </div>
+          ) : invoices.length > 0 ? (
+            <div className="recent-invoices">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Numéro</th>
+                    <th>Patient</th>
+                    <th>Date</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map(invoice => (
+                    <tr key={invoice.id}>
+                      <td>{invoice.number}</td>
+                      <td>{invoice.patient_name}</td>
+                      <td>{invoice.date}</td>
+                      <td>{formatCurrency(invoice.total_amount)}</td>
+                      <td>
+                        <span className={`status-badge ${invoice.status}`}>
+                          {invoice.status === 'paid' ? 'Payée' : 
+                           invoice.status === 'overdue' ? 'En retard' : 'Non payée'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="text-right">
+                <button 
+                  className="btn-outline"
+                  onClick={() => handleTabChange("invoices")}
+                  disabled={actionLoading}
+                >
+                  Voir toutes les factures
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="no-data">Aucune facture récente</p>
           )}
         </div>
 
