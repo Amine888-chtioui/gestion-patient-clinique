@@ -39,6 +39,7 @@ import "../components/admin-dashboard/admin-profile.css";
 import "../components/admin-dashboard/admin-dashboard.css";
 
 import ContactsManagement from "../components/admin-dashboard/ContactsManagement";
+import PrescriptionsManagement from "../components/admin-dashboard/PrescriptionsManagement";
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
@@ -58,7 +59,7 @@ const AdminDashboard = () => {
     invoices: false,
     profile: false,
     services: false,
-    contacts: false
+    contacts: false,
   });
   // Ajouter un nouvel état pour le profil admin
   const [adminProfile, setAdminProfile] = useState(null);
@@ -75,10 +76,12 @@ const AdminDashboard = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
-  
+
   // États pour les fonctionnalités de factures
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
-  const [invoiceMode, setInvoiceMode] = useState("list"); 
+  const [invoiceMode, setInvoiceMode] = useState("list");
+
+  const [prescriptions, setPrescriptions] = useState([]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,12 +90,12 @@ const AdminDashboard = () => {
   const getAuthHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
-  
+
   // Helper pour mettre à jour l'état de chargement d'une section
   const setLoadingState = (section, isLoading) => {
-    setLoadingStates(prev => ({
+    setLoadingStates((prev) => ({
       ...prev,
-      [section]: isLoading
+      [section]: isLoading,
     }));
   };
 
@@ -104,7 +107,7 @@ const AdminDashboard = () => {
 
       try {
         setInitialLoading(true);
-        
+
         // Récupérer les informations de l'utilisateur
         const userResponse = await axios.get("/api/user", getAuthHeaders());
         setUser(userResponse.data);
@@ -118,40 +121,49 @@ const AdminDashboard = () => {
         }
         // Récupérer le profil de l'administrateur
         try {
-          const profileResponse = await axios.get("/api/admin/profile", getAuthHeaders());
+          const profileResponse = await axios.get(
+            "/api/admin/profile",
+            getAuthHeaders()
+          );
           setAdminProfile(profileResponse.data.profile);
         } catch (profileErr) {
-          console.warn("Impossible de charger le profil administrateur:", profileErr);
+          console.warn(
+            "Impossible de charger le profil administrateur:",
+            profileErr
+          );
         }
-        
+
         // Déterminer l'onglet actif à partir de l'URL
-        const pathSegments = location.pathname.split('/').filter(Boolean);
+        const pathSegments = location.pathname.split("/").filter(Boolean);
         let initialTab = "overview";
-        
-        if (pathSegments.length >= 3 && pathSegments[0] === 'admin' && pathSegments[1] === 'dashboard') {
+
+        if (
+          pathSegments.length >= 3 &&
+          pathSegments[0] === "admin" &&
+          pathSegments[1] === "dashboard"
+        ) {
           initialTab = pathSegments[2];
-          
-          if (initialTab === 'invoices' && pathSegments.length >= 4) {
-            if (pathSegments[3] === 'create') {
-              setInvoiceMode('create');
-            } else if (pathSegments.length >= 5 && pathSegments[3] === 'edit') {
-              setInvoiceMode('edit');
+
+          if (initialTab === "invoices" && pathSegments.length >= 4) {
+            if (pathSegments[3] === "create") {
+              setInvoiceMode("create");
+            } else if (pathSegments.length >= 5 && pathSegments[3] === "edit") {
+              setInvoiceMode("edit");
               setSelectedInvoiceId(pathSegments[4]);
             } else {
-              setInvoiceMode('details');
+              setInvoiceMode("details");
               setSelectedInvoiceId(pathSegments[3]);
             }
           }
         }
-        
+
         setActiveTab(initialTab);
-        
+
         // Chargement initial des statistiques (données légères)
         await fetchStats();
-        
+
         // Charger les données de l'onglet initial
         await loadSectionData(initialTab);
-
       } catch (err) {
         console.error("Erreur d'initialisation:", err);
         if (err.response?.status === 401) {
@@ -172,13 +184,13 @@ const AdminDashboard = () => {
     const handleLogoutEvent = () => {
       handleLogout();
     };
-    
+
     // Ajouter l'écouteur d'événement
-    window.addEventListener('admin-logout', handleLogoutEvent);
-    
+    window.addEventListener("admin-logout", handleLogoutEvent);
+
     // Nettoyage
     return () => {
-      window.removeEventListener('admin-logout', handleLogoutEvent);
+      window.removeEventListener("admin-logout", handleLogoutEvent);
     };
   }, []);
 
@@ -187,73 +199,99 @@ const AdminDashboard = () => {
     try {
       // Marquer la section comme en cours de chargement
       setLoadingState(section, true);
-      
+
       switch (section) {
         case "overview":
           if (Object.keys(stats).length === 0) {
             await fetchStats();
           }
           break;
-          
+
         case "patients":
           if (patients.length === 0) {
             await fetchPatients();
           }
           break;
-          
+
         case "doctors":
           if (doctors.length === 0) {
             await fetchDoctors();
           }
           break;
-          
+
         case "appointments":
           const appointmentsNeeded = appointments.length === 0;
           const patientsNeeded = patients.length === 0;
           const doctorsNeeded = doctors.length === 0;
-          
+
           if (appointmentsNeeded || patientsNeeded || doctorsNeeded) {
             const fetchPromises = [];
-            
+
             if (appointmentsNeeded) fetchPromises.push(fetchAppointments());
             if (patientsNeeded) fetchPromises.push(fetchPatients());
             if (doctorsNeeded) fetchPromises.push(fetchDoctors());
-            
+
             await Promise.all(fetchPromises);
           }
           break;
-          
+
         case "medicalRecords":
           const recordsNeeded = medicalRecords.length === 0;
           const patNeeded = patients.length === 0;
           const docNeeded = doctors.length === 0;
-          
+
           if (recordsNeeded || patNeeded || docNeeded) {
             const fetchPromises = [];
-            
+
             if (recordsNeeded) fetchPromises.push(fetchMedicalRecords());
             if (patNeeded) fetchPromises.push(fetchPatients());
             if (docNeeded) fetchPromises.push(fetchDoctors());
-            
+
             await Promise.all(fetchPromises);
           }
           break;
-          
+
+        // Dans loadSectionData, ajouter un cas pour "prescriptions"
+        case "prescriptions":
+          const prescriptionsNeeded = prescriptions.length === 0;
+          const patientsForPrescriptionsNeeded = patients.length === 0;
+          const doctorsForPrescriptionsNeeded = doctors.length === 0;
+
+          if (
+            prescriptionsNeeded ||
+            patientsForPrescriptionsNeeded ||
+            doctorsForPrescriptionsNeeded
+          ) {
+            const fetchPromises = [];
+
+            if (prescriptionsNeeded) fetchPromises.push(fetchPrescriptions());
+            if (patientsForPrescriptionsNeeded)
+              fetchPromises.push(fetchPatients());
+            if (doctorsForPrescriptionsNeeded)
+              fetchPromises.push(fetchDoctors());
+
+            await Promise.all(fetchPromises);
+          }
+          break;
+
         case "statistics":
           await fetchStats();
           break;
-          
+
         case "users":
           if (users.length === 0) {
             await fetchUsers();
           }
           break;
-          
+
         case "services":
           if (services.length === 0) {
             setLoadingState(section, true);
             try {
-              const servicesRes = await axios.get("/api/admin/services", getAuthHeaders());
+              const servicesRes = await axios.get(
+                "/api/admin/services",
+                getAuthHeaders()
+              );
               setServices(servicesRes.data.services || []);
             } catch (error) {
               console.warn("Impossible de charger les services:", error);
@@ -262,15 +300,18 @@ const AdminDashboard = () => {
             }
           }
           break;
-          
+
         // Les autres sections comme invoices et payments utiliseront
         // leurs propres mécanismes de chargement à l'intérieur de leurs composants
-          
+
         default:
           break;
       }
     } catch (error) {
-      console.error(`Erreur lors du chargement de la section ${section}:`, error);
+      console.error(
+        `Erreur lors du chargement de la section ${section}:`,
+        error
+      );
       setActionError(`Impossible de charger les données pour ${section}.`);
     } finally {
       // Marquer la section comme chargée
@@ -281,7 +322,10 @@ const AdminDashboard = () => {
   // Fonctions de récupération de données individuelles
   const fetchStats = async () => {
     try {
-      const statsRes = await axios.get("/api/admin/statistics", getAuthHeaders());
+      const statsRes = await axios.get(
+        "/api/admin/statistics",
+        getAuthHeaders()
+      );
       setStats(statsRes.data || {});
     } catch (error) {
       console.warn("Impossible de charger les statistiques:", error);
@@ -291,7 +335,10 @@ const AdminDashboard = () => {
 
   const fetchPatients = async () => {
     try {
-      const patientsRes = await axios.get("/api/admin/patients", getAuthHeaders());
+      const patientsRes = await axios.get(
+        "/api/admin/patients",
+        getAuthHeaders()
+      );
       setPatients(patientsRes.data.patients || []);
     } catch (error) {
       console.warn("Impossible de charger les patients:", error);
@@ -301,7 +348,10 @@ const AdminDashboard = () => {
 
   const fetchDoctors = async () => {
     try {
-      const doctorsRes = await axios.get("/api/admin/doctors", getAuthHeaders());
+      const doctorsRes = await axios.get(
+        "/api/admin/doctors",
+        getAuthHeaders()
+      );
       setDoctors(doctorsRes.data.doctors || []);
     } catch (error) {
       console.warn("Impossible de charger les médecins:", error);
@@ -311,7 +361,10 @@ const AdminDashboard = () => {
 
   const fetchAppointments = async () => {
     try {
-      const appointmentsRes = await axios.get("/api/admin/appointments", getAuthHeaders());
+      const appointmentsRes = await axios.get(
+        "/api/admin/appointments",
+        getAuthHeaders()
+      );
       setAppointments(appointmentsRes.data.appointments || []);
     } catch (error) {
       console.warn("Impossible de charger les rendez-vous:", error);
@@ -332,7 +385,10 @@ const AdminDashboard = () => {
   const fetchMedicalRecords = async () => {
     try {
       try {
-        const medicalRecordsRes = await axios.get("/api/admin/medical-records", getAuthHeaders());
+        const medicalRecordsRes = await axios.get(
+          "/api/admin/medical-records",
+          getAuthHeaders()
+        );
         setMedicalRecords(medicalRecordsRes.data.medicalRecords || []);
       } catch (err) {
         // Si l'endpoint n'existe pas encore, utilisez une liste vide
@@ -342,6 +398,91 @@ const AdminDashboard = () => {
     } catch (error) {
       console.warn("Impossible de charger les dossiers médicaux:", error);
       throw error;
+    }
+  };
+
+  const fetchPrescriptions = async () => {
+    try {
+      const prescriptionsRes = await axios.get(
+        "/api/admin/prescriptions",
+        getAuthHeaders()
+      );
+      setPrescriptions(prescriptionsRes.data.prescriptions || []);
+    } catch (error) {
+      console.warn("Impossible de charger les prescriptions:", error);
+      throw error;
+    }
+  };
+
+  // Gestion des prescriptions
+  const handleAddPrescription = async (prescriptionData) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const response = await axios.post(
+        "/api/admin/prescriptions",
+        prescriptionData,
+        getAuthHeaders()
+      );
+
+      // Ajouter la nouvelle prescription à la liste
+      setPrescriptions([response.data.prescription, ...prescriptions]);
+      setActionSuccess("Ordonnance ajoutée avec succès!");
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdatePrescription = async (id, prescriptionData) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const response = await axios.put(
+        `/api/admin/prescriptions/${id}`,
+        prescriptionData,
+        getAuthHeaders()
+      );
+
+      // Mettre à jour la prescription dans la liste
+      setPrescriptions(
+        prescriptions.map((prescription) =>
+          prescription.id === id ? response.data.prescription : prescription
+        )
+      );
+      setActionSuccess("Ordonnance mise à jour avec succès!");
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeletePrescription = async (id) => {
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      await axios.delete(`/api/admin/prescriptions/${id}`, getAuthHeaders());
+
+      // Retirer la prescription de la liste
+      setPrescriptions(
+        prescriptions.filter((prescription) => prescription.id !== id)
+      );
+      setActionSuccess("Ordonnance supprimée avec succès!");
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -365,33 +506,33 @@ const AdminDashboard = () => {
     setActiveTab(tab);
     setActionError(null);
     setActionSuccess(null);
-    
+
     // Si on change d'onglet, réinitialiser l'état des factures
-    if (tab !== 'invoices') {
-      setInvoiceMode('list');
+    if (tab !== "invoices") {
+      setInvoiceMode("list");
       setSelectedInvoiceId(null);
     }
-    
+
     // Charger les données nécessaires pour cet onglet
     loadSectionData(tab);
-    
+
     // Mise à jour de l'URL
     navigate(`/admin/dashboard/${tab}`);
   };
-  
+
   // Gestion de la navigation dans les factures
   const handleInvoiceAction = (action, id = null) => {
     setInvoiceMode(action);
     setSelectedInvoiceId(id);
-    
+
     // Mise à jour de l'URL en fonction de l'action
-    if (action === 'list') {
-      navigate('/admin/dashboard/invoices');
-    } else if (action === 'details' && id) {
+    if (action === "list") {
+      navigate("/admin/dashboard/invoices");
+    } else if (action === "details" && id) {
       navigate(`/admin/dashboard/invoices/${id}`);
-    } else if (action === 'create') {
-      navigate('/admin/dashboard/invoices/create');
-    } else if (action === 'edit' && id) {
+    } else if (action === "create") {
+      navigate("/admin/dashboard/invoices/create");
+    } else if (action === "edit" && id) {
       navigate(`/admin/dashboard/invoices/edit/${id}`);
     }
   };
@@ -454,9 +595,9 @@ const AdminDashboard = () => {
 
     try {
       await axios.delete(`/api/admin/patients/${id}`, getAuthHeaders());
-      
+
       // Retirer le patient de la liste
-      setPatients(patients.filter(patient => patient.id !== id));
+      setPatients(patients.filter((patient) => patient.id !== id));
       setActionSuccess("Patient supprimé avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
@@ -524,9 +665,9 @@ const AdminDashboard = () => {
 
     try {
       await axios.delete(`/api/admin/doctors/${id}`, getAuthHeaders());
-      
+
       // Retirer le médecin de la liste
-      setDoctors(doctors.filter(doctor => doctor.id !== id));
+      setDoctors(doctors.filter((doctor) => doctor.id !== id));
       setActionSuccess("Médecin supprimé avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
@@ -594,9 +735,11 @@ const AdminDashboard = () => {
 
     try {
       await axios.delete(`/api/admin/appointments/${id}`, getAuthHeaders());
-      
+
       // Retirer le rendez-vous de la liste
-      setAppointments(appointments.filter(appointment => appointment.id !== id));
+      setAppointments(
+        appointments.filter((appointment) => appointment.id !== id)
+      );
       setActionSuccess("Rendez-vous supprimé avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
@@ -644,9 +787,7 @@ const AdminDashboard = () => {
 
       // Mettre à jour l'utilisateur dans la liste
       setUsers(
-        users.map((user) =>
-          user.id === id ? response.data.user : user
-        )
+        users.map((user) => (user.id === id ? response.data.user : user))
       );
       setActionSuccess("Utilisateur mis à jour avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
@@ -664,9 +805,9 @@ const AdminDashboard = () => {
 
     try {
       await axios.delete(`/api/admin/users/${id}`, getAuthHeaders());
-      
+
       // Retirer l'utilisateur de la liste
-      setUsers(users.filter(user => user.id !== id));
+      setUsers(users.filter((user) => user.id !== id));
       setActionSuccess("Utilisateur supprimé avec succès!");
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
@@ -691,7 +832,12 @@ const AdminDashboard = () => {
 
   // Affichage durant le chargement initial du composant
   if (initialLoading) {
-    return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord administrateur..." />;
+    return (
+      <UnifiedLoadingSpinner
+        fullScreen={true}
+        text="Initialisation du tableau de bord administrateur..."
+      />
+    );
   }
 
   // Affichage en cas d'erreur globale
@@ -702,13 +848,13 @@ const AdminDashboard = () => {
   // Rendu du contenu pour les factures
   const renderInvoiceContent = () => {
     switch (invoiceMode) {
-      case 'details':
+      case "details":
         return <InvoiceDetails />;
-      case 'create':
+      case "create":
         return <InvoiceForm />;
-      case 'edit':
+      case "edit":
         return <InvoiceForm />;
-      case 'list':
+      case "list":
       default:
         return <InvoiceList onInvoiceAction={handleInvoiceAction} />;
     }
@@ -727,7 +873,10 @@ const AdminDashboard = () => {
       />
 
       <main className="main-content">
-        <ContentHeader activeTab={activeTab} handleTabChange={handleTabChange} />
+        <ContentHeader
+          activeTab={activeTab}
+          handleTabChange={handleTabChange}
+        />
 
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
@@ -736,7 +885,10 @@ const AdminDashboard = () => {
           {activeTab === "overview" && (
             <>
               {loadingStates.overview ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement du tableau de bord..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement du tableau de bord..."
+                />
               ) : (
                 <AdminOverview
                   stats={stats}
@@ -750,7 +902,10 @@ const AdminDashboard = () => {
           {activeTab === "patients" && (
             <>
               {loadingStates.patients ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des patients..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des patients..."
+                />
               ) : (
                 <PatientsManagement
                   patients={patients}
@@ -767,7 +922,10 @@ const AdminDashboard = () => {
           {activeTab === "doctors" && (
             <>
               {loadingStates.doctors ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des médecins..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des médecins..."
+                />
               ) : (
                 <DoctorsManagement
                   doctors={doctors}
@@ -783,7 +941,10 @@ const AdminDashboard = () => {
           {activeTab === "appointments" && (
             <>
               {loadingStates.appointments ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des rendez-vous..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des rendez-vous..."
+                />
               ) : (
                 <AppointmentsManagement
                   appointments={appointments}
@@ -801,7 +962,10 @@ const AdminDashboard = () => {
           {activeTab === "medicalRecords" && (
             <>
               {loadingStates.medicalRecords ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des dossiers médicaux..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des dossiers médicaux..."
+                />
               ) : (
                 <MedicalRecordsManagement
                   medicalRecords={medicalRecords}
@@ -816,12 +980,12 @@ const AdminDashboard = () => {
           {activeTab === "statistics" && (
             <>
               {loadingStates.statistics ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des statistiques..." />
-              ) : (
-                <StatisticsView
-                  stats={stats}
-                  actionLoading={actionLoading}
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des statistiques..."
                 />
+              ) : (
+                <StatisticsView stats={stats} actionLoading={actionLoading} />
               )}
             </>
           )}
@@ -829,7 +993,10 @@ const AdminDashboard = () => {
           {activeTab === "users" && (
             <>
               {loadingStates.users ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des utilisateurs..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des utilisateurs..."
+                />
               ) : (
                 <UsersManagement
                   users={users}
@@ -841,11 +1008,35 @@ const AdminDashboard = () => {
               )}
             </>
           )}
-          
+
+          {activeTab === "prescriptions" && (
+            <>
+              {loadingStates.prescriptions ? (
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des ordonnances..."
+                />
+              ) : (
+                <PrescriptionsManagement
+                  prescriptions={prescriptions}
+                  patients={patients}
+                  doctors={doctors}
+                  handleAddPrescription={handleAddPrescription}
+                  handleUpdatePrescription={handleUpdatePrescription}
+                  handleDeletePrescription={handleDeletePrescription}
+                  actionLoading={actionLoading}
+                />
+              )}
+            </>
+          )}
+
           {activeTab === "services" && (
             <>
               {loadingStates.services ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des services..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des services..."
+                />
               ) : (
                 <ServicesManagement
                   actionLoading={actionLoading}
@@ -856,11 +1047,14 @@ const AdminDashboard = () => {
               )}
             </>
           )}
-          
+
           {activeTab === "profile" && (
             <>
               {loadingStates.profile ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement du profil..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement du profil..."
+                />
               ) : (
                 <AdminProfile
                   user={user}
@@ -872,11 +1066,14 @@ const AdminDashboard = () => {
               )}
             </>
           )}
-          
+
           {activeTab === "contacts" && (
             <>
               {loadingStates.contacts ? (
-                <UnifiedLoadingSpinner size="medium" text="Chargement des messages..." />
+                <UnifiedLoadingSpinner
+                  size="medium"
+                  text="Chargement des messages..."
+                />
               ) : (
                 <ContactsManagement
                   actionLoading={actionLoading}
@@ -887,13 +1084,13 @@ const AdminDashboard = () => {
               )}
             </>
           )}
-          
+
           {activeTab === "invoices" && renderInvoiceContent()}
-          
+
           {activeTab === "payments" && (
             <div>
               <PaymentStatusViewer />
-              <PaymentMethodsManagement 
+              <PaymentMethodsManagement
                 actionLoading={actionLoading}
                 setActionLoading={setActionLoading}
                 setActionError={setActionError}

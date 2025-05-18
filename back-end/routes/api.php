@@ -145,6 +145,12 @@ Route::get('/patients/{id}/invoices', [DoctorController::class, 'getPatientInvoi
         // Routes corrigées pour la gestion des médecins dans les services
         Route::post('/services/{id}/doctors', [ServiceController::class, 'assignDoctor']);
         Route::delete('/services/{id}/doctors', [ServiceController::class, 'removeDoctor']);
+
+        Route::get('/prescriptions', [AdminController::class, 'getAdminPrescriptions']);
+        Route::get('/prescriptions/{id}', [AdminController::class, 'getAdminPrescription']);
+        Route::post('/prescriptions', [AdminController::class, 'createAdminPrescription']);
+        Route::put('/prescriptions/{id}', [AdminController::class, 'editAdminPrescription']);
+        Route::delete('/prescriptions/{id}', [AdminController::class, 'removeAdminPrescription']);
     });
     
     // Routes pour les notifications

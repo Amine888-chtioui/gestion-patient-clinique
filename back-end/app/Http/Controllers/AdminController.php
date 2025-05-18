@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Contact;
 use App\Models\DoctorProfile;
+use App\Models\Medication;
 
 class AdminController extends Controller
 {
@@ -1259,4 +1260,281 @@ public function deleteContact($id)
             'message' => 'Utilisateur supprimé avec succès'
         ]);
     }
+
+    /**
+ * Récupérer toutes les prescriptions pour l'administration
+ */
+public function getAdminPrescriptions()
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer toutes les prescriptions avec les informations du patient et du médecin
+    $prescriptions = Prescription::with(['patient:id,name,email', 'doctor:id,name,email', 'medications'])
+        ->orderBy('date', 'desc')
+        ->get();
+    
+    // Formater les données pour la réponse
+    $formattedPrescriptions = $prescriptions->map(function ($prescription) {
+        return [
+            'id' => $prescription->id,
+            'date' => $prescription->date,
+            'patient_id' => $prescription->patient_id,
+            'patient_name' => $prescription->patient->name,
+            'doctor_id' => $prescription->doctor_id,
+            'doctor_name' => $prescription->doctor->name,
+            'notes' => $prescription->notes,
+            'medication_count' => $prescription->medications->count(),
+            'created_at' => $prescription->created_at->format('Y-m-d H:i:s'),
+        ];
+    });
+    
+    return response()->json([
+        'prescriptions' => $formattedPrescriptions
+    ]);
+}
+
+/**
+ * Récupérer une prescription spécifique pour l'administration
+ */
+public function getAdminPrescription($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer la prescription avec ses médicaments, patient et médecin
+    $prescription = Prescription::with(['patient', 'doctor', 'medications', 'medicalRecord'])
+        ->findOrFail($id);
+    
+    return response()->json([
+        'prescription' => $prescription
+    ]);
+}
+
+/**
+ * Créer une nouvelle prescription via l'administration
+ */
+public function createAdminPrescription(Request $request)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Valider les données
+    $validator = Validator::make($request->all(), [
+        'patient_id' => 'required|exists:users,id',
+        'doctor_id' => 'required|exists:users,id',
+        'medical_record_id' => 'nullable|exists:medical_records,id',
+        'date' => 'required|date',
+        'notes' => 'nullable|string',
+        'medications' => 'required|array|min:1',
+        'medications.*.name' => 'required|string',
+        'medications.*.dosage' => 'required|string',
+        'medications.*.frequency' => 'required|string',
+        'medications.*.duration' => 'required|string',
+        'medications.*.instructions' => 'nullable|string',
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Erreur de validation',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+    
+    // Vérifier que les IDs correspondent bien à un patient et un médecin
+    $patient = User::find($request->patient_id);
+    $doctor = User::find($request->doctor_id);
+    
+    if (!$patient || $patient->role !== 'patient') {
+        return response()->json(['message' => 'Patient non trouvé'], 404);
+    }
+    
+    if (!$doctor || $doctor->role !== 'doctor') {
+        return response()->json(['message' => 'Médecin non trouvé'], 404);
+    }
+    
+    // Créer la prescription
+    $prescription = Prescription::create([
+        'patient_id' => $request->patient_id,
+        'doctor_id' => $request->doctor_id,
+        'medical_record_id' => $request->medical_record_id,
+        'date' => $request->date,
+        'notes' => $request->notes,
+    ]);
+    
+    // Ajouter les médicaments
+    foreach ($request->medications as $medicationData) {
+        $prescription->medications()->create([
+            'name' => $medicationData['name'],
+            'dosage' => $medicationData['dosage'],
+            'frequency' => $medicationData['frequency'],
+            'duration' => $medicationData['duration'],
+            'instructions' => $medicationData['instructions'] ?? null,
+        ]);
+    }
+    
+    // Charger les relations pour la réponse
+    $prescription->load(['patient', 'doctor', 'medications']);
+    
+    return response()->json([
+        'message' => 'Prescription créée avec succès',
+        'prescription' => $prescription
+    ], 201);
+}
+
+/**
+ * Mettre à jour une prescription existante via l'administration
+ */
+public function editAdminPrescription(Request $request, $id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Trouver la prescription
+    $prescription = Prescription::findOrFail($id);
+    
+    // Valider les données
+    $validator = Validator::make($request->all(), [
+        'patient_id' => 'sometimes|required|exists:users,id',
+        'doctor_id' => 'sometimes|required|exists:users,id',
+        'medical_record_id' => 'nullable|exists:medical_records,id',
+        'date' => 'sometimes|required|date',
+        'notes' => 'nullable|string',
+        'medications' => 'sometimes|required|array|min:1',
+        'medications.*.id' => 'nullable|exists:medications,id',
+        'medications.*.name' => 'required|string',
+        'medications.*.dosage' => 'required|string',
+        'medications.*.frequency' => 'required|string',
+        'medications.*.duration' => 'required|string',
+        'medications.*.instructions' => 'nullable|string',
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Erreur de validation',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+    
+    // Mettre à jour les champs de la prescription
+    if ($request->has('patient_id')) {
+        $patient = User::find($request->patient_id);
+        if (!$patient || $patient->role !== 'patient') {
+            return response()->json(['message' => 'Patient non trouvé'], 404);
+        }
+        $prescription->patient_id = $request->patient_id;
+    }
+    
+    if ($request->has('doctor_id')) {
+        $doctor = User::find($request->doctor_id);
+        if (!$doctor || $doctor->role !== 'doctor') {
+            return response()->json(['message' => 'Médecin non trouvé'], 404);
+        }
+        $prescription->doctor_id = $request->doctor_id;
+    }
+    
+    if ($request->has('medical_record_id')) {
+        $prescription->medical_record_id = $request->medical_record_id;
+    }
+    
+    if ($request->has('date')) {
+        $prescription->date = $request->date;
+    }
+    
+    if ($request->has('notes')) {
+        $prescription->notes = $request->notes;
+    }
+    
+    $prescription->save();
+    
+    // Mettre à jour les médicaments si nécessaire
+    if ($request->has('medications')) {
+        // Récupérer les IDs des médicaments existants
+        $existingMedicationIds = $prescription->medications()->pluck('id')->toArray();
+        $updatedMedicationIds = [];
+        
+        foreach ($request->medications as $medicationData) {
+            if (isset($medicationData['id']) && in_array($medicationData['id'], $existingMedicationIds)) {
+                // Mettre à jour un médicament existant
+                $medication = Medication::find($medicationData['id']);
+                $medication->update([
+                    'name' => $medicationData['name'],
+                    'dosage' => $medicationData['dosage'],
+                    'frequency' => $medicationData['frequency'],
+                    'duration' => $medicationData['duration'],
+                    'instructions' => $medicationData['instructions'] ?? null,
+                ]);
+                
+                $updatedMedicationIds[] = $medication->id;
+            } else {
+                // Créer un nouveau médicament
+                $medication = $prescription->medications()->create([
+                    'name' => $medicationData['name'],
+                    'dosage' => $medicationData['dosage'],
+                    'frequency' => $medicationData['frequency'],
+                    'duration' => $medicationData['duration'],
+                    'instructions' => $medicationData['instructions'] ?? null,
+                ]);
+                
+                $updatedMedicationIds[] = $medication->id;
+            }
+        }
+        
+        // Supprimer les médicaments qui ne sont plus présents
+        $medicationsToDelete = array_diff($existingMedicationIds, $updatedMedicationIds);
+        if (!empty($medicationsToDelete)) {
+            Medication::whereIn('id', $medicationsToDelete)->delete();
+        }
+    }
+    
+    // Charger les relations pour la réponse
+    $prescription->load(['patient', 'doctor', 'medications']);
+    
+    return response()->json([
+        'message' => 'Prescription mise à jour avec succès',
+        'prescription' => $prescription
+    ]);
+}
+
+/**
+ * Supprimer une prescription via l'administration
+ */
+public function removeAdminPrescription($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Trouver la prescription
+    $prescription = Prescription::findOrFail($id);
+    
+    // Supprimer tous les médicaments associés
+    $prescription->medications()->delete();
+    
+    // Supprimer la prescription
+    $prescription->delete();
+    
+    return response()->json([
+        'message' => 'Prescription supprimée avec succès'
+    ]);
+}
 }
