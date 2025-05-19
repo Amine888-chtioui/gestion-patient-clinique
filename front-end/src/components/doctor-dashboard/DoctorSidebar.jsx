@@ -45,7 +45,8 @@ const DoctorSidebar = ({
           { id: "patients", icon: "user-injured", label: "Patients" },
           { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
           { id: "medical-records", icon: "file-medical", label: "Dossiers médicaux" },
-          { id: "prescriptions", icon: "prescription", label: "Ordonnances" }
+          { id: "prescriptions", icon: "prescription", label: "Ordonnances" },
+          { id: "schedules", icon: "clock", label: "Horaires" }
           
         ].map(item => (
           <li key={item.id} className={activeTab === item.id ? "active" : ""}>

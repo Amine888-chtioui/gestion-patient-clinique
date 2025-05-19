@@ -12,6 +12,7 @@ const TimeSlots = ({
   const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [daySchedule, setDaySchedule] = useState(null);
 
   // Récupérer les créneaux horaires disponibles pour la date sélectionnée
   useEffect(() => {
@@ -27,6 +28,19 @@ const TimeSlots = ({
             params: { date: selectedDate }
           }
         );
+
+        // Stocker les informations sur l'horaire du jour (s'il existe)
+        if (response.data.has_custom_schedule) {
+          setDaySchedule({
+            dayOfWeek: response.data.day_of_week,
+            customSchedule: true
+          });
+        } else {
+          setDaySchedule({
+            dayOfWeek: response.data.day_of_week,
+            customSchedule: false
+          });
+        }
 
         setTimeSlots(response.data.time_slots || []);
       } catch (err) {
@@ -132,6 +146,20 @@ const TimeSlots = ({
     }
   };
 
+  // Formatter le jour de la semaine
+  const formatDayOfWeek = (dayOfWeek) => {
+    const days = {
+      'monday': 'Lundi',
+      'tuesday': 'Mardi',
+      'wednesday': 'Mercredi',
+      'thursday': 'Jeudi',
+      'friday': 'Vendredi',
+      'saturday': 'Samedi',
+      'sunday': 'Dimanche'
+    };
+    return days[dayOfWeek] || dayOfWeek;
+  };
+
   if (!selectedDate) {
     return (
       <div className="time-slots-container">
@@ -146,6 +174,11 @@ const TimeSlots = ({
     <div className="time-slots-container">
       <h3 className="time-slots-header">
         Horaires disponibles pour le {formatDate(selectedDate)}
+        {daySchedule && (
+          <span className="day-name">
+            ({formatDayOfWeek(daySchedule.dayOfWeek)})
+          </span>
+        )}
       </h3>
 
       {loading ? (
@@ -160,6 +193,11 @@ const TimeSlots = ({
         <div className="time-slots-empty">
           <i className="fas fa-calendar-times"></i>
           <p>Aucun horaire disponible pour cette date.</p>
+          {daySchedule && daySchedule.customSchedule === false && (
+            <p className="unavailable-note">
+              Le médecin n'a pas défini d'horaire pour les {formatDayOfWeek(daySchedule.dayOfWeek)}.
+            </p>
+          )}
         </div>
       ) : (
         <div className="time-slots-content">

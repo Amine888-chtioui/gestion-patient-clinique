@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\DoctorProfile;
 use App\Models\Service;
 use Illuminate\Http\Request;
+use App\Models\DoctorSchedule;
 
 class DoctorController extends Controller
 {
@@ -934,85 +935,112 @@ public function getProfile()
 
 
 
-    public function getAvailability(Request $request, $doctor_id)
-    {
-        \Log::info('Requête reçue pour getAvailability', [
-            'doctor_id' => $doctor_id,
-            'params' => $request->all(),
-            'route_parameters' => $request->route()->parameters(),
-        ]);
-        
-        // Valider les paramètres de la requête
-        $validatedData = $request->validate([
-            'date' => 'required|date',
-        ]);
-        
-        // Vérifier que l'utilisateur spécifié est bien un médecin
-        $doctor = User::find($doctor_id);
-        if (!$doctor || !$doctor->isDoctor()) {
-            return response()->json(['message' => 'Médecin non trouvé'], 404);
-        }
-        
-        // Définir les plages horaires générales de disponibilité (8h à 18h)
-        $startHour = 8;
-        $endHour = 18;
-        
-        // Définir la durée d'un rendez-vous en minutes (30 minutes par défaut)
-        $appointmentDuration = 30;
-        
-        // Préparer les créneaux disponibles (format 24h)
-        $allTimeSlots = [];
-        for ($hour = $startHour; $hour < $endHour; $hour++) {
-            $allTimeSlots[] = sprintf('%02d:00', $hour);
-            $allTimeSlots[] = sprintf('%02d:30', $hour);
-        }
-        
-        // Récupérer les rendez-vous existants pour ce médecin à cette date
-        $existingAppointments = Appointment::where('doctor_id', $doctor_id)
-            ->where('date', $validatedData['date'])
-            ->where('status', '!=', 'annulé')  // Ignorer les rendez-vous annulés
-            ->pluck('time')
-            ->toArray();
-        
-        // Déterminer les créneaux disponibles et indisponibles
-        $availability = [];
-        
-        foreach ($allTimeSlots as $timeSlot) {
-            // Convertir en objet DateTime pour comparer facilement
-            $slotTime = \DateTime::createFromFormat('H:i', $timeSlot);
-            
-            // Vérifier si ce créneau est déjà pris
-            $isBooked = in_array($timeSlot, $existingAppointments);
-            
-            // Vérifier si ce créneau est dans le passé pour la date d'aujourd'hui
-            $isPast = false;
-            if ($validatedData['date'] === date('Y-m-d')) {
-                $currentTime = new \DateTime();
-                $isPast = $slotTime <= $currentTime;
-            }
-            
-            // Déterminer la disponibilité finale
-            $status = 'available';
-            if ($isBooked) {
-                $status = 'booked';
-            } elseif ($isPast) {
-                $status = 'past';
-            }
-            
-            $availability[] = [
-                'time' => $timeSlot,
-                'status' => $status
-            ];
-        }
-        
-        // Retourner les résultats
+/**
+ * Récupérer la disponibilité d'un médecin pour une date donnée
+ */
+public function getAvailability(Request $request, $doctor_id)
+{
+    // Valider les paramètres de la requête
+    $validatedData = $request->validate([
+        'date' => 'required|date',
+    ]);
+    
+    // Vérifier que l'utilisateur spécifié est bien un médecin
+    $doctor = User::find($doctor_id);
+    if (!$doctor || !$doctor->isDoctor()) {
+        return response()->json(['message' => 'Médecin non trouvé'], 404);
+    }
+    
+    // Obtenir le jour de la semaine pour la date donnée
+    $dayOfWeek = strtolower(date('l', strtotime($validatedData['date'])));
+    
+    // Récupérer l'horaire du médecin pour ce jour
+    $schedule = DoctorSchedule::where('doctor_id', $doctor_id)
+        ->where('day_of_week', $dayOfWeek)
+        ->first();
+    
+    // Si aucun horaire n'est défini ou si le médecin n'est pas disponible ce jour-là
+    if (!$schedule || !$schedule->is_available) {
+        // Le médecin n'est pas disponible ce jour-là
         return response()->json([
             'doctor_id' => $doctor_id,
             'doctor_name' => $doctor->name,
             'date' => $validatedData['date'],
-            'time_slots' => $availability
+            'day_of_week' => $dayOfWeek,
+            'has_custom_schedule' => ($schedule !== null),
+            'is_available' => false,
+            'time_slots' => [] // Aucun créneau disponible
         ]);
     }
+    
+    // Définir la durée d'un rendez-vous en minutes (30 minutes par défaut)
+    $appointmentDuration = 30;
+    
+    // Préparer les créneaux disponibles
+    $allTimeSlots = [];
+    
+    // Convertir les heures en minutes
+    $startMinutes = $this->timeToMinutes($schedule->start_time);
+    $endMinutes = $this->timeToMinutes($schedule->end_time);
+    
+    // Générer les créneaux par pas de 30 minutes
+    for ($minutes = $startMinutes; $minutes < $endMinutes; $minutes += $appointmentDuration) {
+        $allTimeSlots[] = $this->minutesToTime($minutes);
+    }
+    
+    // Récupérer les rendez-vous existants pour ce médecin à cette date
+    $existingAppointments = Appointment::where('doctor_id', $doctor_id)
+        ->where('date', $validatedData['date'])
+        ->where('status', '!=', 'annulé')  // Ignorer les rendez-vous annulés
+        ->pluck('time')
+        ->toArray();
+    
+    // Déterminer les créneaux disponibles et indisponibles
+    $availability = [];
+    
+    foreach ($allTimeSlots as $timeSlot) {
+        // Convertir en objet DateTime pour comparer facilement
+        $slotTime = \DateTime::createFromFormat('H:i', $timeSlot);
+        
+        // Vérifier si ce créneau est déjà pris
+        $isBooked = in_array($timeSlot, $existingAppointments);
+        
+        // Vérifier si ce créneau est dans le passé pour la date d'aujourd'hui
+        $isPast = false;
+        if ($validatedData['date'] === date('Y-m-d')) {
+            $currentTime = new \DateTime();
+            $isPast = $slotTime <= $currentTime;
+        }
+        
+        // Déterminer la disponibilité finale
+        $status = 'available';
+        if ($isBooked) {
+            $status = 'booked';
+        } elseif ($isPast) {
+            $status = 'past';
+        }
+        
+        $availability[] = [
+            'time' => $timeSlot,
+            'status' => $status
+        ];
+    }
+    
+    // Retourner les résultats
+    return response()->json([
+        'doctor_id' => $doctor_id,
+        'doctor_name' => $doctor->name,
+        'date' => $validatedData['date'],
+        'day_of_week' => $dayOfWeek,
+        'has_custom_schedule' => true,
+        'is_available' => true,
+        'schedule' => [
+            'start_time' => $schedule->start_time,
+            'end_time' => $schedule->end_time,
+        ],
+        'time_slots' => $availability
+    ]);
+}
 
 
     /**
@@ -1286,81 +1314,113 @@ public function getPrescriptions()
      * @param int $doctor_id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getMonthlyAvailability(Request $request, $doctor_id)
-    {
-        \Log::info('Requête reçue pour getMonthlyAvailability', [
-            'doctor_id' => $doctor_id,
-            'params' => $request->all(),
-            'route_parameters' => $request->route()->parameters(),
-        ]);
-        
-        // Valider les paramètres de la requête
-        $validatedData = $request->validate([
-            'month' => 'required|integer|between:1,12',
-            'year' => 'required|integer|min:2023',
-        ]);
-        
-        // Vérifier que l'utilisateur spécifié est bien un médecin
-        $doctor = User::find($doctor_id);
-        if (!$doctor || !$doctor->isDoctor()) {
-            return response()->json(['message' => 'Médecin non trouvé'], 404);
-        }
-        
-        // Définir le premier et dernier jour du mois
-        $startDate = sprintf('%d-%02d-01', $validatedData['year'], $validatedData['month']);
-        $lastDay = date('t', strtotime($startDate)); // Nombre de jours dans le mois
-        $endDate = sprintf('%d-%02d-%d', $validatedData['year'], $validatedData['month'], $lastDay);
-        
-        // Récupérer les rendez-vous pour ce médecin dans ce mois
-        $appointments = Appointment::where('doctor_id', $doctor_id)
-            ->whereBetween('date', [$startDate, $endDate])
-            ->where('status', '!=', 'annulé')
-            ->select('date')
-            ->get()
-            ->groupBy('date');
-        
-        // Créer un tableau avec le nombre de rendez-vous par date
-        $dateAvailability = [];
-        $currentDate = new \DateTime($startDate);
-        $endDateTime = new \DateTime($endDate);
-        
-        while ($currentDate <= $endDateTime) {
-            $dateStr = $currentDate->format('Y-m-d');
-            $count = isset($appointments[$dateStr]) ? count($appointments[$dateStr]) : 0;
-            
-            // Calculer la disponibilité (20 créneaux disponibles par jour par défaut)
-            $maxSlots = 20;
-            $availabilityStatus = 'available';
-            
-            if ($count >= $maxSlots) {
-                $availabilityStatus = 'full';
-            } elseif ($count > 0) {
-                $availabilityStatus = 'partial';
-            }
-            
-            // Vérifier si la date est dans le passé
-            $isPast = $currentDate < new \DateTime(date('Y-m-d'));
-            if ($isPast) {
-                $availabilityStatus = 'past';
-            }
-            
-            $dateAvailability[] = [
-                'date' => $dateStr,
-                'day' => (int)$currentDate->format('d'),
-                'status' => $availabilityStatus,
-                'appointments_count' => $count
-            ];
-            
-            $currentDate->modify('+1 day');
-        }
-        
-        // Retourner les résultats
-        return response()->json([
-            'doctor_id' => $doctor_id,
-            'doctor_name' => $doctor->name,
-            'year' => $validatedData['year'],
-            'month' => $validatedData['month'],
-            'dates' => $dateAvailability
-        ]);
+    /**
+ * Récupérer les dates avec des rendez-vous pour un médecin dans un mois donné
+ * 
+ * @param Request $request
+ * @param int $doctor_id
+ * @return \Illuminate\Http\JsonResponse
+ */
+public function getMonthlyAvailability(Request $request, $doctor_id)
+{
+    // Valider les paramètres de la requête
+    $validatedData = $request->validate([
+        'month' => 'required|integer|between:1,12',
+        'year' => 'required|integer|min:2023',
+    ]);
+    
+    // Vérifier que l'utilisateur spécifié est bien un médecin
+    $doctor = User::find($doctor_id);
+    if (!$doctor || !$doctor->isDoctor()) {
+        return response()->json(['message' => 'Médecin non trouvé'], 404);
     }
+    
+    // Définir le premier et dernier jour du mois
+    $startDate = sprintf('%d-%02d-01', $validatedData['year'], $validatedData['month']);
+    $lastDay = date('t', strtotime($startDate)); // Nombre de jours dans le mois
+    $endDate = sprintf('%d-%02d-%d', $validatedData['year'], $validatedData['month'], $lastDay);
+    
+    // Récupérer les rendez-vous pour ce médecin dans ce mois
+    $appointments = Appointment::where('doctor_id', $doctor_id)
+        ->whereBetween('date', [$startDate, $endDate])
+        ->where('status', '!=', 'annulé')
+        ->select('date')
+        ->get()
+        ->groupBy('date');
+    
+    // Récupérer les horaires du médecin
+    $doctorSchedules = DoctorSchedule::where('doctor_id', $doctor_id)->get()->keyBy('day_of_week');
+    
+    // Créer un tableau avec le nombre de rendez-vous par date
+    $dateAvailability = [];
+    $currentDate = new \DateTime($startDate);
+    $endDateTime = new \DateTime($endDate);
+    
+    while ($currentDate <= $endDateTime) {
+        $dateStr = $currentDate->format('Y-m-d');
+        $count = isset($appointments[$dateStr]) ? count($appointments[$dateStr]) : 0;
+        
+        // Obtenir le jour de la semaine au format lowercase
+        $dayOfWeek = strtolower($currentDate->format('l'));
+        
+        // Vérifier si le médecin a défini un horaire pour ce jour et s'il est disponible
+        $isDoctorAvailable = $doctorSchedules->has($dayOfWeek) && $doctorSchedules[$dayOfWeek]->is_available;
+        
+        // Calculer la disponibilité
+        $maxSlots = 20; // Valeur par défaut
+        $availabilityStatus = 'available';
+        
+        // Si le médecin n'est pas disponible ce jour-là
+        if (!$isDoctorAvailable) {
+            $availabilityStatus = 'unavailable';
+        } 
+        // Sinon, vérifier la disponibilité en fonction des rendez-vous existants
+        else if ($count >= $maxSlots) {
+            $availabilityStatus = 'full';
+        } else if ($count > 0) {
+            $availabilityStatus = 'partial';
+        }
+        
+        // Vérifier si la date est dans le passé
+        $isPast = $currentDate < new \DateTime(date('Y-m-d'));
+        if ($isPast) {
+            $availabilityStatus = 'past';
+        }
+        
+        $dateAvailability[] = [
+            'date' => $dateStr,
+            'day' => (int)$currentDate->format('d'),
+            'day_of_week' => $dayOfWeek,
+            'status' => $availabilityStatus,
+            'appointments_count' => $count
+        ];
+        
+        $currentDate->modify('+1 day');
+    }
+    
+    // Retourner les résultats
+    return response()->json([
+        'doctor_id' => $doctor_id,
+        'doctor_name' => $doctor->name,
+        'year' => $validatedData['year'],
+        'month' => $validatedData['month'],
+        'dates' => $dateAvailability
+    ]);
+}
+
+private function timeToMinutes($time)
+{
+    list($hours, $minutes) = explode(':', $time);
+    return intval($hours) * 60 + intval($minutes);
+}
+
+/**
+ * Convertir des minutes depuis minuit en heure au format "HH:MM"
+ */
+private function minutesToTime($minutes)
+{
+    $hours = floor($minutes / 60);
+    $mins = $minutes % 60;
+    return sprintf('%02d:%02d', $hours, $mins);
+}
 }

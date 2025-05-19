@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import AvailabilityCalendar from "./AvailabilityCalendar";
 import TimeSlots from "./TimeSlots";
+import DoctorScheduleInfo from "./DoctorScheduleInfo";
+import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner";
 
 const ImprovedBookAppointment = ({ 
   handleTabChange, 
@@ -20,6 +22,7 @@ const ImprovedBookAppointment = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSummary, setShowSummary] = useState(false);
+  const [step, setStep] = useState(1); // Étape actuelle du flux de réservation
 
   // Load services on component mount
   useEffect(() => {
@@ -36,7 +39,7 @@ const ImprovedBookAppointment = ({
       setServices(response.data.services || []);
     } catch (err) {
       console.error("Error fetching services:", err);
-      setError("Unable to load services. Please try again later.");
+      setError("Impossible de charger les services. Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +61,7 @@ const ImprovedBookAppointment = ({
         setDoctors(response.data.doctors || []);
       } catch (err) {
         console.error("Error fetching doctors:", err);
-        setError("Unable to load doctors for this service. Please try again later.");
+        setError("Impossible de charger les médecins pour ce service. Veuillez réessayer plus tard.");
       } finally {
         setLoading(false);
       }
@@ -74,6 +77,7 @@ const ImprovedBookAppointment = ({
     setSelectedDate("");
     setSelectedTime("");
     setShowSummary(false);
+    setStep(1);
   };
 
   const handleDoctorChange = (e) => {
@@ -81,16 +85,19 @@ const ImprovedBookAppointment = ({
     setSelectedDate("");
     setSelectedTime("");
     setShowSummary(false);
+    setStep(2);
   };
 
   const handleDateSelect = (date) => {
     setSelectedDate(date);
     setSelectedTime("");
+    setStep(3);
     updateSummaryVisibility();
   };
 
   const handleTimeSelect = (time) => {
     setSelectedTime(time);
+    setStep(4);
     updateSummaryVisibility();
   };
 
@@ -111,7 +118,7 @@ const ImprovedBookAppointment = ({
     e.preventDefault();
     
     if (!selectedDoctor || !selectedDate || !selectedTime || !reason.trim()) {
-      setError("Please complete all required fields.");
+      setError("Veuillez remplir tous les champs obligatoires.");
       return;
     }
     
@@ -127,7 +134,7 @@ const ImprovedBookAppointment = ({
 
   // Formatting helpers
   const formatReadableDate = (dateString) => {
-    if (!dateString) return "Not selected";
+    if (!dateString) return "Non sélectionné";
     
     const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('fr-FR', options);
@@ -145,6 +152,11 @@ const ImprovedBookAppointment = ({
     return doctor ? doctor.name : "";
   };
 
+  // Afficher le spinner de chargement
+  if (loading) {
+    return <UnifiedLoadingSpinner text="Chargement des données..." />;
+  }
+
   return (
     <div className="improved-book-appointment">
       <h2 className="section-title">Prendre un rendez-vous</h2>
@@ -156,6 +168,34 @@ const ImprovedBookAppointment = ({
       )}
 
       <div className="appointment-form-container">
+        {/* Barre de progression pour guider l'utilisateur */}
+        <div className="booking-progress">
+          <div className={`progress-step ${step >= 1 ? 'active' : ''}`}>
+            <div className="step-number">1</div>
+            <div className="step-label">Service</div>
+          </div>
+          <div className="progress-connector"></div>
+          <div className={`progress-step ${step >= 2 ? 'active' : ''}`}>
+            <div className="step-number">2</div>
+            <div className="step-label">Médecin</div>
+          </div>
+          <div className="progress-connector"></div>
+          <div className={`progress-step ${step >= 3 ? 'active' : ''}`}>
+            <div className="step-number">3</div>
+            <div className="step-label">Date</div>
+          </div>
+          <div className="progress-connector"></div>
+          <div className={`progress-step ${step >= 4 ? 'active' : ''}`}>
+            <div className="step-number">4</div>
+            <div className="step-label">Heure</div>
+          </div>
+          <div className="progress-connector"></div>
+          <div className={`progress-step ${step >= 5 ? 'active' : ''}`}>
+            <div className="step-number">5</div>
+            <div className="step-label">Motif</div>
+          </div>
+        </div>
+
         {/* Step 1: Service Selection */}
         <div className="step-container">
           <h3>1. Choisissez un service médical</h3>
@@ -214,11 +254,19 @@ const ImprovedBookAppointment = ({
           </div>
         )}
 
+        {/* Afficher les horaires du médecin sélectionné */}
+        {selectedDoctor && (
+          <DoctorScheduleInfo doctorId={selectedDoctor} />
+        )}
+
         {/* Step 3 & 4: Date and Time Selection */}
         {selectedDoctor && (
           <div className="date-time-selection">
             <div className="date-selection">
               <h3>3. Choisissez une date</h3>
+              <div className="info-message small">
+                <i className="fas fa-info-circle"></i> Les jours en gris sont ceux où le médecin n'est pas disponible.
+              </div>
               <AvailabilityCalendar
                 doctorId={selectedDoctor}
                 selectedDate={selectedDate}
@@ -257,6 +305,7 @@ const ImprovedBookAppointment = ({
                 required
                 disabled={actionLoading}
                 className="form-control"
+                onBlur={() => setStep(5)}
               ></textarea>
             </div>
           </div>
@@ -266,7 +315,7 @@ const ImprovedBookAppointment = ({
         {showSummary && (
           <div className="appointment-summary">
             <div className="summary-card">
-              <h3>Résumé du rendez-vous</h3>
+              <h3>Récapitulatif du rendez-vous</h3>
               <div className="summary-details">
                 <div className="summary-row">
                   <span className="summary-label">Service:</span>
@@ -283,6 +332,10 @@ const ImprovedBookAppointment = ({
                 <div className="summary-row">
                   <span className="summary-label">Heure:</span>
                   <span className="summary-value">{selectedTime}</span>
+                </div>
+                <div className="summary-row">
+                  <span className="summary-label">Motif:</span>
+                  <span className="summary-value reason-summary">{reason}</span>
                 </div>
               </div>
             </div>
@@ -311,6 +364,56 @@ const ImprovedBookAppointment = ({
           >
             Annuler
           </button>
+        </div>
+      </div>
+
+      <div className="info-card">
+        <h3>Informations</h3>
+        <div className="info-list">
+          <div className="info-item">
+            <i className="fas fa-info-circle"></i>
+            <p>Les rendez-vous sont soumis à validation par nos secrétaires médicaux.</p>
+          </div>
+          <div className="info-item">
+            <i className="fas fa-clock"></i>
+            <p>Les consultations durent généralement 30 minutes.</p>
+          </div>
+          <div className="info-item">
+            <i className="fas fa-calendar-day"></i>
+            <p>Les disponibilités affichées sont basées sur les horaires définis par le médecin.</p>
+          </div>
+          <div className="info-item">
+            <i className="fas fa-exclamation-triangle"></i>
+            <p>En cas d'urgence, veuillez nous contacter directement par téléphone.</p>
+          </div>
+          <div className="info-item">
+            <i className="fas fa-phone"></i>
+            <p>Numéro d'urgence : 0536629878</p>
+          </div>
+          
+          <div className="legend">
+            <h4>Légende du calendrier</h4>
+            <div className="legend-item">
+              <div className="legend-color available"></div>
+              <span>Médecin disponible</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-color partially-available"></div>
+              <span>Partiellement réservé</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-color unavailable"></div>
+              <span>Aucun créneau disponible</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-color doctor-unavailable"></div>
+              <span>Médecin non disponible</span>
+            </div>
+            <div className="legend-item">
+              <div className="legend-color past"></div>
+              <span>Date passée</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

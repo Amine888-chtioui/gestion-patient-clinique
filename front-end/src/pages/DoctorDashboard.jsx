@@ -26,6 +26,8 @@ import DoctorMedicalRecords from "../components/doctor-dashboard/DoctorMedicalRe
 import DoctorPrescriptions from "../components/doctor-dashboard/DoctorPrescriptions";
 import PatientSelector from "../components/doctor-dashboard/PatientSelector";
 
+import DoctorSchedules from "../components/doctor-dashboard/DoctorSchedules";
+
 import DoctorInvoices from "../components/doctor-dashboard/DoctorInvoices";
 import "../components/doctor-dashboard/doctor-invoices.css";
 
@@ -709,6 +711,16 @@ const [dataLoaded, setDataLoaded] = useState({
               }}
               actionLoading={actionLoading}
             />
+          )}
+
+          {activeTab === "schedules" && (
+            loadingStates.schedules ? (
+              <UnifiedLoadingSpinner text="Chargement des horaires..." color="primary" />
+            ) : (
+              <DoctorSchedules
+                actionLoading={actionLoading}
+              />
+            )
           )}
 
           {activeTab === "profile" && (

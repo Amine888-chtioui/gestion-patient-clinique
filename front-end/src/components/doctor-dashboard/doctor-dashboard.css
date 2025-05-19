@@ -1664,3 +1664,104 @@
     flex: 1;
   }
 }
+/* Styles pour les horaires du médecin */
+.doctor-schedules-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.schedules-form {
+  background-color: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.schedules-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+}
+
+.schedules-table th,
+.schedules-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.schedules-table th {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.schedules-table tr.unavailable {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-light);
+}
+
+.schedules-table select,
+.schedules-table input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+}
+
+.schedules-table select:disabled,
+.schedules-table input:disabled {
+  background-color: #f2f2f2;
+  cursor: not-allowed;
+}
+
+.schedule-info-box {
+  display: flex;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background-color: var(--primary-light);
+  border-radius: var(--radius-md);
+  margin: 1.5rem;
+  border: 1px solid rgba(42, 141, 142, 0.2);
+}
+
+.schedule-info-box i {
+  font-size: 1.5rem;
+  color: var(--primary-color);
+  margin-right: 1rem;
+  margin-top: 0.25rem;
+}
+
+.schedule-info-box h5 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.schedule-info-box ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.schedule-info-box li {
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .schedules-table th,
+  .schedules-table td {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .schedule-info-box {
+    flex-direction: column;
+  }
+  
+  .schedule-info-box i {
+    margin-bottom: 0.5rem;
+    margin-right: 0;
+  }
+}

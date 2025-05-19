@@ -17,40 +17,31 @@ const AvailabilityCalendar = ({
   useEffect(() => {
     if (!doctorId) return;
 
-// Fonction à mettre à jour dans le useEffect pour fetchMonthlyAvailability
-const fetchMonthlyAvailability = async () => {
-    setLoading(true);
-    setError(null);
-  
-    try {
-      const month = currentMonth.getMonth() + 1; // getMonth() renvoie 0-11
-      const year = currentMonth.getFullYear();
-  
-      // Log des paramètres pour le débogage
-      console.log("Envoi de requête avec:", { doctorId, month, year });
-  
-      const response = await axios.get(
-        `/api/doctors/${doctorId}/monthly-availability`, {
-          params: { 
-            month: month, 
-            year: year 
+    const fetchMonthlyAvailability = async () => {
+      setLoading(true);
+      setError(null);
+    
+      try {
+        const month = currentMonth.getMonth() + 1;
+        const year = currentMonth.getFullYear();
+    
+        const response = await axios.get(
+          `/api/doctors/${doctorId}/monthly-availability`, {
+            params: { 
+              month: month, 
+              year: year 
+            }
           }
-        }
-      );
-  
-      console.log("Réponse reçue:", response.data);
-      setMonthlyAvailability(response.data.dates || []);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des disponibilités:", err);
-      // Afficher plus de détails sur l'erreur pour le débogage
-      if (err.response) {
-        console.error("Détails de l'erreur:", err.response.data);
+        );
+    
+        setMonthlyAvailability(response.data.dates || []);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des disponibilités:", err);
+        setError("Impossible de charger les disponibilités.");
+      } finally {
+        setLoading(false);
       }
-      setError("Impossible de charger les disponibilités.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
     fetchMonthlyAvailability();
   }, [doctorId, currentMonth]);
@@ -132,6 +123,9 @@ const fetchMonthlyAvailability = async () => {
         dayClass += " past";
       } else if (dayAvailability.status === 'available') {
         dayClass += " available";
+      } else if (dayAvailability.status === 'unavailable') {
+        // Nouveau statut pour les jours où le médecin n'est pas disponible (weekend, etc.)
+        dayClass += " doctor-unavailable";
       }
       
       currentMonthDays.push(
@@ -139,9 +133,10 @@ const fetchMonthlyAvailability = async () => {
           key={`current-${day}`} 
           className={dayClass}
           onClick={() => {
-            // Ne pas permettre la sélection de jours complets ou passés
+            // Ne pas permettre la sélection de jours complets, passés ou indisponibles
             if (dayAvailability.status !== 'full' && 
-                dayAvailability.status !== 'past' && 
+                dayAvailability.status !== 'past' &&
+                dayAvailability.status !== 'unavailable' && 
                 !disabled) {
               onDateSelect(dateStr);
             }
@@ -199,6 +194,8 @@ const fetchMonthlyAvailability = async () => {
         return 'Complet';
       case 'past':
         return 'Passé';
+      case 'unavailable':
+        return 'Médecin non disponible';
       default:
         return 'Statut inconnu';
     }
@@ -258,6 +255,10 @@ const fetchMonthlyAvailability = async () => {
         <div className="legend-item">
           <span className="legend-color unavailable"></span>
           <span className="legend-label">Complet</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-color doctor-unavailable"></span>
+          <span className="legend-label">Médecin non disponible</span>
         </div>
         <div className="legend-item">
           <span className="legend-color past"></span>

@@ -418,3 +418,235 @@
       font-size: 0.65rem;
     }
   }
+  /* Style pour les jours où le médecin n'est pas disponible */
+.calendar-day.doctor-unavailable {
+  background-color: rgba(150, 150, 150, 0.1);
+  color: #aaa;
+  border: 1px solid rgba(150, 150, 150, 0.2);
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.legend-color.doctor-unavailable {
+  background-color: rgba(150, 150, 150, 0.1);
+  border: 1px solid rgba(150, 150, 150, 0.2);
+}
+
+.unavailable-note {
+  font-style: italic;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.day-name {
+  font-size: 0.9rem;
+  font-weight: normal;
+  margin-left: 0.5rem;
+  color: var(--text-light);
+}
+
+/* Style pour les informations d'horaires du médecin */
+.doctor-schedule-info {
+  margin-top: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  border: 1px solid var(--border-color);
+}
+
+.doctor-schedule-info h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.doctor-schedule-info.loading,
+.doctor-schedule-info.error,
+.doctor-schedule-info.empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-light);
+}
+
+.doctor-schedule-info.error {
+  color: var(--danger-color);
+}
+
+.weekly-schedule {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.day-schedule {
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: white;
+}
+
+.day-schedule.available {
+  border-left: 3px solid var(--success-color);
+}
+
+.day-schedule.unavailable {
+  border-left: 3px solid var(--text-light);
+  opacity: 0.7;
+}
+
+.day-name {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.day-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.day-schedule.available .day-status {
+  color: var(--success-color);
+}
+
+.day-schedule.unavailable .day-status {
+  color: var(--text-light);
+}
+
+.day-hours {
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .weekly-schedule {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+/* Styles pour la barre de progression de réservation */
+.booking-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.progress-step.active .step-number {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.progress-step.active .step-label {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.progress-connector {
+  flex: 1;
+  height: 2px;
+  background-color: #ddd;
+  margin: 0 0.5rem;
+  position: relative;
+  top: -18px; /* Pour aligner avec le milieu des cercles */
+}
+
+/* Info message styles */
+.info-message {
+  padding: 0.75rem;
+  background-color: var(--primary-light);
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+}
+
+.info-message i {
+  margin-right: 0.5rem;
+}
+
+.info-message.small {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Better summary style */
+.reason-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .booking-progress {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .step-number {
+    width: 30px;
+    height: 30px;
+    font-size: 0.85rem;
+  }
+  
+  .step-label {
+    font-size: 0.75rem;
+  }
+  
+  .progress-connector {
+    top: -15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .booking-progress {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .progress-step {
+    min-width: 80px;
+  }
+}

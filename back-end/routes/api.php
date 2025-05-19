@@ -11,6 +11,7 @@ use App\Http\Controllers\SimpleInvoiceController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\DoctorScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,8 @@ use App\Http\Controllers\ServiceController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login-with-google', [AuthController::class, 'loginWithGoogle']);
+// Route pour vérifier la disponibilité d'un médecin (accessible publiquement)
+Route::get('/doctors/{doctorId}/availability-check', [DoctorScheduleController::class, 'checkAvailability']);
 Route::get('/auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'handleGoogleCallback']);
 // Routes pour la réinitialisation de mot de passe
 Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendVerificationCode']);
@@ -72,6 +75,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Routes pour les services (correctement placées dans le préfixe 'patient')
         Route::get('/services', [ServiceController::class, 'getActiveServices']);
         Route::get('/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
+        // Route pour récupérer les horaires d'un médecin (pour les patients)
+        Route::get('/doctors/{doctor_id}/schedules', [DoctorScheduleController::class, 'getDoctorSchedules']);
     });
     
     // Routes pour les médecins
@@ -85,11 +90,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/medical-records', [DoctorController::class, 'getMedicalRecords']);
         Route::get('/prescriptions', [DoctorController::class, 'getPrescriptions']);
         Route::get('/invoices', [DoctorController::class, 'getInvoices']);
-Route::get('/patients/{id}/invoices', [DoctorController::class, 'getPatientInvoices']);
+        Route::get('/patients/{id}/invoices', [DoctorController::class, 'getPatientInvoices']);
         Route::get('/documents/{id}/download', [DoctorController::class, 'downloadDocument']);
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::put('/profile', [DoctorController::class, 'updateProfile']);
         Route::post('/profile/photo', [DoctorController::class, 'updateProfilePhoto']);
+        // Routes pour les horaires de disponibilité des médecins
+        Route::get('/schedules', [DoctorScheduleController::class, 'getSchedules']);
+        Route::post('/schedules', [DoctorScheduleController::class, 'updateSchedule']);
     });
     
     // Routes pour les admins
