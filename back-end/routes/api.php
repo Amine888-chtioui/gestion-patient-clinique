@@ -75,6 +75,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Routes pour les services (correctement placées dans le préfixe 'patient')
         Route::get('/services', [ServiceController::class, 'getActiveServices']);
         Route::get('/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
+        
         // Route pour récupérer les horaires d'un médecin (pour les patients)
         Route::get('/doctors/{doctor_id}/schedules', [DoctorScheduleController::class, 'getDoctorSchedules']);
     });

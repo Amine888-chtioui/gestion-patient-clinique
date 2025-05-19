@@ -1,4 +1,4 @@
-// src/components/patient-dashboard/DoctorScheduleInfo.jsx
+// File: front-end/src/components/patient-dashboard/DoctorScheduleInfo.jsx
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 
@@ -26,7 +26,10 @@ const DoctorScheduleInfo = ({ doctorId }) => {
       setError(null);
 
       try {
-        const response = await axios.get(`/api/doctors/${doctorId}/schedules`);
+        // Correction de la route API - utiliser le préfixe patient
+        const response = await axios.get(`/api/patient/doctors/${doctorId}/schedules`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
         setSchedules(response.data.schedules || []);
       } catch (err) {
         console.error("Erreur lors du chargement des horaires du médecin:", err);

@@ -159,23 +159,23 @@ class DoctorScheduleController extends Controller
     /**
  * Récupérer les horaires d'un médecin (pour les patients)
  */
-public function getDoctorSchedules($doctor_id)
-{
-    // Vérifier que l'utilisateur spécifié est bien un médecin
-    $doctor = User::find($doctor_id);
-    if (!$doctor || !$doctor->isDoctor()) {
-        return response()->json(['message' => 'Médecin non trouvé'], 404);
+ public function getDoctorSchedules($doctor_id)
+    {
+        // Vérifier que l'utilisateur spécifié est bien un médecin
+        $doctor = User::find($doctor_id);
+        if (!$doctor || !$doctor->isDoctor()) {
+            return response()->json(['message' => 'Médecin non trouvé'], 404);
+        }
+        
+        // Récupérer les horaires du médecin
+        $schedules = DoctorSchedule::where('doctor_id', $doctor_id)
+            ->orderBy('day_of_week')
+            ->get();
+        
+        return response()->json([
+            'doctor_id' => $doctor_id,
+            'doctor_name' => $doctor->name,
+            'schedules' => $schedules
+        ]);
     }
-    
-    // Récupérer les horaires du médecin
-    $schedules = DoctorSchedule::where('doctor_id', $doctor_id)
-        ->orderBy('day_of_week')
-        ->get();
-    
-    return response()->json([
-        'doctor_id' => $doctor_id,
-        'doctor_name' => $doctor->name,
-        'schedules' => $schedules
-    ]);
-}
 }
