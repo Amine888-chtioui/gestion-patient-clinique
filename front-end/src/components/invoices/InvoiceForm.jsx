@@ -1,483 +1,606 @@
-// src/components/invoices/InvoiceForm.jsx
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../axios";
-import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
-import ErrorDisplay from "../../components/common/ErrorDisplay";
 
-const InvoiceForm = ({ onInvoiceAction }) => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(id ? true : false);
-  const [error, setError] = useState(null);
-  const [patients, setPatients] = useState([]);
-  const [patientsLoading, setPatientsLoading] = useState(true);
-  
-  // État du formulaire
-  const [formData, setFormData] = useState({
+const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actionLoading, setActionLoading }) => {
+  const today = new Date().toISOString().split("T")[0];
+  const thirtyDaysLater = new Date();
+  thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+  const defaultDueDate = thirtyDaysLater.toISOString().split("T")[0];
+
+  // État initial du formulaire
+  const initialFormState = {
     patient_id: "",
-    issue_date: new Date().toISOString().split('T')[0],
-    due_date: "",
-    items: [{ description: "", unit_price: 0, quantity: 1, total: 0 }],
-    subtotal_amount: 0,
-    tax_rate: 20,
-    tax_amount: 0,
-    discount_amount: 0,
-    total_amount: 0,
-    status: "unpaid",
-    notes: ""
+    appointment_id: "",
+    date: today,
+    due_date: defaultDueDate,
+    tax_percent: 20,
+    status: "draft",
+    payment_method: "",
+    payment_date: "",
+    notes: "",
+    items: [
+      {
+        description: "",
+        quantity: 1,
+        unit_price: 0,
+      },
+    ],
+  };
+
+  // État du formulaire
+  const [formData, setFormData] = useState(initialFormState);
+  const [appointments, setAppointments] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
+  // Calculer les totaux
+  const [totals, setTotals] = useState({
+    subtotal: 0,
+    tax: 0,
+    total: 0,
   });
-  
-  // Chargement des patients
+
+  // Populer le formulaire avec les données d'une facture existante
   useEffect(() => {
-    fetchPatients();
-    
-    // Si c'est une modification, charger les données de la facture
-    if (id) {
-      fetchInvoice();
-    } else {
-      // Définir la date d'échéance par défaut (aujourd'hui + 30 jours)
-      const today = new Date();
-      const dueDate = new Date();
-      dueDate.setDate(today.getDate() + 30);
-      
-      setFormData(prev => ({
-        ...prev,
-        due_date: dueDate.toISOString().split('T')[0]
-      }));
-    }
-  }, [id]);
-  
-  // Mettre à jour le sous-total lorsque les articles changent
-  useEffect(() => {
-    updateTotals();
-  }, [formData.items, formData.tax_rate, formData.discount_amount]);
-  
-  const fetchPatients = async () => {
-    try {
-      setPatientsLoading(true);
-      const response = await axios.get("/api/admin/patients", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
-      setPatients(response.data.patients || []);
-      setPatientsLoading(false);
-    } catch (err) {
-      console.error("Erreur lors de la récupération des patients:", err);
-      setPatientsLoading(false);
-    }
-  };
-  
-  const fetchInvoice = async () => {
-    try {
-      setInitialLoading(true);
-      const response = await axios.get(`/api/invoices/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
-      // Formater les données pour le formulaire
-      const invoice = response.data.data;
+    if (invoice) {
       setFormData({
-        patient_id: invoice.patient_id || "",
-        issue_date: invoice.issue_date || new Date().toISOString().split('T')[0],
-        due_date: invoice.due_date || "",
-        items: invoice.items || [{ description: "", unit_price: 0, quantity: 1, total: 0 }],
-        subtotal_amount: invoice.subtotal_amount || 0,
-        tax_rate: invoice.tax_rate || 20,
-        tax_amount: invoice.tax_amount || 0,
-        discount_amount: invoice.discount_amount || 0,
-        total_amount: invoice.total_amount || 0,
-        status: invoice.status || "unpaid",
-        notes: invoice.notes || ""
+        patient_id: invoice.patient_id.toString(),
+        appointment_id: invoice.appointment_id ? invoice.appointment_id.toString() : "",
+        date: invoice.date,
+        due_date: invoice.due_date,
+        tax_percent: invoice.tax_percent || 20,
+        status: invoice.status || "draft",
+        payment_method: invoice.payment_method || "",
+        payment_date: invoice.payment_date || "",
+        notes: invoice.notes || "",
+        items: invoice.items && invoice.items.length > 0 
+          ? invoice.items.map(item => ({
+              id: item.id,
+              description: item.description,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+            }))
+          : [{ description: "", quantity: 1, unit_price: 0 }],
       });
       
-      setInitialLoading(false);
+      if (invoice.patient_id) {
+        fetchPatientAppointments(invoice.patient_id);
+        setSelectedPatient(patients.find(p => p.id === invoice.patient_id));
+      }
+    }
+  }, [invoice, patients]);
+
+  // Calculer les totaux à chaque changement des éléments
+  useEffect(() => {
+    calculateTotals();
+  }, [formData.items, formData.tax_percent]);
+
+  // Récupérer les rendez-vous du patient
+  const fetchPatientAppointments = async (patientId) => {
+    if (!patientId) return;
+    
+    try {
+      const response = await axios.get(`/api/patients/${patientId}/appointments`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      setAppointments(response.data.appointments || []);
     } catch (err) {
-      console.error("Erreur lors de la récupération de la facture:", err);
-      setError("Impossible de charger la facture pour modification.");
-      setInitialLoading(false);
+      console.error("Erreur lors de la récupération des rendez-vous:", err);
+      setAppointments([]);
     }
   };
-  
+
+  // Gérer les changements dans le formulaire principal
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index][field] = value;
     
-    // Calculer le total de la ligne si le prix ou la quantité change
-    if (field === "unit_price" || field === "quantity") {
-      newItems[index].total = newItems[index].unit_price * newItems[index].quantity;
+    if (name === "patient_id" && value !== formData.patient_id) {
+      fetchPatientAppointments(value);
+      setSelectedPatient(patients.find(p => p.id === parseInt(value)));
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        appointment_id: "" // Réinitialiser le rendez-vous
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
+    
+    // Effacer l'erreur pour ce champ
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  // Gérer les changements dans les éléments de la facture
+  const handleItemChange = (index, e) => {
+    const { name, value } = e.target;
+    const newItems = [...formData.items];
+    
+    // Convertir en nombre si nécessaire
+    const newValue = name === "quantity" || name === "unit_price" 
+      ? value === "" ? "" : parseFloat(value) 
+      : value;
+    
+    newItems[index] = {
+      ...newItems[index],
+      [name]: newValue
+    };
     
     setFormData(prev => ({
       ...prev,
       items: newItems
     }));
+    
+    // Effacer l'erreur pour ce champ
+    if (errors[`items.${index}.${name}`]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[`items.${index}.${name}`];
+        return newErrors;
+      });
+    }
   };
-  
+
+  // Ajouter un nouvel élément
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { description: "", unit_price: 0, quantity: 1, total: 0 }]
+      items: [
+        ...prev.items,
+        { description: "", quantity: 1, unit_price: 0 }
+      ]
     }));
   };
-  
+
+  // Supprimer un élément
   const removeItem = (index) => {
-    if (formData.items.length > 1) {
-      const newItems = formData.items.filter((_, i) => i !== index);
-      setFormData(prev => ({
-        ...prev,
-        items: newItems
-      }));
-    }
-  };
-  
-  const updateTotals = () => {
-    // Calculer le sous-total
-    const subtotal = formData.items.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
+    if (formData.items.length === 1) return;
     
-    // Calculer la TVA
-    const taxAmount = (subtotal * (parseFloat(formData.tax_rate) || 0)) / 100;
-    
-    // Calculer le total
-    const total = subtotal + taxAmount - (parseFloat(formData.discount_amount) || 0);
-    
+    const newItems = formData.items.filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
-      subtotal_amount: subtotal,
-      tax_amount: taxAmount,
-      total_amount: total
+      items: newItems
     }));
   };
-  
-  // Gérer l'annulation du formulaire
-  const handleCancel = (e) => {
-    e.preventDefault();
-    if (onInvoiceAction) {
-      onInvoiceAction('list');
-    } else {
-      // Fallback si onInvoiceAction n'est pas disponible
-      navigate('/admin/dashboard/invoices');
-    }
+
+  // Calculer les totaux
+  const calculateTotals = () => {
+    const subtotal = formData.items.reduce((sum, item) => {
+      const itemTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+      return sum + itemTotal;
+    }, 0);
+    
+    const taxRate = parseFloat(formData.tax_percent) / 100;
+    const tax = subtotal * taxRate;
+    const total = subtotal + tax;
+    
+    setTotals({
+      subtotal: subtotal.toFixed(2),
+      tax: tax.toFixed(2),
+      total: total.toFixed(2)
+    });
   };
-  
+
+  // Valider le formulaire
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.patient_id) {
+      newErrors.patient_id = "Le patient est requis";
+    }
+    
+    if (!formData.date) {
+      newErrors.date = "La date est requise";
+    }
+    
+    if (!formData.due_date) {
+      newErrors.due_date = "La date d'échéance est requise";
+    }
+    
+    if (formData.items.length === 0) {
+      newErrors.items = "Au moins un élément est requis";
+    } else {
+      formData.items.forEach((item, index) => {
+        if (!item.description) {
+          newErrors[`items.${index}.description`] = "La description est requise";
+        }
+        
+        if (!item.quantity) {
+          newErrors[`items.${index}.quantity`] = "La quantité est requise";
+        } else if (isNaN(parseFloat(item.quantity)) || parseFloat(item.quantity) <= 0) {
+          newErrors[`items.${index}.quantity`] = "La quantité doit être un nombre positif";
+        }
+        
+        if (!item.unit_price && item.unit_price !== 0) {
+          newErrors[`items.${index}.unit_price`] = "Le prix unitaire est requis";
+        } else if (isNaN(parseFloat(item.unit_price)) || parseFloat(item.unit_price) < 0) {
+          newErrors[`items.${index}.unit_price`] = "Le prix unitaire doit être un nombre positif ou zéro";
+        }
+      });
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Soumettre le formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setActionLoading(true);
     
     try {
-      if (id) {
+      // Préparer les données pour l'API
+      const apiData = {
+        ...formData,
+        tax_percent: parseFloat(formData.tax_percent),
+        items: formData.items.map(item => ({
+          description: item.description,
+          quantity: parseFloat(item.quantity),
+          unit_price: parseFloat(item.unit_price),
+        }))
+      };
+      
+      // Supprimer les champs vides
+      if (!apiData.appointment_id) delete apiData.appointment_id;
+      if (!apiData.payment_method) delete apiData.payment_method;
+      if (!apiData.payment_date) delete apiData.payment_date;
+      if (!apiData.notes) delete apiData.notes;
+      
+      let response;
+      
+      if (invoice) {
         // Mise à jour d'une facture existante
-        await axios.put(`/api/invoices/${id}`, formData, {
+        response = await axios.put(`/api/invoices/${invoice.id}`, apiData, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
       } else {
         // Création d'une nouvelle facture
-        await axios.post("/api/invoices", formData, {
+        response = await axios.post("/api/invoices", apiData, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
       }
       
-      // Rediriger vers la liste des factures
-      if (onInvoiceAction) {
-        onInvoiceAction('list');
-      } else {
-        navigate('/admin/dashboard/invoices');
+      // Appeler la fonction de succès
+      if (onSuccess) {
+        onSuccess(response.data);
       }
+      
     } catch (err) {
       console.error("Erreur lors de l'enregistrement de la facture:", err);
-      setError(err.response?.data?.message || "Une erreur est survenue lors de l'enregistrement de la facture.");
+      
+      // Traiter les erreurs de validation du serveur
+      if (err.response && err.response.status === 422 && err.response.data.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setErrors({
+          global: err.response?.data?.message || "Une erreur est survenue lors de l'enregistrement de la facture"
+        });
+      }
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
-  
+
+  // Formater un montant en euros
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "EUR"
+    }).format(amount);
   };
-  
-  if (initialLoading) {
-    return <UnifiedLoadingSpinner size="medium" text="Chargement du formulaire..." />;
-  }
-  
-  if (error) {
-    return <ErrorDisplay error={error} />;
-  }
-  
+
   return (
-    <div className="invoice-form-container">
-      <div className="invoice-form-header">
-        <h2>{id ? "Modifier la facture" : "Créer une nouvelle facture"}</h2>
-        <button className="btn-outline" onClick={handleCancel}>
-          <i className="fas fa-times"></i> Annuler
-        </button>
-      </div>
-      
+    <div className="invoice-form">
       <form onSubmit={handleSubmit}>
         <div className="form-section">
-          <h3>Informations générales</h3>
+          <h4>Informations générales</h4>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="patient_id">Patient*</label>
-              {patientsLoading ? (
-                <div className="select-loading">Chargement des patients...</div>
-              ) : (
-                <select
-                  id="patient_id"
-                  name="patient_id"
-                  value={formData.patient_id}
-                  onChange={handleChange}
-                  required
-                  className="form-control"
-                  disabled={loading}
-                >
-                  <option value="">Sélectionner un patient</option>
-                  {patients.map(patient => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <label htmlFor="patient_id">Patient *</label>
+              <select
+                id="patient_id"
+                name="patient_id"
+                className={`form-control ${errors.patient_id ? "is-invalid" : ""}`}
+                value={formData.patient_id}
+                onChange={handleChange}
+                disabled={actionLoading}
+              >
+                <option value="">Sélectionner un patient</option>
+                {patients.map(patient => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.name}
+                  </option>
+                ))}
+              </select>
+              {errors.patient_id && <div className="invalid-feedback">{errors.patient_id}</div>}
             </div>
             
             <div className="form-group">
-              <label htmlFor="status">Statut*</label>
+              <label htmlFor="appointment_id">Rendez-vous lié (optionnel)</label>
               <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                required
+                id="appointment_id"
+                name="appointment_id"
                 className="form-control"
-                disabled={loading}
+                value={formData.appointment_id}
+                onChange={handleChange}
+                disabled={!formData.patient_id || actionLoading}
               >
-                <option value="unpaid">Non payée</option>
-                <option value="paid">Payée</option>
-                <option value="pending">En attente</option>
-                <option value="overdue">En retard</option>
-                <option value="cancelled">Annulée</option>
+                <option value="">Aucun</option>
+                {appointments.map(appointment => (
+                  <option key={appointment.id} value={appointment.id}>
+                    {appointment.date} - {appointment.doctor}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
           
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="issue_date">Date d'émission*</label>
+              <label htmlFor="date">Date de facturation *</label>
               <input
                 type="date"
-                id="issue_date"
-                name="issue_date"
-                value={formData.issue_date}
+                id="date"
+                name="date"
+                className={`form-control ${errors.date ? "is-invalid" : ""}`}
+                value={formData.date}
                 onChange={handleChange}
-                required
-                className="form-control"
-                disabled={loading}
+                disabled={actionLoading}
               />
+              {errors.date && <div className="invalid-feedback">{errors.date}</div>}
             </div>
             
             <div className="form-group">
-              <label htmlFor="due_date">Date d'échéance*</label>
+              <label htmlFor="due_date">Date d'échéance *</label>
               <input
                 type="date"
                 id="due_date"
                 name="due_date"
+                className={`form-control ${errors.due_date ? "is-invalid" : ""}`}
                 value={formData.due_date}
                 onChange={handleChange}
-                required
+                disabled={actionLoading}
+              />
+              {errors.due_date && <div className="invalid-feedback">{errors.due_date}</div>}
+            </div>
+          </div>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="status">Statut</label>
+              <select
+                id="status"
+                name="status"
                 className="form-control"
-                disabled={loading}
+                value={formData.status}
+                onChange={handleChange}
+                disabled={actionLoading}
+              >
+                <option value="draft">Brouillon</option>
+                <option value="sent">Envoyée</option>
+                <option value="paid">Payée</option>
+                <option value="cancelled">Annulée</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="tax_percent">TVA (%)</label>
+              <input
+                type="number"
+                id="tax_percent"
+                name="tax_percent"
+                className="form-control"
+                value={formData.tax_percent}
+                onChange={handleChange}
+                min="0"
+                max="100"
+                step="0.1"
+                disabled={actionLoading}
               />
             </div>
           </div>
-        </div>
-        
-        <div className="form-section">
-          <h3>Prestations</h3>
-          <table className="items-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Prix unitaire</th>
-                <th>Quantité</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.items.map((item, index) => (
-                <tr key={index}>
-                  <td>
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                      placeholder="Description de la prestation"
-                      className="form-control"
-                      required
-                      disabled={loading}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      value={item.unit_price}
-                      onChange={(e) => handleItemChange(index, "unit_price", parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                      className="form-control"
-                      required
-                      disabled={loading}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, "quantity", parseInt(e.target.value) || 0)}
-                      min="1"
-                      className="form-control"
-                      required
-                      disabled={loading}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      value={formatCurrency(item.total)}
-                      readOnly
-                      className="form-control-plaintext"
-                      disabled
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-icon danger"
-                      onClick={() => removeItem(index)}
-                      disabled={formData.items.length <= 1 || loading}
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
           
-          <button
-            type="button"
-            className="btn-outline add-item"
-            onClick={addItem}
-            disabled={loading}
-          >
-            <i className="fas fa-plus"></i> Ajouter une prestation
-          </button>
-        </div>
-        
-        <div className="form-section">
-          <div className="invoice-totals">
-            <div className="totals-group">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="tax_rate">Taux de TVA (%)</label>
-                  <input
-                    type="number"
-                    id="tax_rate"
-                    name="tax_rate"
-                    value={formData.tax_rate}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    className="form-control"
-                    disabled={loading}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="discount_amount">Remise</label>
-                  <input
-                    type="number"
-                    id="discount_amount"
-                    name="discount_amount"
-                    value={formData.discount_amount}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    className="form-control"
-                    disabled={loading}
-                  />
-                </div>
+          {formData.status === "paid" && (
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="payment_method">Méthode de paiement</label>
+                <select
+                  id="payment_method"
+                  name="payment_method"
+                  className="form-control"
+                  value={formData.payment_method}
+                  onChange={handleChange}
+                  disabled={actionLoading}
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="cash">Espèces</option>
+                  <option value="card">Carte bancaire</option>
+                  <option value="transfer">Virement</option>
+                  <option value="check">Chèque</option>
+                </select>
               </div>
               
-              <div className="totals-summary">
-                <div className="summary-row">
-                  <span className="summary-label">Sous-total:</span>
-                  <span className="summary-value">{formatCurrency(formData.subtotal_amount)}</span>
-                </div>
-                <div className="summary-row">
-                  <span className="summary-label">TVA ({formData.tax_rate}%):</span>
-                  <span className="summary-value">{formatCurrency(formData.tax_amount)}</span>
-                </div>
-                {formData.discount_amount > 0 && (
-                  <div className="summary-row">
-                    <span className="summary-label">Remise:</span>
-                    <span className="summary-value">-{formatCurrency(formData.discount_amount)}</span>
-                  </div>
-                )}
-                <div className="summary-row total">
-                  <span className="summary-label">Total:</span>
-                  <span className="summary-value">{formatCurrency(formData.total_amount)}</span>
-                </div>
+              <div className="form-group">
+                <label htmlFor="payment_date">Date de paiement</label>
+                <input
+                  type="date"
+                  id="payment_date"
+                  name="payment_date"
+                  className="form-control"
+                  value={formData.payment_date}
+                  onChange={handleChange}
+                  disabled={actionLoading}
+                />
               </div>
+            </div>
+          )}
+          
+          <div className="form-group">
+            <label htmlFor="notes">Notes (optionnel)</label>
+            <textarea
+              id="notes"
+              name="notes"
+              className="form-control"
+              value={formData.notes}
+              onChange={handleChange}
+              rows="2"
+              disabled={actionLoading}
+              placeholder="Notes ou informations supplémentaires..."
+            ></textarea>
+          </div>
+        </div>
+        
+        <div className="form-section">
+          <div className="section-header">
+            <h4>Éléments de la facture</h4>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={addItem}
+              disabled={actionLoading}
+            >
+              <i className="fas fa-plus"></i> Ajouter un élément
+            </button>
+          </div>
+          
+          {errors.items && typeof errors.items === "string" && (
+            <div className="alert alert-danger">{errors.items}</div>
+          )}
+          
+          <div className="invoice-items">
+            <table className="invoice-items-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "50%" }}>Description</th>
+                  <th style={{ width: "15%" }}>Quantité</th>
+                  <th style={{ width: "15%" }}>Prix unitaire</th>
+                  <th style={{ width: "15%" }}>Total</th>
+                  <th style={{ width: "5%" }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.items.map((item, index) => {
+                  const itemTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+                  return (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          name="description"
+                          className={`form-control ${errors[`items.${index}.description`] ? "is-invalid" : ""}`}
+                          value={item.description}
+                          onChange={(e) => handleItemChange(index, e)}
+                          placeholder="Description de l'acte ou du service"
+                          disabled={actionLoading}
+                        />
+                        {errors[`items.${index}.description`] && (
+                          <div className="invalid-feedback">{errors[`items.${index}.description`]}</div>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          name="quantity"
+                          className={`form-control ${errors[`items.${index}.quantity`] ? "is-invalid" : ""}`}
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, e)}
+                          min="1"
+                          step="1"
+                          disabled={actionLoading}
+                        />
+                        {errors[`items.${index}.quantity`] && (
+                          <div className="invalid-feedback">{errors[`items.${index}.quantity`]}</div>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          name="unit_price"
+                          className={`form-control ${errors[`items.${index}.unit_price`] ? "is-invalid" : ""}`}
+                          value={item.unit_price}
+                          onChange={(e) => handleItemChange(index, e)}
+                          min="0"
+                          step="0.01"
+                          disabled={actionLoading}
+                        />
+                        {errors[`items.${index}.unit_price`] && (
+                          <div className="invalid-feedback">{errors[`items.${index}.unit_price`]}</div>
+                        )}
+                      </td>
+                      <td className="item-total">
+                        {formatCurrency(itemTotal)}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn-icon danger"
+                          onClick={() => removeItem(index)}
+                          disabled={formData.items.length === 1 || actionLoading}
+                          title="Supprimer cet élément"
+                        >
+                          <i className="fas fa-trash-alt"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="invoice-summary">
+            <div className="summary-row">
+              <div className="summary-label">Sous-total:</div>
+              <div className="summary-value">{formatCurrency(totals.subtotal)}</div>
+            </div>
+            <div className="summary-row">
+              <div className="summary-label">TVA ({formData.tax_percent}%):</div>
+              <div className="summary-value">{formatCurrency(totals.tax)}</div>
+            </div>
+            <div className="summary-row total">
+              <div className="summary-label">Total:</div>
+              <div className="summary-value">{formatCurrency(totals.total)}</div>
             </div>
           </div>
         </div>
         
-        <div className="form-section">
-          <h3>Notes</h3>
-          <div className="form-group">
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows="3"
-              className="form-control"
-              placeholder="Notes ou instructions supplémentaires (optionnel)"
-              disabled={loading}
-            ></textarea>
-          </div>
-        </div>
+        {errors.global && (
+          <div className="alert alert-danger">{errors.global}</div>
+        )}
         
         <div className="form-actions">
           <button
             type="submit"
             className="btn-primary"
-            disabled={loading}
+            disabled={actionLoading}
           >
-            {loading ? (
-              <><i className="fas fa-spinner fa-spin"></i> Enregistrement...</>
+            {actionLoading ? (
+              <span><i className="loading-spinner"></i> Traitement...</span>
             ) : (
-              <><i className="fas fa-save"></i> {id ? "Mettre à jour" : "Créer la facture"}</>
+              <span><i className="fas fa-save"></i> {invoice ? "Mettre à jour" : "Enregistrer"}</span>
             )}
           </button>
           <button
             type="button"
             className="btn-secondary"
-            onClick={handleCancel}
-            disabled={loading}
+            onClick={onCancel}
+            disabled={actionLoading}
           >
-            Annuler
+            <i className="fas fa-times"></i> Annuler
           </button>
         </div>
       </form>
