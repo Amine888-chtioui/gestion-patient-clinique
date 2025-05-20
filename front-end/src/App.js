@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx - Version modifiée sans les routes patient-invoices
 import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -6,7 +6,7 @@ import {
   Route,
   Navigate,
   useLocation,
-  useNavigate  // Ajout de useNavigate ici
+  useNavigate
 } from "react-router-dom";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import Login from "./pages/Login";
@@ -17,16 +17,10 @@ import ResetPassword from "./pages/ResetPassword";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import PatientInvoicesPage from "./pages/PatientInvoicesPage";
-import PatientInvoiceDetailsPage from "./pages/PatientInvoiceDetailsPage";
 import VerifyCode from "./pages/VerifyCode";
 import "./theme-variables.css";
-import PaymentPage from "./pages/PaymentPage";
-import InvoicePayment from "./components/patient-dashboard/InvoicePayment";
 
-
-// Remplacez le composant ThemeManager existant par celui-ci:
-
+// ThemeManager component
 const ThemeManager = ({ children }) => {
   const location = useLocation();
   
@@ -131,35 +125,6 @@ function App() {
               }
             />
 
-            {/* Routes pour les factures patient (accessibles depuis le dashboard ou directement) */}
-            <Route
-              path="/patient-invoices"
-              element={
-                <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                  <PatientInvoicesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patient-invoices/:id"
-              element={
-                <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                  <PatientInvoiceDetailsPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Route pour la page de paiement */}
-            <Route
-             path="/payment/:id"
-             element={
-               <ProtectedRoute allowedRoles={["patient", "admin"]}>
-                 <PaymentPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/payment/:id" element={<InvoicePayment />} />
-            
             {/* Redirection des anciennes routes d'invoices vers le dashboard admin */}
             <Route path="/invoices" element={<Navigate to="/admin/dashboard/invoices" replace />} />
             <Route path="/invoices/:id" element={<Navigate to="/admin/dashboard" replace />} />
