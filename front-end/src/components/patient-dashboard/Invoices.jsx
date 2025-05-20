@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import { useNavigate } from "react-router-dom";
+import "./patient-invoices.css"; // Importation du CSS pour les factures
 import "../common/modal.css"; // Importation du CSS pour le modal
 import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner"; // Import du spinner unifié
 
@@ -20,15 +21,17 @@ const Invoices = ({ actionLoading }) => {
 
   // États pour le modal de paiement
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(null);
-  const [paymentData, setPaymentData] = useState({
-    payment_method: "card",
-    card_number: "",
-    expiry_date: "",
-    cvv: "",
-    name_on_card: "",
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: "",
+    cardHolder: "",
+    expiryDate: "",
+    cvv: ""
   });
 
   // Fonction utilitaire pour les en-têtes d'autorisation
@@ -119,96 +122,121 @@ const Invoices = ({ actionLoading }) => {
     setInvoiceDetails(null);
   };
 
-  // Ouvrir le modal de paiement
-  const handleOpenPaymentModal = (invoice) => {
+  // Ouvrir le modal de paiement et charger les méthodes de paiement
+  const handleOpenPaymentModal = async (invoice) => {
     setSelectedInvoice(invoice);
     setShowPaymentModal(true);
     // Réinitialiser les états de paiement
     setPaymentError(null);
     setPaymentSuccess(null);
-    setPaymentData({
-      payment_method: "card",
-      card_number: "",
-      expiry_date: "",
-      cvv: "",
-      name_on_card: "",
+    setSelectedPaymentMethod("");
+    setCardDetails({
+      cardNumber: "",
+      cardHolder: "",
+      expiryDate: "",
+      cvv: ""
     });
+
+    // Charger les méthodes de paiement disponibles
+    try {
+      setLoadingPaymentMethods(true);
+      const response = await axios.get("/api/patient/payment-methods", getAuthHeaders());
+      setPaymentMethods(response.data.payment_methods || []);
+      // Sélectionner la première méthode de paiement par défaut
+      if (response.data.payment_methods && response.data.payment_methods.length > 0) {
+        setSelectedPaymentMethod(response.data.payment_methods[0].id);
+      }
+    } catch (err) {
+      console.error("Erreur lors du chargement des méthodes de paiement:", err);
+      setPaymentError("Impossible de charger les méthodes de paiement. Veuillez réessayer plus tard.");
+    } finally {
+      setLoadingPaymentMethods(false);
+    }
   };
 
   // Fermer le modal de paiement
   const closePaymentModal = () => {
     setShowPaymentModal(false);
     setSelectedInvoice(null);
+    setSelectedPaymentMethod("");
     setPaymentProcessing(false);
   };
 
-  // Gérer les changements des champs de paiement
-  const handlePaymentInputChange = (e) => {
+  // Gérer les changements des champs de carte
+  const handleCardInputChange = (e) => {
     const { name, value } = e.target;
-    setPaymentData({
-      ...paymentData,
-      [name]: value,
+    setCardDetails({
+      ...cardDetails,
+      [name]: value
     });
   };
 
-  // Traiter le paiement
-  const handleProcessPayment = async (e) => {
-    if (e) e.preventDefault();
-
-    if (!selectedInvoice) return;
+  // Initialiser le processus de paiement
+  const handleInitiatePayment = async () => {
+    if (!selectedPaymentMethod) {
+      setPaymentError("Veuillez sélectionner une méthode de paiement");
+      return;
+    }
 
     setPaymentProcessing(true);
     setPaymentError(null);
     setPaymentSuccess(null);
 
     try {
-      // Dans un environnement réel, vous appelleriez ici votre API de paiement
-      // Exemple d'appel API avec le backend
+      // Étape 1: Initialiser le paiement - obtenir une session de paiement
+      const initResponse = await axios.post(
+        `/api/patient/invoices/${selectedInvoice.id}/payment/initialize`,
+        { payment_method_id: selectedPaymentMethod },
+        getAuthHeaders()
+      );
+
+      // Étape 2: Traiter le paiement avec la session générée
+      await processPayment(initResponse.data.payment_session);
+    } catch (err) {
+      console.error("Erreur lors de l'initialisation du paiement:", err);
+      setPaymentError(err.response?.data?.message || "Une erreur est survenue lors de l'initialisation du paiement.");
+      setPaymentProcessing(false);
+    }
+  };
+
+  // Traiter le paiement
+  const processPayment = async (paymentSession) => {
+    try {
+      // Simuler un délai de traitement pour l'expérience utilisateur
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Finaliser le paiement
       const response = await axios.post(
-        `/api/patient/payments/process`,
+        "/api/patient/payments/process",
         {
           invoice_id: selectedInvoice.id,
-          payment_method_id: 1, // On utilise un ID de méthode de paiement par défaut
-          payment_session_id: "sess_" + Math.random().toString(36).substr(2, 9), // ID de session simulé
+          payment_method_id: selectedPaymentMethod,
+          payment_session_id: paymentSession.id,
+          // Ajouter les détails de la carte si nécessaire (dans une implementation réelle, cela serait géré différemment pour la sécurité)
+          // card_details: cardDetails
         },
         getAuthHeaders()
       );
 
-      setPaymentSuccess("Paiement effectué avec succès!");
-
-      // Mise à jour du statut de la facture dans l'état local
-      setInvoices((prevInvoices) =>
-        prevInvoices.map((invoice) =>
-          invoice.id === selectedInvoice.id
-            ? {
-                ...invoice,
-                status: "paid",
-                payment_date: new Date().toISOString(),
-              }
+      // Mettre à jour l'état de la facture localement
+      setInvoices(prevInvoices => 
+        prevInvoices.map(invoice => 
+          invoice.id === selectedInvoice.id 
+            ? { ...invoice, status: 'paid', payment_date: new Date().toISOString() } 
             : invoice
         )
       );
 
-      // Si nous avons ouvert les détails de la facture, mettons également à jour ces détails
-      if (invoiceDetails && invoiceDetails.id === selectedInvoice.id) {
-        setInvoiceDetails({
-          ...invoiceDetails,
-          status: "paid",
-          payment_date: new Date().toISOString(),
-        });
-      }
+      setPaymentSuccess("Paiement effectué avec succès !");
 
-      // Fermer le modal après 2 secondes et rafraîchir les données
+      // Fermer le modal après un délai et rafraîchir les données
       setTimeout(() => {
         closePaymentModal();
-        // Rafraîchir la liste des factures depuis le serveur
-        fetchInvoices();
-      }, 2000);
+        fetchInvoices(); // Rafraîchir les factures
+      }, 2500);
     } catch (err) {
-      console.error("Erreur lors du paiement:", err);
-      setPaymentError(
-        "Une erreur s'est produite lors du traitement du paiement. Veuillez réessayer."
-      );
+      console.error("Erreur lors du traitement du paiement:", err);
+      setPaymentError(err.response?.data?.message || "Une erreur est survenue lors du traitement du paiement.");
       setPaymentProcessing(false);
     }
   };
@@ -558,19 +586,12 @@ const Invoices = ({ actionLoading }) => {
             </div>
 
             <div className="modal-body">
-              {/* Récapitulatif de la facture */}
               <div className="payment-summary">
                 <h4>Récapitulatif</h4>
                 <div className="detail-row">
-                  <span className="detail-label">Numéro de facture:</span>
+                  <span className="detail-label">Facture:</span>
                   <span className="detail-value">
                     {selectedInvoice.number || `#${selectedInvoice.id}`}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Date d'émission:</span>
-                  <span className="detail-value">
-                    {formatDate(selectedInvoice.date)}
                   </span>
                 </div>
                 <div className="detail-row">
@@ -581,184 +602,149 @@ const Invoices = ({ actionLoading }) => {
                 </div>
               </div>
 
-              {/* Messages de succès ou d'erreur */}
+              {/* Affichage des erreurs ou succès */}
+              {paymentError && (
+                <div className="alert alert-danger">
+                  <i className="fas fa-exclamation-circle"></i> {paymentError}
+                </div>
+              )}
+              
               {paymentSuccess && (
-                <div className="payment-success">
+                <div className="alert alert-success">
                   <i className="fas fa-check-circle"></i> {paymentSuccess}
                 </div>
               )}
 
-              {paymentError && (
-                <div className="payment-error">
-                  <i className="fas fa-exclamation-circle"></i> {paymentError}
+              {/* Chargement des méthodes de paiement */}
+              {loadingPaymentMethods ? (
+                <div className="payment-methods-loading">
+                  <UnifiedLoadingSpinner 
+                    size="small" 
+                    text="Chargement des méthodes de paiement..." 
+                  />
+                </div>
+              ) : paymentMethods.length === 0 ? (
+                <div className="payment-methods-empty">
+                  <i className="fas fa-exclamation-triangle"></i>
+                  <p>Aucune méthode de paiement disponible. Veuillez contacter l'administration.</p>
+                </div>
+              ) : (
+                <div className="payment-methods-section">
+                  <h4>Méthode de paiement</h4>
+                  <div className="payment-methods-list">
+                    {paymentMethods.map(method => (
+                      <div className="payment-method-item" key={method.id}>
+                        <label className="payment-method-label">
+                          <input
+                            type="radio"
+                            name="payment_method"
+                            value={method.id}
+                            checked={selectedPaymentMethod === method.id}
+                            onChange={() => setSelectedPaymentMethod(method.id)}
+                            disabled={paymentProcessing}
+                          />
+                          <div className="payment-method-info">
+                            <span className="payment-method-name">{method.name}</span>
+                            {method.description && (
+                              <span className="payment-method-description">{method.description}</span>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Formulaire pour les détails de carte (visible uniquement pour la méthode de paiement par carte) */}
+                  {selectedPaymentMethod && paymentMethods.find(m => m.id === selectedPaymentMethod)?.code === 'card' && (
+                    <div className="card-details-form">
+                      <h4>Informations de carte</h4>
+                      <div className="form-group">
+                        <label>Numéro de carte</label>
+                        <input
+                          type="text"
+                          name="cardNumber"
+                          value={cardDetails.cardNumber}
+                          onChange={handleCardInputChange}
+                          placeholder="1234 5678 9012 3456"
+                          disabled={paymentProcessing}
+                          maxLength="19"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Titulaire de la carte</label>
+                        <input
+                          type="text"
+                          name="cardHolder"
+                          value={cardDetails.cardHolder}
+                          onChange={handleCardInputChange}
+                          placeholder="NOM Prénom"
+                          disabled={paymentProcessing}
+                        />
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label>Date d'expiration</label>
+                          <input
+                            type="text"
+                            name="expiryDate"
+                            value={cardDetails.expiryDate}
+                            onChange={handleCardInputChange}
+                            placeholder="MM/AA"
+                            disabled={paymentProcessing}
+                            maxLength="5"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>CVV</label>
+                          <input
+                            type="text"
+                            name="cvv"
+                            value={cardDetails.cvv}
+                            onChange={handleCardInputChange}
+                            placeholder="123"
+                            disabled={paymentProcessing}
+                            maxLength="4"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* État de traitement du paiement */}
               {paymentProcessing && (
                 <div className="payment-processing">
-                  <UnifiedLoadingSpinner text="Traitement du paiement en cours..." />
+                  <UnifiedLoadingSpinner text="Traitement du paiement..." />
                 </div>
               )}
 
-              {/* Formulaire de paiement */}
-              {!paymentSuccess && !paymentProcessing && (
-                <form onSubmit={handleProcessPayment} className="payment-form">
-                  <h4>Informations de paiement</h4>
-
-                  <div className="form-group">
-                    <label htmlFor="payment_method">Méthode de paiement</label>
-                    <select
-                      id="payment_method"
-                      name="payment_method"
-                      value={paymentData.payment_method}
-                      onChange={handlePaymentInputChange}
-                      required
-                      disabled={paymentProcessing}
-                    >
-                      <option value="card">Carte bancaire</option>
-                      <option value="transfer">Virement bancaire</option>
-                    </select>
-                  </div>
-
-                  {paymentData.payment_method === "card" && (
-                    <>
-                      <div className="form-group">
-                        <label htmlFor="name_on_card">Nom sur la carte</label>
-                        <input
-                          type="text"
-                          id="name_on_card"
-                          name="name_on_card"
-                          value={paymentData.name_on_card}
-                          onChange={handlePaymentInputChange}
-                          placeholder="Nom sur la carte"
-                          required
-                          disabled={paymentProcessing}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="card_number">Numéro de carte</label>
-                        <input
-                          type="text"
-                          id="card_number"
-                          name="card_number"
-                          value={paymentData.card_number}
-                          onChange={handlePaymentInputChange}
-                          placeholder="1234 5678 9012 3456"
-                          maxLength="19"
-                          required
-                          disabled={paymentProcessing}
-                        />
-                      </div>
-
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label htmlFor="expiry_date">Date d'expiration</label>
-                          <input
-                            type="text"
-                            id="expiry_date"
-                            name="expiry_date"
-                            value={paymentData.expiry_date}
-                            onChange={handlePaymentInputChange}
-                            placeholder="MM/AA"
-                            maxLength="5"
-                            required
-                            disabled={paymentProcessing}
-                          />
-                        </div>
-
-                        <div className="form-group">
-                          <label htmlFor="cvv">CVV</label>
-                          <input
-                            type="text"
-                            id="cvv"
-                            name="cvv"
-                            value={paymentData.cvv}
-                            onChange={handlePaymentInputChange}
-                            placeholder="123"
-                            maxLength="4"
-                            required
-                            disabled={paymentProcessing}
-                          />
-                        </div>
-                      </div>
-                    </>
+              {/* Actions de paiement */}
+              <div className="payment-actions">
+                <button
+                  className="btn-primary"
+                  onClick={handleInitiatePayment}
+                  disabled={!selectedPaymentMethod || paymentProcessing || paymentSuccess}
+                >
+                  {paymentProcessing ? (
+                    <span><i className="fas fa-spinner fa-spin"></i> Traitement en cours...</span>
+                  ) : (
+                    <span><i className="fas fa-credit-card"></i> Payer {formatAmount(selectedInvoice.total_amount)}</span>
                   )}
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={closePaymentModal}
+                  disabled={paymentProcessing}
+                >
+                  Annuler
+                </button>
+              </div>
 
-                  {paymentData.payment_method === "transfer" && (
-                    <div className="transfer-info">
-                      <p>
-                        Pour effectuer un virement bancaire, utilisez les
-                        informations suivantes:
-                      </p>
-                      <div className="detail-row">
-                        <span className="detail-label">Bénéficiaire:</span>
-                        <span className="detail-value">Centre Médical</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">IBAN:</span>
-                        <span className="detail-value">
-                          FR76 1234 5678 9012 3456 7890 123
-                        </span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">BIC:</span>
-                        <span className="detail-value">ABCDEFGH</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Référence:</span>
-                        <span className="detail-value">
-                          {selectedInvoice.number ||
-                            `FAC-${selectedInvoice.id}`}
-                        </span>
-                      </div>
-                      <p className="transfer-note">
-                        Veuillez noter que le paiement sera validé une fois que
-                        nous aurons reçu la confirmation de votre banque.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="payment-actions">
-                    {paymentData.payment_method === "card" ? (
-                      <button
-                        type="submit"
-                        className="btn-primary"
-                        disabled={paymentProcessing}
-                      >
-                        <i className="fas fa-lock"></i> Payer{" "}
-                        {formatAmount(selectedInvoice.total_amount)}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn-primary"
-                        onClick={handleProcessPayment}
-                        disabled={paymentProcessing}
-                      >
-                        J'ai effectué le virement
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={closePaymentModal}
-                      disabled={paymentProcessing}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Section de sécurité */}
-              <div className="payment-security">
-                <i className="fas fa-shield-alt"></i>
-                <p>
-                  Paiement sécurisé - Vos données sont chiffrées et sécurisées.
-                </p>
+              {/* Note de sécurité */}
+              <div className="payment-security-note">
+                <i className="fas fa-lock"></i>
+                <span>Paiement sécurisé - Vos données sont chiffrées et sécurisées</span>
               </div>
             </div>
           </div>
@@ -766,6 +752,5 @@ const Invoices = ({ actionLoading }) => {
       )}
     </div>
   );
-};
-
+}
 export default Invoices;
