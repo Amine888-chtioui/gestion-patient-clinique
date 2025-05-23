@@ -17,6 +17,7 @@ use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use App\Services\NotificationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PatientController extends Controller
 {
@@ -518,6 +519,72 @@ public function createPrescription(Request $request)
         ]);
     }
 
+
+    public function downloadPrescriptionPdf($id)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un patient
+    if (!$user->isPatient()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // Récupérer l'ordonnance avec les médicaments et les informations du médecin
+    $prescription = Prescription::where('id', $id)
+        ->where('patient_id', $user->id)
+        ->with(['doctor:id,name', 'medications'])
+        ->first();
+    
+    if (!$prescription) {
+        return response()->json(['message' => 'Ordonnance non trouvée'], 404);
+    }
+    
+    // Récupérer le profil du patient
+    $patientProfile = $user->patientProfile;
+    
+    // Préparer les données pour le PDF
+    $data = [
+        'prescription' => $prescription,
+        'patient' => $user,
+        'patientProfile' => $patientProfile,
+        'doctor' => $prescription->doctor,
+        'medications' => $prescription->medications,
+        'dateGeneration' => now()->format('d/m/Y à H:i'),
+        'clinicInfo' => [
+            'name' => 'Centre Médical',
+            'address' => '123 Rue de la Santé, 12345 Ville',
+            'phone' => '01 23 45 67 89',
+            'email' => 'contact@centre-medical.fr',
+            'siret' => '123 456 789 00012'
+        ]
+    ];
+    
+    try {
+        // Générer le PDF en utilisant la vue Blade
+        $pdf = PDF::loadView('pdf.prescription', $data);
+        
+        // Configurer les options du PDF
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->setOptions([
+            'dpi' => 150,
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true
+        ]);
+        
+        // Nom du fichier
+        $fileName = 'ordonnance_' . $prescription->id . '_' . date('Y-m-d') . '.pdf';
+        
+        // Retourner le PDF en téléchargement
+        return $pdf->download($fileName);
+        
+    } catch (\Exception $e) {
+        Log::error('Erreur lors de la génération du PDF de l\'ordonnance: ' . $e->getMessage());
+        return response()->json([
+            'message' => 'Erreur lors de la génération du PDF. Veuillez réessayer plus tard.'
+        ], 500);
+    }
+}
     /**
      * Télécharger une ordonnance au format PDF
      */
@@ -943,14 +1010,79 @@ public function getInvoice($id)
  */
 public function downloadInvoicePdf($id)
 {
-    $patientId = auth()->id();
+    $user = Auth::user();
     
-    $invoice = Invoice::where('patient_id', $patientId)->findOrFail($id);
+    // Vérifier que l'utilisateur est un patient
+    if (!$user->isPatient()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
     
-    // Here you would generate and download the PDF
-    // For demonstration purposes, we'll just return a success message
+    // Récupérer la facture avec les éléments
+    $invoice = Invoice::where('id', $id)
+        ->where('patient_id', $user->id)
+        ->with(['items'])
+        ->first();
     
-    return response()->json(['message' => 'Le PDF de la facture sera téléchargé.', 'invoice_id' => $id]);
+    if (!$invoice) {
+        return response()->json(['message' => 'Facture non trouvée'], 404);
+    }
+    
+    // Récupérer le profil du patient
+    $patientProfile = $user->patientProfile;
+    
+    // Calculer les totaux si pas déjà calculés
+    $subtotal = $invoice->amount ?? $invoice->items->sum(function($item) {
+        return $item->quantity * $item->unit_price;
+    });
+    
+    $taxAmount = $invoice->tax_amount ?? ($subtotal * ($invoice->tax_percent / 100));
+    $total = $invoice->total_amount ?? ($subtotal + $taxAmount);
+    
+    // Préparer les données pour le PDF
+    $data = [
+        'invoice' => $invoice,
+        'patient' => $user,
+        'patientProfile' => $patientProfile,
+        'items' => $invoice->items,
+        'subtotal' => $subtotal,
+        'taxAmount' => $taxAmount,
+        'total' => $total,
+        'dateGeneration' => now()->format('d/m/Y à H:i'),
+        'clinicInfo' => [
+            'name' => 'Centre Médical',
+            'address' => '123 Rue de la Santé, 12345 Ville',
+            'phone' => '01 23 45 67 89',
+            'email' => 'contact@centre-medical.fr',
+            'siret' => '123 456 789 00012',
+            'tva' => 'FR12345678901'
+        ]
+    ];
+    
+    try {
+        // Générer le PDF en utilisant la vue Blade
+        $pdf = PDF::loadView('pdf.invoice', $data);
+        
+        // Configurer les options du PDF
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->setOptions([
+            'dpi' => 150,
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true
+        ]);
+        
+        // Nom du fichier
+        $fileName = 'facture_' . ($invoice->number ?? $invoice->id) . '_' . date('Y-m-d') . '.pdf';
+        
+        // Retourner le PDF en téléchargement
+        return $pdf->download($fileName);
+        
+    } catch (\Exception $e) {
+        Log::error('Erreur lors de la génération du PDF de la facture: ' . $e->getMessage());
+        return response()->json([
+            'message' => 'Erreur lors de la génération du PDF. Veuillez réessayer plus tard.'
+        ], 500);
+    }
 }
     /**
      * Mettre à jour un rendez-vous

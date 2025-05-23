@@ -30,7 +30,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login-with-google', [AuthController::class, 'loginWithGoogle']);
 // Route pour vérifier la disponibilité d'un médecin (accessible publiquement)
 Route::get('/doctors/{doctorId}/availability-check', [DoctorScheduleController::class, 'checkAvailability']);
-Route::get('/auth/google/callback', [App\Http\Controllers\Auth\GoogleController::class, 'handleGoogleCallback']);
+
 // Routes pour la réinitialisation de mot de passe
 Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendVerificationCode']);
 Route::post('/verify-code', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'verifyCode']);
@@ -60,14 +60,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/medical-records/{id}', [PatientController::class, 'getMedicalRecord']);
         Route::get('/prescriptions', [PatientController::class, 'getPrescriptions']);
         Route::get('/prescriptions/{id}', [PatientController::class, 'getPrescription']);
-        Route::get('/prescriptions/{id}/download', [PatientController::class, 'downloadPrescription']);
+        Route::get('/prescriptions/{id}/download-pdf', [PatientController::class, 'downloadPrescriptionPdf']);
         Route::get('/profile', [PatientController::class, 'getProfile']);
         Route::put('/profile', [PatientController::class, 'updateProfile']);
         Route::post('/profile/photo', [PatientController::class, 'updateProfilePhoto']);
         Route::get('/documents/{id}/download', [PatientController::class, 'downloadDocument']);
         Route::get('/invoices', [PatientController::class, 'getInvoices']);
         Route::get('/invoices/{id}', [PatientController::class, 'getInvoice']);
-        Route::get('/invoices/{id}/download', [PatientController::class, 'downloadInvoicePdf']);
+        Route::get('/invoices/{id}/download-pdf', [PatientController::class, 'downloadInvoicePdf']);
+
         // Nouvelles routes pour les paiements
         Route::get('/payment-methods', [PaymentController::class, 'getPaymentMethods']);
         Route::post('/invoices/{id}/payment/initialize', [PaymentController::class, 'initializePayment']);
