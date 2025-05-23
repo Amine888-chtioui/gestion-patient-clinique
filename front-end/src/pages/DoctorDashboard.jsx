@@ -1,4 +1,4 @@
-// src/pages/DoctorDashboard.jsx - Mise à jour des importations
+// src/pages/DoctorDashboard.jsx - Mise à jour pour corriger la navigation
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../axios";
@@ -21,17 +21,12 @@ import PrescriptionForm from "../components/doctor-dashboard/PrescriptionForm";
 import PatientDetails from "../components/doctor-dashboard/PatientDetails";
 import DoctorProfile from "../components/doctor-dashboard/DoctorProfile";
 import MobileNav from "../components/doctor-dashboard/MobileNav";
-// Import des nouveaux composants
 import DoctorMedicalRecords from "../components/doctor-dashboard/DoctorMedicalRecords";
 import DoctorPrescriptions from "../components/doctor-dashboard/DoctorPrescriptions";
 import PatientSelector from "../components/doctor-dashboard/PatientSelector";
-
 import DoctorSchedules from "../components/doctor-dashboard/DoctorSchedules";
-
 import DoctorInvoices from "../components/doctor-dashboard/DoctorInvoices";
 import "../components/doctor-dashboard/doctor-invoices.css";
-
-// Le reste du fichier reste identique...
 
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -51,24 +46,24 @@ const DoctorDashboard = () => {
 
   // États pour les chargements spécifiques des sections
   const [loadingStates, setLoadingStates] = useState({
-  overview: false,
-  appointments: false,
-  patients: false,
-  profile: false,
-  medicalRecords: false,
-  prescriptions: false,
-  invoices: false // Add this line
-});
+    overview: false,
+    appointments: false,
+    patients: false,
+    profile: false,
+    medicalRecords: false,
+    prescriptions: false,
+    invoices: false
+  });
 
-const [dataLoaded, setDataLoaded] = useState({
-  overview: false,
-  appointments: false,
-  patients: false,
-  profile: true,
-  medicalRecords: false,
-  prescriptions: false,
-  invoices: false // Add this line
-});
+  const [dataLoaded, setDataLoaded] = useState({
+    overview: false,
+    appointments: false,
+    patients: false,
+    profile: true,
+    medicalRecords: false,
+    prescriptions: false,
+    invoices: false
+  });
 
   const [invoices, setInvoices] = useState([]);
 
@@ -94,14 +89,14 @@ const [dataLoaded, setDataLoaded] = useState({
   };
 
   const fetchInvoices = async () => {
-  try {
-    const invoicesRes = await axios.get("/api/doctor/invoices", getAuthHeaders());
-    setInvoices(invoicesRes.data.invoices || []);
-  } catch (error) {
-    console.warn("Impossible de charger les factures:", error);
-    throw error;
-  }
-};
+    try {
+      const invoicesRes = await axios.get("/api/doctor/invoices", getAuthHeaders());
+      setInvoices(invoicesRes.data.invoices || []);
+    } catch (error) {
+      console.warn("Impossible de charger les factures:", error);
+      throw error;
+    }
+  };
 
   // Helper pour marquer une section comme chargée
   const markSectionAsLoaded = (section) => {
@@ -215,7 +210,7 @@ const [dataLoaded, setDataLoaded] = useState({
           markSectionAsLoaded("appointments");
           break;
 
-          case "invoices":
+        case "invoices":
           if (invoices.length === 0) {
             await fetchInvoices();
           }
@@ -366,8 +361,10 @@ const [dataLoaded, setDataLoaded] = useState({
     setActionSuccess(null);
   };
 
-  // Fonction mise à jour pour charger les détails complets d'un patient
+  // Fonction CORRIGÉE pour charger les détails complets d'un patient
   const handlePatientSelect = async (patient) => {
+    console.log("handlePatientSelect appelé avec:", patient);
+    
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
@@ -376,10 +373,22 @@ const [dataLoaded, setDataLoaded] = useState({
       // Appeler l'API pour récupérer les détails complets du patient
       const response = await axios.get(`/api/doctor/patients/${patient.id}`, getAuthHeaders());
       
+      console.log("Réponse de l'API:", response.data);
+      
       // Stocker les détails complets du patient
       setSelectedPatient(response.data.patient);
+      
+      // CORRECTION : Changer d'onglet vers "patients" et sous-onglet vers "details"
+      setActiveTab('patients');
       setActiveSubTab('details');
+      
+      // Mettre à jour l'URL pour refléter la navigation
+      navigate('/doctor/dashboard/patients', { replace: true });
+      
+      console.log("Navigation mise à jour - activeTab: patients, activeSubTab: details");
+      
     } catch (err) {
+      console.error("Erreur lors de la récupération des détails du patient:", err);
       handleApiError(err);
     } finally {
       setActionLoading(false);
@@ -550,6 +559,15 @@ const [dataLoaded, setDataLoaded] = useState({
     return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord..." />;
   }
 
+  // Debug pour voir l'état actuel
+  console.log("État actuel:", {
+    activeTab,
+    activeSubTab,
+    selectedPatient: selectedPatient ? selectedPatient.name : 'null',
+    loadingStates,
+    actionLoading
+  });
+
   // Affichage du tableau de bord
   return (
     <div className="doctor-dashboard">
@@ -563,13 +581,13 @@ const [dataLoaded, setDataLoaded] = useState({
       />
 
       <main className="main-content">
-      <ContentHeader 
-        activeTab={activeTab} 
-        activeSubTab={activeSubTab} 
-        selectedPatient={selectedPatient}
-        handleTabChange={handleTabChange}
-        handleLogout={handleLogout}
-      />
+        <ContentHeader 
+          activeTab={activeTab} 
+          activeSubTab={activeSubTab} 
+          selectedPatient={selectedPatient}
+          handleTabChange={handleTabChange}
+          handleLogout={handleLogout}
+        />
 
         <div className="content-body">
           <ActionMessages success={actionSuccess} error={actionError} />
@@ -677,7 +695,7 @@ const [dataLoaded, setDataLoaded] = useState({
             />
           )}
 
-          {/* Sous-sections spécifiques qui ne nécessitent pas d'indicateurs de chargement spécifiques */}
+          {/* SECTION CRITIQUE : Affichage des détails du patient */}
           {activeTab === "patients" && activeSubTab === "details" && selectedPatient && (
             <PatientDetails
               patient={selectedPatient}

@@ -53,6 +53,54 @@ const DoctorPrescriptions = ({
     handleSubTabChange("select-patient-for-prescription");
   };
 
+  // Fonction CORRIGÉE pour voir les détails d'un patient
+  const handleViewPatient = async (patientId) => {
+    try {
+      console.log("handleViewPatient appelé avec patientId:", patientId);
+      
+      // Vérifier d'abord si on a déjà les informations du patient dans la liste
+      let patient = patients.find(p => p.id === patientId);
+      
+      if (patient) {
+        console.log("Patient trouvé dans la liste:", patient);
+        // Si on a le patient dans la liste, l'utiliser directement
+        await handlePatientSelect(patient);
+      } else {
+        console.log("Patient non trouvé dans la liste, création d'un objet temporaire");
+        // Sinon, créer un objet patient temporaire avec l'ID
+        // Le handlePatientSelect se chargera de récupérer les détails complets
+        const tempPatient = { id: patientId };
+        await handlePatientSelect(tempPatient);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sélection du patient:", error);
+      // Note: La gestion d'erreur sera faite par le handlePatientSelect du parent
+    }
+  };
+
+  // Fonction CORRIGÉE pour créer une nouvelle ordonnance pour un patient spécifique
+  const handleCreatePrescriptionForPatient = async (patientId) => {
+    try {
+      console.log("handleCreatePrescriptionForPatient appelé avec patientId:", patientId);
+      
+      // Vérifier d'abord si on a déjà les informations du patient dans la liste
+      let patient = patients.find(p => p.id === patientId);
+      
+      if (patient) {
+        console.log("Patient trouvé pour nouvelle ordonnance:", patient);
+        // Sélectionner le patient et aller à l'onglet de création d'ordonnance
+        await handlePatientSelect(patient);
+        // Note: La navigation vers l'onglet prescription sera gérée par le parent
+      } else {
+        console.log("Patient non trouvé, création d'un objet temporaire pour ordonnance");
+        const tempPatient = { id: patientId };
+        await handlePatientSelect(tempPatient);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sélection du patient pour ordonnance:", error);
+    }
+  };
+
   // Group prescriptions by date (most recent first)
   const groupedPrescriptions = filteredPrescriptions.reduce((groups, prescription) => {
     if (!groups[prescription.date]) {
@@ -178,13 +226,7 @@ const DoctorPrescriptions = ({
                     <div className="prescription-footer">
                       <button 
                         className="btn-outline"
-                        onClick={() => {
-                          // Find the patient by ID and select them
-                          const patient = patients.find(p => p.id === prescription.patient_id);
-                          if (patient) {
-                            handlePatientSelect(patient);
-                          }
-                        }}
+                        onClick={() => handleViewPatient(prescription.patient_id)}
                         disabled={actionLoading}
                       >
                         <i className="fas fa-user"></i> Voir patient
@@ -198,14 +240,7 @@ const DoctorPrescriptions = ({
                       </button>
                       <button 
                         className="btn-outline"
-                        onClick={() => {
-                          // Find the patient and create a new prescription
-                          const patient = patients.find(p => p.id === prescription.patient_id);
-                          if (patient) {
-                            handlePatientSelect(patient);
-                            handleSubTabChange("prescription");
-                          }
-                        }}
+                        onClick={() => handleCreatePrescriptionForPatient(prescription.patient_id)}
                         disabled={actionLoading}
                       >
                         <i className="fas fa-prescription"></i> Nouvelle ordonnance

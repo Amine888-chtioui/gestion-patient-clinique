@@ -1,10 +1,10 @@
 // src/components/doctor-dashboard/DoctorMedicalRecords.jsx
-// Mise à jour du code pour améliorer la gestion des documents
+// Mise à jour du code pour corriger la navigation vers les détails du patient
 
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner";
-import DocumentViewer from "./DocumentViewer"; // Importer le nouveau composant
+import DocumentViewer from "./DocumentViewer";
 
 const DoctorMedicalRecords = ({ 
   patients, 
@@ -19,7 +19,7 @@ const DoctorMedicalRecords = ({
   const [filterType, setFilterType] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   
-  // Nouveaux états pour la gestion des documents
+  // États pour la gestion des documents
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [documentActionLoading, setDocumentActionLoading] = useState(false);
@@ -60,13 +60,35 @@ const DoctorMedicalRecords = ({
     handleSubTabChange("select-patient-for-record");
   };
 
-  // Nouvelle fonction pour prévisualiser un document
+  // Fonction pour voir les détails d'un patient
+  const handleViewPatient = async (patientId) => {
+    try {
+      // Vérifier d'abord si on a déjà les informations du patient dans la liste
+      let patient = patients.find(p => p.id === patientId);
+      
+      if (patient) {
+        // Si on a le patient dans la liste, l'utiliser directement
+        await handlePatientSelect(patient);
+      } else {
+        // Sinon, créer un objet patient temporaire avec l'ID
+        // Le handlePatientSelect se chargera de récupérer les détails complets
+        const tempPatient = { id: patientId };
+        await handlePatientSelect(tempPatient);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sélection du patient:", error);
+      setDocumentActionError("Impossible de charger les détails du patient.");
+      setTimeout(() => setDocumentActionError(null), 5000);
+    }
+  };
+
+  // Fonction pour prévisualiser un document
   const handlePreviewDocument = (document) => {
     setSelectedDocument(document);
     setShowDocumentViewer(true);
   };
 
-  // Fonction améliorée pour télécharger un document
+  // Fonction pour télécharger un document
   const handleDownloadDocument = async (docId) => {
     try {
       setDocumentActionLoading(true);
@@ -277,25 +299,14 @@ const DoctorMedicalRecords = ({
                       <div className="record-actions">
                         <button 
                           className="btn-sm btn-outline"
-                          onClick={() => {
-                            const patient = patients.find(p => p.id === record.patient_id);
-                            if (patient) {
-                              handlePatientSelect(patient);
-                            }
-                          }}
+                          onClick={() => handleViewPatient(record.patient_id)}
                           disabled={actionLoading || documentActionLoading}
                         >
                           <i className="fas fa-user"></i> Voir patient
                         </button>
                         <button 
                           className="btn-sm btn-outline"
-                          onClick={() => {
-                            const patient = patients.find(p => p.id === record.patient_id);
-                            if (patient) {
-                              handlePatientSelect(patient);
-                              handleSubTabChange("prescription");
-                            }
-                          }}
+                          onClick={() => handleViewPatient(record.patient_id)}
                           disabled={actionLoading || documentActionLoading}
                         >
                           <i className="fas fa-prescription"></i> Nouvelle ordonnance
