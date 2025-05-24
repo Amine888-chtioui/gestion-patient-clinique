@@ -570,105 +570,138 @@ public function getProfile()
     /**
      * Créer un nouveau dossier médical
      */
-    public function createMedicalRecord(Request $request)
-    {
-        $user = Auth::user();
-        
-        // Vérifier que l'utilisateur est un médecin
-        if (!$user->isDoctor()) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
-        
-        $validatedData = $request->validate([
-            'patient_id' => 'required|exists:users,id',
-            'appointment_id' => 'nullable|exists:appointments,id',
-            'date' => 'required|date',
-            'type' => 'required|in:consultation,analyse,chirurgie,suivi,autre',
-            'diagnosis' => 'required|string',
-            'notes' => 'nullable|string',
-            'documents' => 'nullable|array',
-            'documents.*.name' => 'required|string',
-            'documents.*.type' => 'required|string',
-        ]);
-        
-        // Vérifier que le médecin a déjà vu ce patient
-        $hasAppointment = Appointment::where('doctor_id', $user->id)
+   public function createMedicalRecord(Request $request)
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un médecin
+    if (!$user->isDoctor()) {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    // CORRECTION : Validation mise à jour
+    $validatedData = $request->validate([
+        'patient_id' => 'required|exists:users,id',
+        'appointment_id' => 'nullable|integer|exists:appointments,id', // Changé de exists:appointments,id
+        'date' => 'required|date',
+        'type' => 'required|in:consultation,analyse,chirurgie,suivi,autre',
+        'diagnosis' => 'required|string',
+        'notes' => 'nullable|string',
+        'documents' => 'nullable|array',
+        'documents.*.name' => 'required|string',
+        'documents.*.type' => 'required|string',
+    ]);
+    
+    // CORRECTION : Debug des données reçues
+    \Log::info('Données reçues pour création dossier médical:', $validatedData);
+    
+    // Vérifier que le médecin a déjà vu ce patient
+    $hasAppointment = Appointment::where('doctor_id', $user->id)
+        ->where('patient_id', $validatedData['patient_id'])
+        ->exists();
+    
+    if (!$hasAppointment) {
+        return response()->json(['message' => 'Vous n\'êtes pas autorisé à créer un dossier médical pour ce patient'], 403);
+    }
+    
+    // CORRECTION : Validation spécifique pour appointment_id
+    $appointmentId = null;
+    if (!empty($validatedData['appointment_id'])) {
+        $appointment = Appointment::where('id', $validatedData['appointment_id'])
+            ->where('doctor_id', $user->id)
             ->where('patient_id', $validatedData['patient_id'])
-            ->exists();
+            ->first();
         
-        if (!$hasAppointment) {
-            return response()->json(['message' => 'Vous n\'êtes pas autorisé à créer un dossier médical pour ce patient'], 403);
+        if (!$appointment) {
+            return response()->json(['message' => 'Ce rendez-vous n\'existe pas ou ne vous appartient pas'], 404);
         }
         
-        // Si appointment_id est fourni, vérifier qu'il appartient bien à ce médecin et patient
-        if (isset($validatedData['appointment_id'])) {
-            $appointment = Appointment::where('id', $validatedData['appointment_id'])
-                ->where('doctor_id', $user->id)
-                ->where('patient_id', $validatedData['patient_id'])
-                ->first();
+        // Vérifier qu'un dossier médical n'existe pas déjà pour ce rendez-vous
+        $existingRecord = MedicalRecord::where('appointment_id', $validatedData['appointment_id'])->first();
+        if ($existingRecord) {
+            return response()->json(['message' => 'Un dossier médical existe déjà pour ce rendez-vous'], 400);
+        }
+        
+        $appointmentId = $validatedData['appointment_id'];
+    }
+    
+    // CORRECTION : Création explicite avec appointment_id
+    $medicalRecord = new MedicalRecord([
+        'patient_id' => $validatedData['patient_id'],
+        'doctor_id' => $user->id,
+        'appointment_id' => $appointmentId, // Utiliser la variable validée
+        'date' => $validatedData['date'],
+        'type' => $validatedData['type'],
+        'diagnosis' => $validatedData['diagnosis'],
+        'notes' => $validatedData['notes'] ?? null,
+    ]);
+    
+    // CORRECTION : Debug avant sauvegarde
+    \Log::info('Dossier médical avant sauvegarde:', [
+        'patient_id' => $medicalRecord->patient_id,
+        'doctor_id' => $medicalRecord->doctor_id,
+        'appointment_id' => $medicalRecord->appointment_id,
+        'date' => $medicalRecord->date,
+        'type' => $medicalRecord->type,
+        'diagnosis' => $medicalRecord->diagnosis,
+    ]);
+    
+    $medicalRecord->save();
+    
+    // CORRECTION : Debug après sauvegarde
+    \Log::info('Dossier médical après sauvegarde:', [
+        'id' => $medicalRecord->id,
+        'appointment_id' => $medicalRecord->appointment_id,
+    ]);
+    
+    // Traiter les documents si présents
+    if (isset($validatedData['documents']) && is_array($validatedData['documents'])) {
+        foreach ($validatedData['documents'] as $docData) {
+            $document = new Document([
+                'medical_record_id' => $medicalRecord->id,
+                'name' => $docData['name'],
+                'file_path' => 'placeholder/path/' . $docData['name'],
+                'type' => $docData['type'],
+            ]);
             
-            if (!$appointment) {
-                return response()->json(['message' => 'Ce rendez-vous n\'existe pas ou ne vous appartient pas'], 404);
-            }
+            $document->save();
         }
-        
-        // Créer le dossier médical
-        $medicalRecord = new MedicalRecord([
-            'patient_id' => $validatedData['patient_id'],
-            'doctor_id' => $user->id,
-            'appointment_id' => $validatedData['appointment_id'] ?? null,
-            'date' => $validatedData['date'],
-            'type' => $validatedData['type'],
-            'diagnosis' => $validatedData['diagnosis'],
-            'notes' => $validatedData['notes'] ?? null,
-        ]);
-        
-        $medicalRecord->save();
-        
-        // Traiter les documents si présents
-        if (isset($validatedData['documents']) && is_array($validatedData['documents'])) {
-            foreach ($validatedData['documents'] as $docData) {
-                $document = new Document([
-                    'medical_record_id' => $medicalRecord->id,
-                    'name' => $docData['name'],
-                    'file_path' => 'placeholder/path/' . $docData['name'], // Dans une implémentation réelle, ce serait le chemin du fichier uploadé
-                    'type' => $docData['type'],
-                ]);
-                
-                $document->save();
-            }
-        }
-        
-        // Si le rendez-vous est spécifié, mettre à jour son statut
-        if (isset($validatedData['appointment_id'])) {
-            $appointment = Appointment::find($validatedData['appointment_id']);
+    }
+    
+    // CORRECTION : Mettre à jour le statut du rendez-vous seulement si appointment_id est fourni
+    if ($appointmentId) {
+        $appointment = Appointment::find($appointmentId);
+        if ($appointment) {
             $appointment->status = 'confirmé';
             $appointment->save();
+            \Log::info('Statut du rendez-vous mis à jour:', ['appointment_id' => $appointmentId]);
         }
-        
-        // Récupérer le patient pour envoyer une notification
-        $patient = User::find($validatedData['patient_id']);
-        
-        // Envoyer une notification au patient
-        $this->notificationService->sendMedicalRecordNotification(
-            $patient,
-            [
-                'date' => $validatedData['date'],
-                'type' => $validatedData['type'],
-                'doctor' => $user->name
-            ]
-        );
-        
-        return response()->json([
-            'message' => 'Dossier médical créé avec succès',
-            'medical_record' => [
-                'id' => $medicalRecord->id,
-                'date' => $medicalRecord->date,
-                'type' => $medicalRecord->type,
-                'diagnosis' => $medicalRecord->diagnosis,
-            ]
-        ], 201);
     }
+    
+    // Récupérer le patient pour envoyer une notification
+    $patient = User::find($validatedData['patient_id']);
+    
+    // Envoyer une notification au patient
+    $this->notificationService->sendMedicalRecordNotification(
+        $patient,
+        [
+            'date' => $validatedData['date'],
+            'type' => $validatedData['type'],
+            'doctor' => $user->name
+        ]
+    );
+    
+    return response()->json([
+        'message' => 'Dossier médical créé avec succès',
+        'medical_record' => [
+            'id' => $medicalRecord->id,
+            'date' => $medicalRecord->date,
+            'type' => $medicalRecord->type,
+            'diagnosis' => $medicalRecord->diagnosis,
+            'appointment_id' => $medicalRecord->appointment_id, // Inclure dans la réponse
+        ]
+    ], 201);
+}
     
 
     /**

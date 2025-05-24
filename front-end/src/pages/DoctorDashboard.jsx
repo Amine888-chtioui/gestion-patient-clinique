@@ -28,7 +28,6 @@ import DoctorSchedules from "../components/doctor-dashboard/DoctorSchedules";
 import DoctorInvoices from "../components/doctor-dashboard/DoctorInvoices";
 import "../components/doctor-dashboard/doctor-invoices.css";
 
-
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -53,7 +52,7 @@ const DoctorDashboard = () => {
     profile: false,
     medicalRecords: false,
     prescriptions: false,
-    invoices: false
+    invoices: false,
   });
 
   const [dataLoaded, setDataLoaded] = useState({
@@ -63,7 +62,7 @@ const DoctorDashboard = () => {
     profile: true,
     medicalRecords: false,
     prescriptions: false,
-    invoices: false
+    invoices: false,
   });
 
   const [invoices, setInvoices] = useState([]);
@@ -83,15 +82,18 @@ const DoctorDashboard = () => {
 
   // Helper pour mettre à jour l'état de chargement d'une section
   const setLoadingState = (section, isLoading) => {
-    setLoadingStates(prev => ({
+    setLoadingStates((prev) => ({
       ...prev,
-      [section]: isLoading
+      [section]: isLoading,
     }));
   };
 
   const fetchInvoices = async () => {
     try {
-      const invoicesRes = await axios.get("/api/doctor/invoices", getAuthHeaders());
+      const invoicesRes = await axios.get(
+        "/api/doctor/invoices",
+        getAuthHeaders()
+      );
       setInvoices(invoicesRes.data.invoices || []);
     } catch (error) {
       console.warn("Impossible de charger les factures:", error);
@@ -101,9 +103,9 @@ const DoctorDashboard = () => {
 
   // Helper pour marquer une section comme chargée
   const markSectionAsLoaded = (section) => {
-    setDataLoaded(prev => ({
+    setDataLoaded((prev) => ({
       ...prev,
-      [section]: true
+      [section]: true,
     }));
   };
 
@@ -115,7 +117,7 @@ const DoctorDashboard = () => {
 
       try {
         setInitialLoading(true);
-        
+
         // Récupérer les informations de l'utilisateur
         const userResponse = await axios.get("/api/user", getAuthHeaders());
         setUser(userResponse.data);
@@ -127,31 +129,40 @@ const DoctorDashboard = () => {
           setTimeout(() => navigate("/"), 3000);
           return;
         }
-        
+
         // Récupérer le profil du médecin
         try {
-          const profileResponse = await axios.get("/api/doctor/profile", getAuthHeaders());
+          const profileResponse = await axios.get(
+            "/api/doctor/profile",
+            getAuthHeaders()
+          );
           setProfile(profileResponse.data.profile);
         } catch (profileErr) {
-          console.warn("Impossible de charger le profil du médecin:", profileErr);
+          console.warn(
+            "Impossible de charger le profil du médecin:",
+            profileErr
+          );
         }
 
         // Déterminer l'onglet actif à partir de l'URL
-        const pathSegments = location.pathname.split('/').filter(Boolean);
+        const pathSegments = location.pathname.split("/").filter(Boolean);
         let initialTab = "overview";
-        
-        if (pathSegments.length >= 3 && pathSegments[0] === 'doctor' && pathSegments[1] === 'dashboard') {
+
+        if (
+          pathSegments.length >= 3 &&
+          pathSegments[0] === "doctor" &&
+          pathSegments[1] === "dashboard"
+        ) {
           initialTab = pathSegments[2];
         }
-        
+
         setActiveTab(initialTab);
-        
+
         // Charger les données de la section initiale
         await loadSectionData(initialTab);
-        
+
         // Désactiver le loading initial
         setInitialLoading(false);
-
       } catch (err) {
         console.error("Erreur d'initialisation:", err);
         if (err.response?.status === 401) {
@@ -183,30 +194,30 @@ const DoctorDashboard = () => {
       switch (section) {
         case "overview":
           const overviewPromises = [];
-          
+
           if (appointments.length === 0) {
             overviewPromises.push(fetchAppointments());
           }
-          
+
           if (patients.length === 0) {
             overviewPromises.push(fetchPatients());
           }
-          
+
           await Promise.all(overviewPromises);
-          
+
           // Marquer la section comme chargée
           markSectionAsLoaded("overview");
-          
+
           // Si les données des autres sections ont été chargées, les marquer aussi
           if (appointments.length > 0) markSectionAsLoaded("appointments");
           if (patients.length > 0) markSectionAsLoaded("patients");
           break;
-          
+
         case "appointments":
           if (appointments.length === 0) {
             await fetchAppointments();
           }
-          
+
           // Marquer la section comme chargée
           markSectionAsLoaded("appointments");
           break;
@@ -215,60 +226,63 @@ const DoctorDashboard = () => {
           if (invoices.length === 0) {
             await fetchInvoices();
           }
-          
+
           if (patients.length === 0) {
             await fetchPatients();
           }
-          
+
           // Mark the section as loaded
           markSectionAsLoaded("invoices");
           break;
-          
+
         case "patients":
           if (patients.length === 0) {
             await fetchPatients();
           }
-          
+
           // Marquer la section comme chargée
           markSectionAsLoaded("patients");
           break;
-          
+
         case "profile":
           // Le profil est déjà chargé lors de l'initialisation
           markSectionAsLoaded("profile");
           break;
-        
+
         case "medical-records":
           if (medicalRecords.length === 0) {
             await fetchMedicalRecords();
           }
-          
+
           if (patients.length === 0) {
             await fetchPatients();
           }
-          
+
           // Marquer la section comme chargée
           markSectionAsLoaded("medicalRecords");
           break;
-          
+
         case "prescriptions":
           if (prescriptions.length === 0) {
             await fetchPrescriptions();
           }
-          
+
           if (patients.length === 0) {
             await fetchPatients();
           }
-          
+
           // Marquer la section comme chargée
           markSectionAsLoaded("prescriptions");
           break;
-          
+
         default:
           break;
       }
     } catch (error) {
-      console.error(`Erreur lors du chargement de la section ${section}:`, error);
+      console.error(
+        `Erreur lors du chargement de la section ${section}:`,
+        error
+      );
       setActionError(`Impossible de charger les données pour ${section}.`);
     } finally {
       // Marquer la section comme terminée de chargement
@@ -279,7 +293,10 @@ const DoctorDashboard = () => {
   // Fonctions de récupération de données individuelles
   const fetchAppointments = async () => {
     try {
-      const appointmentsRes = await axios.get("/api/doctor/appointments", getAuthHeaders());
+      const appointmentsRes = await axios.get(
+        "/api/doctor/appointments",
+        getAuthHeaders()
+      );
       setAppointments(appointmentsRes.data.appointments || []);
     } catch (error) {
       console.warn("Impossible de charger les rendez-vous:", error);
@@ -289,27 +306,36 @@ const DoctorDashboard = () => {
 
   const fetchPatients = async () => {
     try {
-      const patientsRes = await axios.get("/api/doctor/patients", getAuthHeaders());
+      const patientsRes = await axios.get(
+        "/api/doctor/patients",
+        getAuthHeaders()
+      );
       setPatients(patientsRes.data.patients || []);
     } catch (error) {
       console.warn("Impossible de charger les patients:", error);
       throw error;
     }
   };
-  
+
   const fetchMedicalRecords = async () => {
     try {
-      const recordsRes = await axios.get("/api/doctor/medical-records", getAuthHeaders());
+      const recordsRes = await axios.get(
+        "/api/doctor/medical-records",
+        getAuthHeaders()
+      );
       setMedicalRecords(recordsRes.data.medicalRecords || []);
     } catch (error) {
       console.warn("Impossible de charger les dossiers médicaux:", error);
       throw error;
     }
   };
-  
+
   const fetchPrescriptions = async () => {
     try {
-      const prescriptionsRes = await axios.get("/api/doctor/prescriptions", getAuthHeaders());
+      const prescriptionsRes = await axios.get(
+        "/api/doctor/prescriptions",
+        getAuthHeaders()
+      );
       setPrescriptions(prescriptionsRes.data.prescriptions || []);
     } catch (error) {
       console.warn("Impossible de charger les ordonnances:", error);
@@ -338,7 +364,7 @@ const DoctorDashboard = () => {
   const handleTabChange = (tab) => {
     // Si on est déjà sur cet onglet, ne rien faire
     if (tab === activeTab) return;
-    
+
     // Mettre à jour l'onglet actif
     setActiveTab(tab);
     setActiveSubTab(null);
@@ -346,10 +372,10 @@ const DoctorDashboard = () => {
     setSelectedAppointment(null);
     setActionError(null);
     setActionSuccess(null);
-    
+
     // Mettre à jour l'URL sans recharger la page
     navigate(`/doctor/dashboard/${tab}`, { replace: true });
-    
+
     // Charger les données pour cet onglet s'il n'a pas déjà été chargé
     if (!dataLoaded[tab]) {
       loadSectionData(tab);
@@ -365,31 +391,38 @@ const DoctorDashboard = () => {
   // Fonction CORRIGÉE pour charger les détails complets d'un patient
   const handlePatientSelect = async (patient) => {
     console.log("handlePatientSelect appelé avec:", patient);
-    
+
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
-    
+
     try {
       // Appeler l'API pour récupérer les détails complets du patient
-      const response = await axios.get(`/api/doctor/patients/${patient.id}`, getAuthHeaders());
-      
+      const response = await axios.get(
+        `/api/doctor/patients/${patient.id}`,
+        getAuthHeaders()
+      );
+
       console.log("Réponse de l'API:", response.data);
-      
+
       // Stocker les détails complets du patient
       setSelectedPatient(response.data.patient);
-      
+
       // CORRECTION : Changer d'onglet vers "patients" et sous-onglet vers "details"
-      setActiveTab('patients');
-      setActiveSubTab('details');
-      
+      setActiveTab("patients");
+      setActiveSubTab("details");
+
       // Mettre à jour l'URL pour refléter la navigation
-      navigate('/doctor/dashboard/patients', { replace: true });
-      
-      console.log("Navigation mise à jour - activeTab: patients, activeSubTab: details");
-      
+      navigate("/doctor/dashboard/patients", { replace: true });
+
+      console.log(
+        "Navigation mise à jour - activeTab: patients, activeSubTab: details"
+      );
     } catch (err) {
-      console.error("Erreur lors de la récupération des détails du patient:", err);
+      console.error(
+        "Erreur lors de la récupération des détails du patient:",
+        err
+      );
       handleApiError(err);
     } finally {
       setActionLoading(false);
@@ -399,12 +432,15 @@ const DoctorDashboard = () => {
   const handleAppointmentSelect = async (appointment) => {
     setSelectedAppointment(appointment);
     setActionLoading(true);
-    
+
     try {
       // Récupérer les détails du patient associé au rendez-vous
-      const response = await axios.get(`/api/doctor/patients/${appointment.patient_id}`, getAuthHeaders());
+      const response = await axios.get(
+        `/api/doctor/patients/${appointment.patient_id}`,
+        getAuthHeaders()
+      );
       setSelectedPatient(response.data.patient);
-      setActiveSubTab('record');
+      setActiveSubTab("record");
     } catch (err) {
       handleApiError(err);
     } finally {
@@ -416,21 +452,21 @@ const DoctorDashboard = () => {
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
-  
+
     try {
       await axios.put(
         `/api/doctor/appointments/${id}/status`,
         { status },
         getAuthHeaders()
       );
-  
+
       // Mettre à jour l'état local
       setAppointments(
         appointments.map((apt) =>
           apt.id === id ? { ...apt, status: status } : apt
         )
       );
-  
+
       setActionSuccess(`Statut du rendez-vous mis à jour : ${status}`);
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err) {
@@ -446,35 +482,46 @@ const DoctorDashboard = () => {
     setActionSuccess(null);
 
     try {
-      // Ajouter l'ID du patient et du rendez-vous aux données
+      // CORRECTION : Préparation des données avec validation
       const recordData = {
         ...record,
         patient_id: selectedPatient.id,
-        appointment_id: selectedAppointment?.id || null
+        // S'assurer que appointment_id est correctement formaté
+        appointment_id:
+          record.appointment_id || selectedAppointment?.id || null,
       };
 
-      await axios.post(
+      // CORRECTION : Debug des données finales
+      console.log("Données finales envoyées à l'API:", recordData);
+      console.log("appointment_id final:", recordData.appointment_id);
+      console.log("Type de appointment_id:", typeof recordData.appointment_id);
+
+      const response = await axios.post(
         "/api/doctor/medical-records",
         recordData,
         getAuthHeaders()
       );
 
+      console.log("Réponse du serveur:", response.data);
+
       // Mettre à jour le statut du rendez-vous si nécessaire
-      if (selectedAppointment) {
+      if (selectedAppointment && recordData.appointment_id) {
         setAppointments(
           appointments.map((apt) =>
-            apt.id === selectedAppointment.id ? { ...apt, status: 'confirmé' } : apt
+            apt.id === selectedAppointment.id
+              ? { ...apt, status: "confirmé" }
+              : apt
           )
         );
       }
 
       setActionSuccess("Dossier médical créé avec succès");
-      
+
       // Rafraîchir les dossiers médicaux si cette section a été chargée
       if (dataLoaded.medicalRecords) {
         fetchMedicalRecords();
       }
-      
+
       // Réinitialiser la sélection après la création
       setTimeout(() => {
         if (activeTab === "medical-records") {
@@ -485,8 +532,9 @@ const DoctorDashboard = () => {
           handleTabChange("medical-records");
         }
       }, 1500);
-      
     } catch (err) {
+      console.error("Erreur complète:", err);
+      console.error("Réponse d'erreur:", err.response?.data);
       handleApiError(err);
     } finally {
       setActionLoading(false);
@@ -503,7 +551,7 @@ const DoctorDashboard = () => {
       const prescriptionData = {
         ...prescription,
         patient_id: selectedPatient.id,
-        medical_record_id: prescription.medical_record_id || null
+        medical_record_id: prescription.medical_record_id || null,
       };
 
       await axios.post(
@@ -513,12 +561,12 @@ const DoctorDashboard = () => {
       );
 
       setActionSuccess("Ordonnance créée avec succès");
-      
+
       // Rafraîchir les ordonnances si cette section a été chargée
       if (dataLoaded.prescriptions) {
         fetchPrescriptions();
       }
-      
+
       // Réinitialiser la sélection après la création
       setTimeout(() => {
         if (activeTab === "prescriptions") {
@@ -529,7 +577,6 @@ const DoctorDashboard = () => {
           handleTabChange("prescriptions");
         }
       }, 1500);
-      
     } catch (err) {
       handleApiError(err);
     } finally {
@@ -538,14 +585,15 @@ const DoctorDashboard = () => {
   };
 
   // Gestion générique des erreurs d'API
-  const handleApiError = (err, defaultMessage = "Une erreur est survenue. Veuillez réessayer.") => {
+  const handleApiError = (
+    err,
+    defaultMessage = "Une erreur est survenue. Veuillez réessayer."
+  ) => {
     if (err.response?.status === 401) {
       localStorage.removeItem("token");
       navigate("/login");
     } else {
-      setActionError(
-        err.response?.data?.message || defaultMessage
-      );
+      setActionError(err.response?.data?.message || defaultMessage);
       setTimeout(() => setActionError(null), 5000);
     }
   };
@@ -557,16 +605,21 @@ const DoctorDashboard = () => {
 
   // Affichage durant le chargement initial
   if (initialLoading) {
-    return <UnifiedLoadingSpinner fullScreen={true} text="Initialisation du tableau de bord..." />;
+    return (
+      <UnifiedLoadingSpinner
+        fullScreen={true}
+        text="Initialisation du tableau de bord..."
+      />
+    );
   }
 
   // Debug pour voir l'état actuel
   console.log("État actuel:", {
     activeTab,
     activeSubTab,
-    selectedPatient: selectedPatient ? selectedPatient.name : 'null',
+    selectedPatient: selectedPatient ? selectedPatient.name : "null",
     loadingStates,
-    actionLoading
+    actionLoading,
   });
 
   // Affichage du tableau de bord
@@ -582,9 +635,9 @@ const DoctorDashboard = () => {
       />
 
       <main className="main-content">
-        <ContentHeader 
-          activeTab={activeTab} 
-          activeSubTab={activeSubTab} 
+        <ContentHeader
+          activeTab={activeTab}
+          activeSubTab={activeSubTab}
           selectedPatient={selectedPatient}
           handleTabChange={handleTabChange}
           handleLogout={handleLogout}
@@ -594,9 +647,12 @@ const DoctorDashboard = () => {
           <ActionMessages success={actionSuccess} error={actionError} />
 
           {/* Affichage conditionnel en fonction de l'onglet actif */}
-          {activeTab === "overview" && (
-            loadingStates.overview ? (
-              <UnifiedLoadingSpinner text="Chargement du tableau de bord..." color="primary" />
+          {activeTab === "overview" &&
+            (loadingStates.overview ? (
+              <UnifiedLoadingSpinner
+                text="Chargement du tableau de bord..."
+                color="primary"
+              />
             ) : (
               <DoctorOverview
                 user={user}
@@ -605,12 +661,15 @@ const DoctorDashboard = () => {
                 handleTabChange={handleTabChange}
                 actionLoading={actionLoading}
               />
-            )
-          )}
+            ))}
 
-          {activeTab === "appointments" && !activeSubTab && (
-            loadingStates.appointments ? (
-              <UnifiedLoadingSpinner text="Chargement des rendez-vous..." color="info" />
+          {activeTab === "appointments" &&
+            !activeSubTab &&
+            (loadingStates.appointments ? (
+              <UnifiedLoadingSpinner
+                text="Chargement des rendez-vous..."
+                color="info"
+              />
             ) : (
               <DoctorAppointments
                 appointments={appointments}
@@ -618,25 +677,31 @@ const DoctorDashboard = () => {
                 handleAppointmentSelect={handleAppointmentSelect}
                 actionLoading={actionLoading}
               />
-            )
-          )}
+            ))}
 
-          {activeTab === "patients" && !activeSubTab && (
-            loadingStates.patients ? (
-              <UnifiedLoadingSpinner text="Chargement des patients..." color="success" />
+          {activeTab === "patients" &&
+            !activeSubTab &&
+            (loadingStates.patients ? (
+              <UnifiedLoadingSpinner
+                text="Chargement des patients..."
+                color="success"
+              />
             ) : (
               <DoctorPatients
                 patients={patients}
                 handlePatientSelect={handlePatientSelect}
                 actionLoading={actionLoading}
               />
-            )
-          )}
+            ))}
 
           {/* Nouveaux onglets pour les dossiers médicaux et les ordonnances */}
-          {activeTab === "medical-records" && !activeSubTab && (
-            loadingStates.medicalRecords ? (
-              <UnifiedLoadingSpinner text="Chargement des dossiers médicaux..." color="info" />
+          {activeTab === "medical-records" &&
+            !activeSubTab &&
+            (loadingStates.medicalRecords ? (
+              <UnifiedLoadingSpinner
+                text="Chargement des dossiers médicaux..."
+                color="info"
+              />
             ) : (
               <DoctorMedicalRecords
                 patients={patients}
@@ -644,12 +709,15 @@ const DoctorDashboard = () => {
                 handleSubTabChange={handleSubTabChange}
                 actionLoading={actionLoading}
               />
-            )
-          )}
+            ))}
 
-          {activeTab === "prescriptions" && !activeSubTab && (
-            loadingStates.prescriptions ? (
-              <UnifiedLoadingSpinner text="Chargement des ordonnances..." color="info" />
+          {activeTab === "prescriptions" &&
+            !activeSubTab &&
+            (loadingStates.prescriptions ? (
+              <UnifiedLoadingSpinner
+                text="Chargement des ordonnances..."
+                color="info"
+              />
             ) : (
               <DoctorPrescriptions
                 patients={patients}
@@ -657,12 +725,15 @@ const DoctorDashboard = () => {
                 handleSubTabChange={handleSubTabChange}
                 actionLoading={actionLoading}
               />
-            )
-          )}
+            ))}
 
-          {activeTab === "invoices" && !activeSubTab && (
-            loadingStates.invoices ? (
-              <UnifiedLoadingSpinner text="Chargement des factures..." color="info" />
+          {activeTab === "invoices" &&
+            !activeSubTab &&
+            (loadingStates.invoices ? (
+              <UnifiedLoadingSpinner
+                text="Chargement des factures..."
+                color="info"
+              />
             ) : (
               <DoctorInvoices
                 patients={patients}
@@ -670,8 +741,7 @@ const DoctorDashboard = () => {
                 handlePatientSelect={handlePatientSelect}
                 actionLoading={actionLoading}
               />
-            )
-          )}
+            ))}
 
           {/* Sous-sections pour la sélection de patient */}
           {activeSubTab === "select-patient-for-record" && (
@@ -697,13 +767,15 @@ const DoctorDashboard = () => {
           )}
 
           {/* SECTION CRITIQUE : Affichage des détails du patient */}
-          {activeTab === "patients" && activeSubTab === "details" && selectedPatient && (
-            <PatientDetails
-              patient={selectedPatient}
-              handleSubTabChange={handleSubTabChange}
-              actionLoading={actionLoading}
-            />
-          )}
+          {activeTab === "patients" &&
+            activeSubTab === "details" &&
+            selectedPatient && (
+              <PatientDetails
+                patient={selectedPatient}
+                handleSubTabChange={handleSubTabChange}
+                actionLoading={actionLoading}
+              />
+            )}
 
           {activeSubTab === "record" && selectedPatient && (
             <MedicalRecordForm
@@ -732,33 +804,32 @@ const DoctorDashboard = () => {
             />
           )}
 
-          {activeTab === "schedules" && (
-            loadingStates.schedules ? (
-              <UnifiedLoadingSpinner text="Chargement des horaires..." color="primary" />
-            ) : (
-              <DoctorSchedules
-                actionLoading={actionLoading}
+          {activeTab === "schedules" &&
+            (loadingStates.schedules ? (
+              <UnifiedLoadingSpinner
+                text="Chargement des horaires..."
+                color="primary"
               />
-            )
-          )}
+            ) : (
+              <DoctorSchedules actionLoading={actionLoading} />
+            ))}
 
-          {activeTab === "profile" && (
-            loadingStates.profile ? (
-              <UnifiedLoadingSpinner text="Chargement du profil..." color="warning" />
-            ) : (
-              <DoctorProfile
-                user={user}
-                actionLoading={actionLoading}
+          {activeTab === "profile" &&
+            (loadingStates.profile ? (
+              <UnifiedLoadingSpinner
+                text="Chargement du profil..."
+                color="warning"
               />
-            )
-          )}
+            ) : (
+              <DoctorProfile user={user} actionLoading={actionLoading} />
+            ))}
         </div>
       </main>
 
-      <MobileNav 
-        activeTab={activeTab} 
-        handleTabChange={handleTabChange} 
-        appointments={appointments} 
+      <MobileNav
+        activeTab={activeTab}
+        handleTabChange={handleTabChange}
+        appointments={appointments}
       />
     </div>
   );
