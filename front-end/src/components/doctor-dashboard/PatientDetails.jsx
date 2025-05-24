@@ -1,4 +1,4 @@
-// src/components/doctor-dashboard/PatientDetails.jsx
+// src/components/doctor-dashboard/PatientDetails.jsx - Version corrigée
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 
@@ -8,10 +8,16 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [invoiceError, setInvoiceError] = useState(null);
 
-  // Ajout d'états locaux pour gérer le téléchargement des documents
+  // États pour la gestion des actions
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
+  
+  // États pour les modales et vues détaillées
+  const [selectedMedicalRecord, setSelectedMedicalRecord] = useState(null);
+  const [selectedPrescriptions, setSelectedPrescriptions] = useState([]);
+  const [showMedicalRecordModal, setShowMedicalRecordModal] = useState(false);
+  const [showPrescriptionsModal, setShowPrescriptionsModal] = useState(false);
 
   // Utilisation des données réelles récupérées de l'API
   const medicalRecords = patient.medical_records || [];
@@ -64,8 +70,8 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   // Fonction pour télécharger un document - version corrigée
   const handleDownloadDocument = async (docId) => {
     try {
-      setIsDownloading(true); // Utiliser l'état local pour indiquer le chargement
-      setDownloadError(null); // Réinitialiser les erreurs
+      setIsDownloading(true);
+      setDownloadError(null);
 
       const response = await axios.get(
         `/api/doctor/documents/${docId}/download`,
@@ -114,6 +120,37 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  // NOUVELLES FONCTIONS pour gérer les actions des rendez-vous
+  
+  // Fonction pour voir un dossier médical
+  const handleViewMedicalRecord = (medicalRecord) => {
+    setSelectedMedicalRecord(medicalRecord);
+    setShowMedicalRecordModal(true);
+  };
+
+  // Fonction pour voir les ordonnances
+  const handleViewPrescriptions = (prescriptions) => {
+    setSelectedPrescriptions(prescriptions);
+    setShowPrescriptionsModal(true);
+  };
+
+  // Fonction pour créer un dossier médical à partir d'un rendez-vous
+  const handleCreateMedicalRecordForAppointment = (appointment) => {
+    // Passer à l'onglet de création de dossier médical avec le rendez-vous pré-sélectionné
+    handleSubTabChange("record", appointment);
+  };
+
+  // Fonction pour fermer les modales
+  const closeMedicalRecordModal = () => {
+    setShowMedicalRecordModal(false);
+    setSelectedMedicalRecord(null);
+  };
+
+  const closePrescriptionsModal = () => {
+    setShowPrescriptionsModal(false);
+    setSelectedPrescriptions([]);
   };
 
   return (
@@ -186,7 +223,6 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
         >
           <i className="fas fa-calendar-alt"></i> Rendez-vous
         </button>
-        {/* Nouvel onglet pour les factures */}
         <button
           className={`patient-tab ${activeTab === "invoices" ? "active" : ""}`}
           onClick={() => handleTabChange("invoices")}
@@ -198,7 +234,6 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
       <div className="patient-content">
         {activeTab === "info" && (
           <div className="patient-info-tab">
-            {/* Nouvelles sections d'informations sans cadres */}
             <div className="patient-info-container">
               <h3 className="section-title">Informations personnelles</h3>
 
@@ -443,37 +478,104 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           <div className="patient-appointments-tab">
             <h3>Historique des rendez-vous</h3>
             {appointments.length > 0 ? (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Heure</th>
-                    <th>Motif</th>
-                    <th>Statut</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appointments.map((appointment) => (
-                    <tr key={appointment.id}>
-                      <td>{appointment.date}</td>
-                      <td>{appointment.time}</td>
-                      <td>{appointment.reason || "Non spécifié"}</td>
-                      <td>
-                        <span
-                          className={`status-badge ${appointment.status.replace(
-                            " ",
-                            ""
-                          )}`}
-                        >
+              <div className="appointments-timeline">
+                {appointments.map((appointment) => (
+                  <div key={appointment.id} className="appointment-card">
+                    <div className="appointment-header">
+                      <div className="appointment-date-info">
+                        <h4>{new Date(appointment.date).toLocaleDateString('fr-FR', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}</h4>
+                        <span className="appointment-time">{appointment.time}</span>
+                        <span className={`status-badge ${appointment.status.replace(" ", "")}`}>
                           {appointment.status}
                         </span>
-                      </td>
-                      <td>{appointment.notes || "Aucune note"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                    
+                    <div className="appointment-body">
+                      <div className="appointment-details">
+                        <p><strong>Motif:</strong> {appointment.reason || "Non spécifié"}</p>
+                        {appointment.notes && (
+                          <p><strong>Notes:</strong> {appointment.notes}</p>
+                        )}
+                      </div>
+                      
+                      {/* Section des documents associés */}
+                      <div className="appointment-related-docs">
+                        <h5>Documents associés à ce rendez-vous</h5>
+                        
+                        {/* Dossier médical associé */}
+                        {appointment.medical_record && (
+                          <div className="related-document medical-record">
+                            <div className="doc-icon">
+                              <i className="fas fa-file-medical"></i>
+                            </div>
+                            <div className="doc-info">
+                              <h6>Dossier médical</h6>
+                              <p>Diagnostic: {appointment.medical_record.diagnosis}</p>
+                              <p>Type: {appointment.medical_record.type}</p>
+                            </div>
+                            <div className="doc-actions">
+                              <button 
+                                className="btn-sm btn-outline"
+                                onClick={() => handleViewMedicalRecord(appointment.medical_record)}
+                                disabled={actionLoading}
+                              >
+                                <i className="fas fa-eye"></i> Consulter
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Ordonnances associées */}
+                        {appointment.prescriptions && appointment.prescriptions.length > 0 && (
+                          <div className="related-document prescriptions">
+                            <div className="doc-icon">
+                              <i className="fas fa-prescription"></i>
+                            </div>
+                            <div className="doc-info">
+                              <h6>Ordonnances ({appointment.prescriptions.length})</h6>
+                              <p>Médicaments prescrits lors de cette consultation</p>
+                            </div>
+                            <div className="doc-actions">
+                              <button 
+                                className="btn-sm btn-outline"
+                                onClick={() => handleViewPrescriptions(appointment.prescriptions)}
+                                disabled={actionLoading}
+                              >
+                                <i className="fas fa-pills"></i> Voir ordonnances
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* État si aucun document */}
+                        {!appointment.medical_record && (!appointment.prescriptions || appointment.prescriptions.length === 0) && (
+                          <div className="no-related-docs">
+                            <i className="fas fa-info-circle"></i>
+                            <p>Aucun document médical associé à ce rendez-vous</p>
+                            {appointment.status === "confirmé" && (
+                              <div className="quick-actions">
+                                <button 
+                                  className="btn-sm btn-primary"
+                                  onClick={() => handleCreateMedicalRecordForAppointment(appointment)}
+                                  disabled={actionLoading}
+                                >
+                                  <i className="fas fa-plus"></i> Créer dossier médical
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="empty-state small">
                 <i className="fas fa-calendar-times"></i>
@@ -484,7 +586,7 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           </div>
         )}
 
-        {/* Nouvel onglet pour les factures */}
+        {/* Onglet des factures */}
         {activeTab === "invoices" && (
           <div className="patient-invoices-tab">
             <h3>Factures du patient</h3>
@@ -551,6 +653,102 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
           </div>
         )}
       </div>
+
+      {/* Modale pour afficher les détails d'un dossier médical */}
+      {showMedicalRecordModal && selectedMedicalRecord && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>Détails du dossier médical</h3>
+              <button className="btn-icon" onClick={closeMedicalRecordModal}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="medical-record-details">
+                <div className="detail-row">
+                  <strong>Type:</strong> {selectedMedicalRecord.type}
+                </div>
+                <div className="detail-row">
+                  <strong>Diagnostic:</strong> {selectedMedicalRecord.diagnosis}
+                </div>
+                <div className="detail-row">
+                  <strong>Notes:</strong> {selectedMedicalRecord.notes || "Aucune note"}
+                </div>
+                {selectedMedicalRecord.documents && selectedMedicalRecord.documents.length > 0 && (
+                  <div className="detail-row">
+                    <strong>Documents:</strong>
+                    <ul>
+                      {selectedMedicalRecord.documents.map((doc, index) => (
+                        <li key={index}>
+                          <a
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDownloadDocument(doc.id);
+                            }}
+                          >
+                            <i className="fas fa-file-download"></i> {doc.name}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={closeMedicalRecordModal}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale pour afficher les ordonnances */}
+      {showPrescriptionsModal && selectedPrescriptions.length > 0 && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3>Ordonnances associées</h3>
+              <button className="btn-icon" onClick={closePrescriptionsModal}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="prescriptions-details">
+                {selectedPrescriptions.map((prescription, index) => (
+                  <div key={index} className="prescription-detail">
+                    <h4>Ordonnance du {prescription.date}</h4>
+                    <div className="medications-list">
+                      {prescription.medications.map((med, medIndex) => (
+                        <div key={medIndex} className="medication-detail">
+                          <strong>{med.name}</strong> - {med.dosage}, {med.frequency}, {med.duration}
+                          {med.instructions && <p><em>Instructions: {med.instructions}</em></p>}
+                        </div>
+                      ))}
+                    </div>
+                    {prescription.notes && (
+                      <div className="prescription-notes">
+                        <strong>Notes:</strong> {prescription.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={closePrescriptionsModal}>
+                Fermer
+              </button>
+              <button className="btn-primary" onClick={() => window.print()}>
+                <i className="fas fa-print"></i> Imprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
