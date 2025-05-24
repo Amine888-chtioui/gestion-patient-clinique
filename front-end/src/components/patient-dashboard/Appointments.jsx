@@ -1,5 +1,5 @@
-// src/components/patient-dashboard/Appointments.jsx
-import React, { useState, useEffect } from "react";
+// src/components/patient-dashboard/Appointments.jsx - Version optimisée
+import React, { useState, useMemo } from "react";
 import AppointmentEditor from "./AppointmentEditor";
 import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner";
 import Modal from "../common/Modal";
@@ -16,68 +16,50 @@ const Appointments = ({
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  // New state for detailed view
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Fonction pour charger des données additionnelles si nécessaire
-  useEffect(() => {
-    const fetchAdditionalData = async () => {
-      if (appointments.length === 0 || doctors.length === 0) {
-        setLoading(true);
-        try {
-          // Logique de chargement des données additionnelles si nécessaire
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulation de délai
-        } catch (error) {
-          console.error("Erreur lors du chargement des données:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
+  // Filtrage mémorisé des rendez-vous
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((appointment) => {
+      const matchesStatus = filter === "all" || appointment.status === filter;
+      const matchesSearch =
+        searchTerm === "" ||
+        appointment.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (appointment.reason &&
+          appointment.reason.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    fetchAdditionalData();
-  }, [appointments.length, doctors.length]);
+      return matchesStatus && matchesSearch;
+    });
+  }, [appointments, filter, searchTerm]);
 
-  // Fonction pour filtrer les rendez-vous
-  const filteredAppointments = appointments.filter((appointment) => {
-    const matchesStatus = filter === "all" || appointment.status === filter;
-    const matchesSearch =
-      searchTerm === "" ||
-      appointment.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (appointment.reason &&
-        appointment.reason.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    return matchesStatus && matchesSearch;
-  });
-
-  // Lancer l'édition d'un rendez-vous
+  // Handlers pour les actions
   const handleEditAppointment = (appointment) => {
     setEditingAppointment(appointment);
   };
 
-  // Annuler l'édition
   const handleCancelEdit = () => {
     setEditingAppointment(null);
   };
 
-  // Nouvelle fonction pour afficher les détails d'un rendez-vous
   const handleViewDetails = (appointment) => {
     setSelectedAppointment(appointment);
     setIsDetailModalOpen(true);
   };
 
-  // Fermer le modal de détails
   const closeDetailModal = () => {
     setIsDetailModalOpen(false);
+    setSelectedAppointment(null);
   };
 
-  // Formatter la date pour un affichage plus lisible
+  const resetFilters = () => {
+    setFilter("all");
+    setSearchTerm("");
+  };
+
+  // Utilitaires de formatage
   const formatDate = (dateString) => {
     if (!dateString) return "";
-
     const options = {
       weekday: "long",
       year: "numeric",
@@ -87,12 +69,9 @@ const Appointments = ({
     return new Date(dateString).toLocaleDateString("fr-FR", options);
   };
 
-  // Si on est en cours de chargement, afficher le spinner unifié
-  if (loading) {
-    return (
-      <UnifiedLoadingSpinner text="Chargement des rendez-vous en cours..." />
-    );
-  }
+  const isAppointmentEditable = (appointment) => {
+    return appointment.status !== "annulé" && new Date(appointment.date) > new Date();
+  };
 
   // Si on est en mode édition, afficher le formulaire d'édition
   if (editingAppointment) {
@@ -109,6 +88,7 @@ const Appointments = ({
 
   return (
     <div className="appointments-container">
+      {/* Barre de filtrage */}
       <div className="filter-bar">
         <div className="filter-options">
           <select
@@ -138,26 +118,21 @@ const Appointments = ({
 
         <button
           className="btn-outline reset-btn"
-          onClick={() => {
-            setFilter("all");
-            setSearchTerm("");
-          }}
+          onClick={resetFilters}
           disabled={actionLoading}
         >
           <i className="fas fa-redo-alt"></i> Réinitialiser
         </button>
       </div>
 
+      {/* Liste des rendez-vous */}
       {filteredAppointments.length > 0 ? (
         <div className="appointments-list">
           {filteredAppointments.map((appointment) => (
             <div key={appointment.id} className="appointment-card">
               <div className="appointment-header">
                 <span
-                  className={`status-badge ${appointment.status.replace(
-                    " ",
-                    ""
-                  )}`}
+                  className={`status-badge ${appointment.status.replace(" ", "")}`}
                 >
                   {appointment.status}
                 </span>
@@ -177,9 +152,7 @@ const Appointments = ({
                   {appointment.specialty && (
                     <div className="info-row">
                       <span className="info-label">Spécialité:</span>
-                      <span className="info-value">
-                        {appointment.specialty}
-                      </span>
+                      <span className="info-value">{appointment.specialty}</span>
                     </div>
                   )}
                   {appointment.reason && (
@@ -205,9 +178,8 @@ const Appointments = ({
                   <i className="fas fa-eye"></i> Détails
                 </button>
 
-                {/* Bouton d'édition pour les rendez-vous non annulés et futurs */}
-                {appointment.status !== "annulé" &&
-                  new Date(appointment.date) > new Date() && (
+                {isAppointmentEditable(appointment) && (
+                  <>
                     <button
                       className="btn-sm btn-outline"
                       title="Modifier"
@@ -216,11 +188,7 @@ const Appointments = ({
                     >
                       <i className="fas fa-edit"></i> Modifier
                     </button>
-                  )}
 
-                {/* Bouton d'annulation pour les rendez-vous non annulés et futurs */}
-                {appointment.status !== "annulé" &&
-                  new Date(appointment.date) > new Date() && (
                     <button
                       className="btn-sm btn-outline danger"
                       title="Annuler"
@@ -229,7 +197,8 @@ const Appointments = ({
                     >
                       <i className="fas fa-times-circle"></i> Annuler
                     </button>
-                  )}
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -238,7 +207,11 @@ const Appointments = ({
         <div className="empty-state">
           <i className="fas fa-calendar-times"></i>
           <h3>Aucun rendez-vous</h3>
-          <p>Vous n'avez pas encore de rendez-vous programmés</p>
+          <p>
+            {searchTerm || filter !== "all"
+              ? "Aucun rendez-vous ne correspond à vos critères de recherche"
+              : "Vous n'avez pas encore de rendez-vous programmés"}
+          </p>
           <button
             className="btn-primary"
             onClick={() => handleTabChange("book")}
@@ -264,10 +237,7 @@ const Appointments = ({
                 <span className="detail-label">Statut:</span>
                 <span className="detail-value">
                   <span
-                    className={`status-badge ${selectedAppointment.status.replace(
-                      " ",
-                      ""
-                    )}`}
+                    className={`status-badge ${selectedAppointment.status.replace(" ", "")}`}
                   >
                     {selectedAppointment.status}
                   </span>
@@ -289,16 +259,12 @@ const Appointments = ({
               <h4>Médecin</h4>
               <div className="detail-row">
                 <span className="detail-label">Nom:</span>
-                <span className="detail-value">
-                  {selectedAppointment.doctor}
-                </span>
+                <span className="detail-value">{selectedAppointment.doctor}</span>
               </div>
               {selectedAppointment.specialty && (
                 <div className="detail-row">
                   <span className="detail-label">Spécialité:</span>
-                  <span className="detail-value">
-                    {selectedAppointment.specialty}
-                  </span>
+                  <span className="detail-value">{selectedAppointment.specialty}</span>
                 </div>
               )}
             </div>
@@ -311,37 +277,36 @@ const Appointments = ({
             </div>
 
             <div className="detail-actions">
-              {selectedAppointment.status !== "annulé" &&
-                new Date(selectedAppointment.date) > new Date() && (
-                  <>
-                    <button
-                      className="btn-outline"
-                      onClick={() => {
+              {isAppointmentEditable(selectedAppointment) && (
+                <>
+                  <button
+                    className="btn-outline"
+                    onClick={() => {
+                      closeDetailModal();
+                      handleEditAppointment(selectedAppointment);
+                    }}
+                    disabled={actionLoading}
+                  >
+                    <i className="fas fa-edit"></i> Modifier
+                  </button>
+                  <button
+                    className="btn-outline danger"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Êtes-vous sûr de vouloir annuler ce rendez-vous ?"
+                        )
+                      ) {
+                        handleCancelAppointment(selectedAppointment.id);
                         closeDetailModal();
-                        handleEditAppointment(selectedAppointment);
-                      }}
-                      disabled={actionLoading}
-                    >
-                      <i className="fas fa-edit"></i> Modifier
-                    </button>
-                    <button
-                      className="btn-outline danger"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Êtes-vous sûr de vouloir annuler ce rendez-vous ?"
-                          )
-                        ) {
-                          handleCancelAppointment(selectedAppointment.id);
-                          closeDetailModal();
-                        }
-                      }}
-                      disabled={actionLoading}
-                    >
-                      <i className="fas fa-times-circle"></i> Annuler
-                    </button>
-                  </>
-                )}
+                      }
+                    }}
+                    disabled={actionLoading}
+                  >
+                    <i className="fas fa-times-circle"></i> Annuler
+                  </button>
+                </>
+              )}
               <button className="btn-primary" onClick={closeDetailModal}>
                 Fermer
               </button>

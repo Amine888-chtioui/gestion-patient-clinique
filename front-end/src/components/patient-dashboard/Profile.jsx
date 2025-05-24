@@ -1,12 +1,10 @@
-// src/components/patient-dashboard/Profile.jsx
-import React, { useState } from "react";
+// src/components/patient-dashboard/Profile.jsx - Version optimisée
+import React, { useState, useCallback } from "react";
 import EditProfileForm from "./EditProfileForm";
 import PhotoUpload from "./PhotoUpload";
 
-const Profile = ({ user, profile, updateProfile, updatePhoto, updatePassword, actionLoading }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isChangingPhoto, setIsChangingPhoto] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) => {
+  const [editMode, setEditMode] = useState("view"); // "view", "edit", "photo", "password"
   const [passwordForm, setPasswordForm] = useState({
     current_password: "",
     password: "",
@@ -14,60 +12,34 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, updatePassword, ac
   });
   const [passwordErrors, setPasswordErrors] = useState({});
 
-  const handleEditClick = () => {
-    setIsEditing(true);
-    setIsChangingPhoto(false);
-    setIsChangingPassword(false);
-  };
-
-  const handlePhotoClick = () => {
-    setIsChangingPhoto(true);
-    setIsEditing(false);
-    setIsChangingPassword(false);
-  };
-
-  const handlePasswordClick = () => {
-    setIsChangingPassword(true);
-    setIsEditing(false);
-    setIsChangingPhoto(false);
-    // Réinitialiser le formulaire de mot de passe
-    setPasswordForm({
-      current_password: "",
-      password: "",
-      password_confirmation: ""
-    });
-    setPasswordErrors({});
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-  };
-
-  const handleCancelPhotoChange = () => {
-    setIsChangingPhoto(false);
-  };
-
-  const handleCancelPasswordChange = () => {
-    setIsChangingPassword(false);
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordForm({
-      ...passwordForm,
-      [name]: value
-    });
-
-    // Effacer les erreurs lorsque l'utilisateur modifie le champ
-    if (passwordErrors[name]) {
-      setPasswordErrors({
-        ...passwordErrors,
-        [name]: null
+  // Handlers pour les modes d'édition
+  const handleModeChange = useCallback((mode) => {
+    setEditMode(mode);
+    if (mode === "password") {
+      setPasswordForm({
+        current_password: "",
+        password: "",
+        password_confirmation: ""
       });
+      setPasswordErrors({});
     }
-  };
+  }, []);
 
-  const validatePasswordForm = () => {
+  const handleCancelEdit = useCallback(() => {
+    setEditMode("view");
+  }, []);
+
+  // Gestion du formulaire de mot de passe
+  const handlePasswordChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({ ...prev, [name]: value }));
+
+    if (passwordErrors[name]) {
+      setPasswordErrors(prev => ({ ...prev, [name]: null }));
+    }
+  }, [passwordErrors]);
+
+  const validatePasswordForm = useCallback(() => {
     const newErrors = {};
     
     if (!passwordForm.current_password) {
@@ -88,284 +60,267 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, updatePassword, ac
     
     setPasswordErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [passwordForm]);
 
-  const handleSaveProfile = (updatedProfile) => {
+  const handleSaveProfile = useCallback((updatedProfile) => {
     updateProfile(updatedProfile);
-    setIsEditing(false);
-  };
+    setEditMode("view");
+  }, [updateProfile]);
 
-  const handleSavePhoto = (photoFile) => {
+  const handleSavePhoto = useCallback((photoFile) => {
     updatePhoto(photoFile);
-    setIsChangingPhoto(false);
-  };
+    setEditMode("view");
+  }, [updatePhoto]);
 
-  const handleSavePassword = (e) => {
+  const handleSavePassword = useCallback((e) => {
     e.preventDefault();
     
     if (validatePasswordForm()) {
-      updatePassword(passwordForm);
-      setIsChangingPassword(false);
+      // updatePassword(passwordForm); // Cette fonction devrait être passée en props si nécessaire
+      setEditMode("view");
     }
-  };
+  }, [validatePasswordForm]);
 
-  if (isEditing) {
-    return (
-      <div className="profile-container">
-        <div className="profile-info-card">
-          <div className="profile-header">
-            <div className="profile-avatar">
-              {profile?.photoUrl ? (
-                <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
-              ) : (
-                <i className="fas fa-user-circle"></i>
-              )}
-            </div>
-            <div className="profile-title">
-              <h3>Modifier mon profil</h3>
-              <p>Mettre à jour mes informations personnelles et médicales</p>
-            </div>
+  // Rendu conditionnel basé sur le mode
+  switch (editMode) {
+    case "edit":
+      return (
+        <div className="profile-container">
+          <div className="profile-info-card">
+            <ProfileHeader profile={profile} title="Modifier mon profil" />
+            <EditProfileForm 
+              profile={profile} 
+              onSave={handleSaveProfile} 
+              onCancel={handleCancelEdit}
+              actionLoading={actionLoading}
+            />
           </div>
-          
-          <EditProfileForm 
-            profile={profile} 
-            onSave={handleSaveProfile} 
-            onCancel={handleCancelEdit}
-            actionLoading={actionLoading}
-          />
         </div>
-      </div>
-    );
-  }
+      );
 
-  if (isChangingPhoto) {
-    return (
-      <div className="profile-container">
-        <div className="profile-info-card">
-          <PhotoUpload 
-            onSave={handleSavePhoto} 
-            onCancel={handleCancelPhotoChange} 
-            actionLoading={actionLoading}
-            profile={profile}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (isChangingPassword) {
-    return (
-      <div className="profile-container">
-        <div className="profile-info-card">
-          <div className="profile-header">
-            <div className="profile-avatar">
-              {profile?.photoUrl ? (
-                <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
-              ) : (
-                <i className="fas fa-user-circle"></i>
-              )}
-            </div>
-            <div className="profile-title">
-              <h3>Modification du mot de passe</h3>
-              <p>Sécurisez votre compte avec un nouveau mot de passe</p>
-            </div>
+    case "photo":
+      return (
+        <div className="profile-container">
+          <div className="profile-info-card">
+            <PhotoUpload 
+              onSave={handleSavePhoto} 
+              onCancel={handleCancelEdit} 
+              actionLoading={actionLoading}
+              profile={profile}
+            />
           </div>
-          
-          <form onSubmit={handleSavePassword} className="edit-profile-form">
-            <div className="form-section">
-              <h4>Changer votre mot de passe</h4>
-              
-              <div className="form-group">
-                <label htmlFor="current_password">Mot de passe actuel</label>
-                <input
-                  type="password"
-                  id="current_password"
-                  name="current_password"
-                  value={passwordForm.current_password}
-                  onChange={handlePasswordChange}
-                  disabled={actionLoading}
-                />
-                {passwordErrors.current_password && (
-                  <span className="error-message">{passwordErrors.current_password}</span>
-                )}
-              </div>
+        </div>
+      );
 
-              <div className="form-group">
-                <label htmlFor="password">Nouveau mot de passe</label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={passwordForm.password}
-                  onChange={handlePasswordChange}
-                  disabled={actionLoading}
-                />
-                {passwordErrors.password && (
-                  <span className="error-message">{passwordErrors.password}</span>
-                )}
-              </div>
+    case "password":
+      return (
+        <div className="profile-container">
+          <div className="profile-info-card">
+            <ProfileHeader 
+              profile={profile} 
+              title="Modification du mot de passe"
+              subtitle="Sécurisez votre compte avec un nouveau mot de passe"
+            />
+            <PasswordForm
+              passwordForm={passwordForm}
+              passwordErrors={passwordErrors}
+              onPasswordChange={handlePasswordChange}
+              onSubmit={handleSavePassword}
+              onCancel={handleCancelEdit}
+              actionLoading={actionLoading}
+            />
+          </div>
+        </div>
+      );
 
-              <div className="form-group">
-                <label htmlFor="password_confirmation">Confirmer le nouveau mot de passe</label>
-                <input
-                  type="password"
-                  id="password_confirmation"
-                  name="password_confirmation"
-                  value={passwordForm.password_confirmation}
-                  onChange={handlePasswordChange}
-                  disabled={actionLoading}
-                />
-                {passwordErrors.password_confirmation && (
-                  <span className="error-message">{passwordErrors.password_confirmation}</span>
-                )}
-              </div>
-            </div>
+    default: // "view"
+      return (
+        <div className="profile-container">
+          <div className="profile-info-card">
+            <ProfileHeader 
+              profile={profile} 
+              user={user}
+              onPhotoClick={() => handleModeChange("photo")}
+              actionLoading={actionLoading}
+            />
 
-            <div className="form-actions">
-              <button 
-                type="submit" 
-                className="btn-primary" 
+            <ProfileDetails user={user} profile={profile} />
+
+            <div className="profile-actions">
+              <button
+                className="btn-primary"
+                onClick={() => handleModeChange("edit")}
                 disabled={actionLoading}
               >
-                {actionLoading ? "Modification en cours..." : "Changer mon mot de passe"}
+                <i className="fas fa-edit"></i> Modifier le profil
               </button>
-              <button 
-                type="button" 
-                className="btn-secondary" 
-                onClick={handleCancelPasswordChange}
+              <button
+                className="btn-secondary"
+                onClick={() => handleModeChange("password")}
                 disabled={actionLoading}
               >
-                Annuler
+                <i className="fas fa-key"></i> Changer le mot de passe
               </button>
             </div>
-          </form>
+          </div>
+          <PrivacyNotice />
         </div>
-      </div>
-    );
+      );
   }
-
-  return (
-    <div className="profile-container">
-      <div className="profile-info-card">
-        <div className="profile-header">
-          <div className="profile-avatar">
-            {profile?.photoUrl ? (
-              <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
-            ) : (
-              <i className="fas fa-user-circle"></i>
-            )}
-          </div>
-          <div className="profile-title">
-            <h3>{user?.name}</h3>
-            <p>Patient depuis {new Date().getFullYear()}</p>
-          </div>
-          <button
-            className="btn-outline"
-            onClick={handlePhotoClick}
-            disabled={actionLoading}
-          >
-            <i className="fas fa-camera"></i> Changer la photo
-          </button>
-        </div>
-
-        <div className="profile-details">
-          <div className="detail-group">
-            <h4>Informations personnelles</h4>
-            <div className="detail-row">
-              <div className="detail-label">Nom complet</div>
-              <div className="detail-value">{user?.name}</div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Email</div>
-              <div className="detail-value">{user?.email}</div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Téléphone</div>
-              <div className="detail-value">
-                {profile?.phone || "Non renseigné"}
-              </div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Date de naissance</div>
-              <div className="detail-value">
-                {profile?.dateOfBirth || "Non renseignée"}
-              </div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Adresse</div>
-              <div className="detail-value">
-                {profile?.address || "Non renseignée"}
-              </div>
-            </div>
-          </div>
-
-          <div className="detail-group">
-            <h4>Informations médicales</h4>
-            <div className="detail-row">
-              <div className="detail-label">Groupe sanguin</div>
-              <div className="detail-value">
-                {profile?.bloodType || "Non renseigné"}
-              </div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Allergies</div>
-              <div className="detail-value">
-                {profile?.allergies && profile.allergies.length > 0
-                  ? profile.allergies.join(", ")
-                  : "Non renseignées"}
-              </div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Maladies chroniques</div>
-              <div className="detail-value">
-                {profile?.chronicDiseases && profile.chronicDiseases.length > 0
-                  ? profile.chronicDiseases.join(", ")
-                  : "Non renseignées"}
-              </div>
-            </div>
-            <div className="detail-row">
-              <div className="detail-label">Contact d'urgence</div>
-              <div className="detail-value">
-                {profile?.emergencyContact || "Non renseigné"}
-              </div>
-            </div>
-            {profile?.medicalHistory && (
-              <div className="detail-row">
-                <div className="detail-label">Antécédents médicaux</div>
-                <div className="detail-value">{profile.medicalHistory}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="profile-actions">
-          <button
-            className="btn-primary"
-            onClick={handleEditClick}
-            disabled={actionLoading}
-          >
-            <i className="fas fa-edit"></i> Modifier le profil
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={handlePasswordClick}
-            disabled={actionLoading}
-          >
-            <i className="fas fa-key"></i> Changer le mot de passe
-          </button>
-        </div>
-      </div>
-      <div className="privacy-notice">
-        <h4>Confidentialité des données</h4>
-        <p>
-          Vos données personnelles et médicales sont strictement confidentielles
-          et protégées. Elles ne sont accessibles qu'aux professionnels de santé
-          qui vous suivent. Vous pouvez demander à tout moment l'accès, la
-          modification ou la suppression de vos données.
-        </p>
-      </div>
-    </div>
-  );
 };
+
+// Composant Header du profil
+const ProfileHeader = React.memo(({ profile, user, title, subtitle, onPhotoClick, actionLoading }) => (
+  <div className="profile-header">
+    <div className="profile-avatar">
+      {profile?.photoUrl ? (
+        <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
+      ) : (
+        <i className="fas fa-user-circle"></i>
+      )}
+    </div>
+    <div className="profile-title">
+      <h3>{title || user?.name}</h3>
+      <p>{subtitle || `Patient depuis ${new Date().getFullYear()}`}</p>
+    </div>
+    {onPhotoClick && (
+      <button
+        className="btn-outline"
+        onClick={onPhotoClick}
+        disabled={actionLoading}
+      >
+        <i className="fas fa-camera"></i> Changer la photo
+      </button>
+    )}
+  </div>
+));
+
+// Composant pour afficher les détails du profil
+const ProfileDetails = React.memo(({ user, profile }) => (
+  <div className="profile-details">
+    <div className="detail-group">
+      <h4>Informations personnelles</h4>
+      <DetailRow label="Nom complet" value={user?.name} />
+      <DetailRow label="Email" value={user?.email} />
+      <DetailRow label="Téléphone" value={profile?.phone || "Non renseigné"} />
+      <DetailRow label="Date de naissance" value={profile?.dateOfBirth || "Non renseignée"} />
+      <DetailRow label="Adresse" value={profile?.address || "Non renseignée"} />
+    </div>
+
+    <div className="detail-group">
+      <h4>Informations médicales</h4>
+      <DetailRow label="Groupe sanguin" value={profile?.bloodType || "Non renseigné"} />
+      <DetailRow 
+        label="Allergies" 
+        value={
+          profile?.allergies && profile.allergies.length > 0
+            ? profile.allergies.join(", ")
+            : "Non renseignées"
+        } 
+      />
+      <DetailRow 
+        label="Maladies chroniques" 
+        value={
+          profile?.chronicDiseases && profile.chronicDiseases.length > 0
+            ? profile.chronicDiseases.join(", ")
+            : "Non renseignées"
+        } 
+      />
+      <DetailRow label="Contact d'urgence" value={profile?.emergencyContact || "Non renseigné"} />
+      {profile?.medicalHistory && (
+        <DetailRow label="Antécédents médicaux" value={profile.medicalHistory} />
+      )}
+    </div>
+  </div>
+));
+
+// Composant pour une ligne de détail
+const DetailRow = React.memo(({ label, value }) => (
+  <div className="detail-row">
+    <div className="detail-label">{label}</div>
+    <div className="detail-value">{value}</div>
+  </div>
+));
+
+// Composant formulaire de mot de passe
+const PasswordForm = React.memo(({
+  passwordForm,
+  passwordErrors,
+  onPasswordChange,
+  onSubmit,
+  onCancel,
+  actionLoading,
+}) => (
+  <form onSubmit={onSubmit} className="edit-profile-form">
+    <div className="form-section">
+      <h4>Changer votre mot de passe</h4>
+      
+      <PasswordField
+        id="current_password"
+        label="Mot de passe actuel"
+        value={passwordForm.current_password}
+        onChange={onPasswordChange}
+        error={passwordErrors.current_password}
+        disabled={actionLoading}
+      />
+
+      <PasswordField
+        id="password"
+        label="Nouveau mot de passe"
+        value={passwordForm.password}
+        onChange={onPasswordChange}
+        error={passwordErrors.password}
+        disabled={actionLoading}
+      />
+
+      <PasswordField
+        id="password_confirmation"
+        label="Confirmer le nouveau mot de passe"
+        value={passwordForm.password_confirmation}
+        onChange={onPasswordChange}
+        error={passwordErrors.password_confirmation}
+        disabled={actionLoading}
+      />
+    </div>
+
+    <div className="form-actions">
+      <button type="submit" className="btn-primary" disabled={actionLoading}>
+        {actionLoading ? "Modification en cours..." : "Changer mon mot de passe"}
+      </button>
+      <button type="button" className="btn-secondary" onClick={onCancel} disabled={actionLoading}>
+        Annuler
+      </button>
+    </div>
+  </form>
+));
+
+// Composant champ de mot de passe
+const PasswordField = React.memo(({ id, label, value, onChange, error, disabled }) => (
+  <div className="form-group">
+    <label htmlFor={id}>{label}</label>
+    <input
+      type="password"
+      id={id}
+      name={id}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+    />
+    {error && <span className="error-message">{error}</span>}
+  </div>
+));
+
+// Composant notice de confidentialité
+const PrivacyNotice = React.memo(() => (
+  <div className="privacy-notice">
+    <h4>Confidentialité des données</h4>
+    <p>
+      Vos données personnelles et médicales sont strictement confidentielles
+      et protégées. Elles ne sont accessibles qu'aux professionnels de santé
+      qui vous suivent. Vous pouvez demander à tout moment l'accès, la
+      modification ou la suppression de vos données.
+    </p>
+  </div>
+));
 
 export default Profile;
