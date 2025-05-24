@@ -1,0 +1,221 @@
+/* src/components/doctor-dashboard/medical-record-prescriptions.css */
+/* Styles pour le composant MedicalRecordPrescriptions */
+
+.medical-record-prescriptions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* En-tête avec bouton retour */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+}
+
+.header-info h2 {
+  margin: 0;
+  margin-bottom: 0.25rem;
+  color: var(--primary-color);
+}
+
+.header-subtitle {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+/* Carte résumé du dossier médical */
+.medical-record-summary-card {
+  background-color: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  border-left: 4px solid var(--primary-color);
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background-color: var(--primary-light);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.record-icon {
+  width: 60px;
+  height: 60px;
+  background-color: var(--primary-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1.5rem;
+  flex-shrink: 0;
+}
+
+.record-icon i {
+  font-size: 1.5rem;
+  color: white;
+}
+
+.summary-info h3 {
+  margin: 0;
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+  font-size: 1.2rem;
+}
+
+.record-details {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.record-type {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.record-date {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.summary-content {
+  padding: 1.5rem;
+}
+
+.detail-row {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Styles pour les ordonnances liées */
+.prescription-card.linked {
+  border-left: 4px solid var(--success-color);
+  background-color: rgba(40, 167, 69, 0.02);
+}
+
+.prescription-link-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--success-color);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.prescription-link-indicator i {
+  font-size: 0.8rem;
+}
+
+/* Section titre des ordonnances */
+.prescriptions-content h3 {
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Styles pour les médicaments */
+.no-medications {
+  color: var(--text-light);
+  font-style: italic;
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--bg-color);
+  border-radius: var(--radius-sm);
+}
+
+/* Actions globales */
+.global-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: var(--bg-color);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+/* État vide spécifique */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  background-color: white;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--border-color);
+}
+
+.empty-state i {
+  font-size: 3rem;
+  color: var(--primary-color);
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .summary-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .record-icon {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .record-details {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .global-actions {
+    flex-direction: column;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+}

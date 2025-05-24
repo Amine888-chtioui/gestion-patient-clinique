@@ -1267,6 +1267,9 @@ public function getPatientInvoices($patientId)
     /**
  * Récupérer les ordonnances créées par le médecin
  */
+/**
+ * Récupérer les ordonnances créées par le médecin avec les informations du dossier médical
+ */
 public function getPrescriptions()
 {
     $user = Auth::user();
@@ -1276,9 +1279,9 @@ public function getPrescriptions()
         return response()->json(['message' => 'Accès non autorisé'], 403);
     }
     
-    // Récupérer les ordonnances du médecin avec les informations du patient et les médicaments
+    // Récupérer les ordonnances du médecin avec les informations du patient, des médicaments et du dossier médical
     $prescriptions = $user->doctorPrescriptions()
-        ->with(['patient:id,name,email', 'medications'])
+        ->with(['patient:id,name,email', 'medications', 'medicalRecord'])
         ->orderBy('date', 'desc')
         ->get();
     
@@ -1289,6 +1292,13 @@ public function getPrescriptions()
             'date' => $prescription->date,
             'patient_id' => $prescription->patient_id,
             'patient_name' => $prescription->patient->name,
+            'medical_record_id' => $prescription->medical_record_id, // Ajouté
+            'medical_record' => $prescription->medicalRecord ? [
+                'id' => $prescription->medicalRecord->id,
+                'date' => $prescription->medicalRecord->date,
+                'type' => $prescription->medicalRecord->type,
+                'diagnosis' => $prescription->medicalRecord->diagnosis,
+            ] : null,
             'notes' => $prescription->notes,
             'medications' => $prescription->medications->map(function ($medication) {
                 return [

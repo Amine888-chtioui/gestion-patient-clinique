@@ -1,10 +1,9 @@
 // src/components/doctor-dashboard/DoctorMedicalRecords.jsx
-// Mise à jour du code pour corriger la navigation vers les détails du patient
-
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner";
 import DocumentViewer from "./DocumentViewer";
+import MedicalRecordPrescriptions from "./MedicalRecordPrescriptions";
 
 const DoctorMedicalRecords = ({ 
   patients, 
@@ -25,6 +24,10 @@ const DoctorMedicalRecords = ({
   const [documentActionLoading, setDocumentActionLoading] = useState(false);
   const [documentActionError, setDocumentActionError] = useState(null);
   const [documentActionSuccess, setDocumentActionSuccess] = useState(null);
+
+  // Nouveaux états pour la gestion des ordonnances liées
+  const [selectedMedicalRecord, setSelectedMedicalRecord] = useState(null);
+  const [showPrescriptions, setShowPrescriptions] = useState(false);
 
   useEffect(() => {
     fetchMedicalRecords();
@@ -79,6 +82,44 @@ const DoctorMedicalRecords = ({
       console.error("Erreur lors de la sélection du patient:", error);
       setDocumentActionError("Impossible de charger les détails du patient.");
       setTimeout(() => setDocumentActionError(null), 5000);
+    }
+  };
+
+  // Fonction pour voir les ordonnances liées à un dossier médical
+  const handleViewPrescriptions = (medicalRecordId) => {
+    const record = medicalRecords.find(r => r.id === medicalRecordId);
+    if (record) {
+      setSelectedMedicalRecord(record);
+      setShowPrescriptions(true);
+    }
+  };
+
+  // Fonction pour revenir de la vue des ordonnances
+  const handleBackFromPrescriptions = () => {
+    setShowPrescriptions(false);
+    setSelectedMedicalRecord(null);
+  };
+
+  // Fonction pour créer une nouvelle ordonnance pour un dossier médical spécifique
+  const handleCreatePrescriptionForRecord = async (record) => {
+    try {
+      // Vérifier d'abord si on a déjà les informations du patient dans la liste
+      let patient = patients.find(p => p.id === record.patient_id);
+      
+      if (patient) {
+        console.log("Patient trouvé pour nouvelle ordonnance depuis dossier:", patient);
+        // Sélectionner le patient et aller à l'onglet de création d'ordonnance
+        await handlePatientSelect(patient);
+        // Naviguer vers l'onglet prescription avec le dossier médical pré-sélectionné
+        handleSubTabChange("prescription");
+      } else {
+        console.log("Patient non trouvé, création d'un objet temporaire pour ordonnance");
+        const tempPatient = { id: record.patient_id };
+        await handlePatientSelect(tempPatient);
+        handleSubTabChange("prescription");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sélection du patient pour ordonnance:", error);
     }
   };
 
@@ -167,6 +208,19 @@ const DoctorMedicalRecords = ({
           Réessayer
         </button>
       </div>
+    );
+  }
+
+  // Affichage de la vue des ordonnances liées
+  if (showPrescriptions && selectedMedicalRecord) {
+    return (
+      <MedicalRecordPrescriptions
+        medicalRecord={selectedMedicalRecord}
+        onBack={handleBackFromPrescriptions}
+        onViewPatient={handleViewPatient}
+        onCreatePrescription={handleCreatePrescriptionForRecord}
+        actionLoading={actionLoading}
+      />
     );
   }
 
@@ -306,7 +360,14 @@ const DoctorMedicalRecords = ({
                         </button>
                         <button 
                           className="btn-sm btn-outline"
-                          onClick={() => handleViewPatient(record.patient_id)}
+                          onClick={() => handleViewPrescriptions(record.id)}
+                          disabled={actionLoading || documentActionLoading}
+                        >
+                          <i className="fas fa-pills"></i> Voir ordonnances
+                        </button>
+                        <button 
+                          className="btn-sm btn-outline"
+                          onClick={() => handleCreatePrescriptionForRecord(record)}
                           disabled={actionLoading || documentActionLoading}
                         >
                           <i className="fas fa-prescription"></i> Nouvelle ordonnance

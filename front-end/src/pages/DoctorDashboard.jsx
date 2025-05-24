@@ -28,6 +28,7 @@ import DoctorSchedules from "../components/doctor-dashboard/DoctorSchedules";
 import DoctorInvoices from "../components/doctor-dashboard/DoctorInvoices";
 import "../components/doctor-dashboard/doctor-invoices.css";
 
+
 const DoctorDashboard = () => {
   const [user, setUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
