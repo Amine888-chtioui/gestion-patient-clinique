@@ -1,4 +1,4 @@
-// src/components/doctor-dashboard/PatientSelector.jsx
+// src/components/doctor-dashboard/PatientSelector.jsx - Version optimisée
 import React, { useState } from "react";
 
 const PatientSelector = ({ 
@@ -10,19 +10,65 @@ const PatientSelector = ({
   subtitle = "Choisissez un patient pour créer un dossier médical"
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewType, setViewType] = useState("grid"); // "grid" ou "list"
+  const [viewType, setViewType] = useState("grid");
 
-  // Filter patients by search term
   const filteredPatients = patients.filter(patient => 
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     patient.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Handle selection of a patient
   const selectPatient = (patient) => {
     handlePatientSelect(patient);
     handleSubTabChange("record");
   };
+
+  const PatientCard = ({ patient }) => (
+    <div className="patient-card">
+      <div className="patient-avatar">
+        <i className="fas fa-user-circle"></i>
+      </div>
+      <h3 className="patient-name">{patient.name}</h3>
+      <p className="patient-email">{patient.email}</p>
+      <div className="patient-info">
+        <p><i className="fas fa-phone"></i>{patient.phone || "Non renseigné"}</p>
+        <p><i className="fas fa-calendar-alt"></i>Dernier RDV: {patient.last_appointment || "Aucun"}</p>
+      </div>
+      <div className="patient-actions">
+        <button 
+          className="btn-primary"
+          onClick={() => selectPatient(patient)}
+          disabled={actionLoading}
+        >
+          <i className="fas fa-file-medical"></i> Créer un dossier médical
+        </button>
+      </div>
+    </div>
+  );
+
+  const PatientRow = ({ patient }) => (
+    <tr className="patient-row">
+      <td>
+        <div className="patient-name-cell">
+          <div className="patient-avatar-small">
+            <i className="fas fa-user-circle"></i>
+          </div>
+          <span>{patient.name}</span>
+        </div>
+      </td>
+      <td>{patient.email}</td>
+      <td>{patient.phone || "Non renseigné"}</td>
+      <td>{patient.last_appointment || "Aucun"}</td>
+      <td className="actions">
+        <button 
+          className="btn-primary btn-sm" 
+          onClick={() => selectPatient(patient)}
+          disabled={actionLoading}
+        >
+          <i className="fas fa-file-medical"></i> Créer dossier
+        </button>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="patient-selector-container">
@@ -63,32 +109,7 @@ const PatientSelector = ({
         viewType === 'grid' ? (
           <div className="patients-grid">
             {filteredPatients.map(patient => (
-              <div key={patient.id} className="patient-card">
-                <div className="patient-avatar">
-                  <i className="fas fa-user-circle"></i>
-                </div>
-                <h3 className="patient-name">{patient.name}</h3>
-                <p className="patient-email">{patient.email}</p>
-                <div className="patient-info">
-                  <p>
-                    <i className="fas fa-phone"></i>
-                    {patient.phone || "Non renseigné"}
-                  </p>
-                  <p>
-                    <i className="fas fa-calendar-alt"></i>
-                    Dernier RDV: {patient.last_appointment || "Aucun"}
-                  </p>
-                </div>
-                <div className="patient-actions">
-                  <button 
-                    className="btn-primary"
-                    onClick={() => selectPatient(patient)}
-                    disabled={actionLoading}
-                  >
-                    <i className="fas fa-file-medical"></i> Créer un dossier médical
-                  </button>
-                </div>
-              </div>
+              <PatientCard key={patient.id} patient={patient} />
             ))}
           </div>
         ) : (
@@ -105,28 +126,7 @@ const PatientSelector = ({
               </thead>
               <tbody>
                 {filteredPatients.map(patient => (
-                  <tr key={patient.id} className="patient-row">
-                    <td>
-                      <div className="patient-name-cell">
-                        <div className="patient-avatar-small">
-                          <i className="fas fa-user-circle"></i>
-                        </div>
-                        <span>{patient.name}</span>
-                      </div>
-                    </td>
-                    <td>{patient.email}</td>
-                    <td>{patient.phone || "Non renseigné"}</td>
-                    <td>{patient.last_appointment || "Aucun"}</td>
-                    <td className="actions">
-                      <button 
-                        className="btn-primary btn-sm" 
-                        onClick={() => selectPatient(patient)}
-                        disabled={actionLoading}
-                      >
-                        <i className="fas fa-file-medical"></i> Créer dossier
-                      </button>
-                    </td>
-                  </tr>
+                  <PatientRow key={patient.id} patient={patient} />
                 ))}
               </tbody>
             </table>

@@ -1,6 +1,6 @@
-// src/components/doctor-dashboard/DocumentViewer.jsx
+// src/components/doctor-dashboard/DocumentViewer.jsx - Version optimisée
 import React, { useState, useEffect } from "react";
-import axios from "../../axios";
+import doctorApiClient from "../../services/doctorApiClient";
 import UnifiedLoadingSpinner from "../common/UnifiedLoadingSpinner";
 
 const DocumentViewer = ({ documentId, onClose }) => {
@@ -14,20 +14,10 @@ const DocumentViewer = ({ documentId, onClose }) => {
       try {
         setLoading(true);
         
-        // Récupérer les détails du document
-        const detailsResponse = await axios.get(`/api/doctor/documents/${documentId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
+        const detailsResponse = await doctorApiClient.getDocumentDetails(documentId);
+        setDocument(detailsResponse.document);
         
-        setDocument(detailsResponse.data.document);
-        
-        // Récupérer le contenu du document pour la prévisualisation
-        const contentResponse = await axios.get(`/api/doctor/documents/${documentId}/preview`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          responseType: 'blob'
-        });
-        
-        // Créer une URL pour prévisualiser le document
+        const contentResponse = await doctorApiClient.getDocumentPreview(documentId);
         const url = window.URL.createObjectURL(new Blob([contentResponse.data]));
         setPreviewUrl(url);
         
@@ -41,22 +31,17 @@ const DocumentViewer = ({ documentId, onClose }) => {
 
     fetchDocumentDetails();
     
-    // Nettoyage de l'URL lors du démontage du composant
     return () => {
       if (previewUrl) {
         window.URL.revokeObjectURL(previewUrl);
       }
     };
-  }, [documentId]);
+  }, [documentId, previewUrl]);
 
   const handleDownload = async () => {
     try {
-      const response = await axios.get(`/api/doctor/documents/${documentId}/download`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        responseType: 'blob'
-      });
+      const response = await doctorApiClient.downloadDocument(documentId);
       
-      // Extraction du nom du fichier
       const contentDisposition = response.headers['content-disposition'];
       let filename = document?.name || 'document';
       
@@ -68,10 +53,7 @@ const DocumentViewer = ({ documentId, onClose }) => {
         }
       }
       
-      // Création d'un objet URL pour le fichier téléchargé
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      
-      // Création d'un lien temporaire pour déclencher le téléchargement
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
@@ -176,6 +158,26 @@ const DocumentViewer = ({ documentId, onClose }) => {
       </div>
     </div>
   );
+};
+
+// Utilitaires pour les documents
+export const getDocumentIcon = (type) => {
+  if (!type) return 'fa-file';
+  
+  type = type.toLowerCase();
+  
+  if (type.includes('pdf')) return 'fa-file-pdf';
+  if (type.includes('image') || type.includes('jpg') || type.includes('jpeg') || type.includes('png')) return 'fa-file-image';
+  if (type.includes('word') || type.includes('doc')) return 'fa-file-word';
+  if (type.includes('excel') || type.includes('xls')) return 'fa-file-excel';
+  if (type.includes('powerpoint') || type.includes('ppt')) return 'fa-file-powerpoint';
+  if (type.includes('text') || type.includes('txt')) return 'fa-file-alt';
+  if (type.includes('zip') || type.includes('compressed')) return 'fa-file-archive';
+  if (type.includes('audio') || type.includes('mp3') || type.includes('wav')) return 'fa-file-audio';
+  if (type.includes('video') || type.includes('mp4')) return 'fa-file-video';
+  if (type.includes('code') || type.includes('json') || type.includes('xml') || type.includes('html')) return 'fa-file-code';
+  
+  return 'fa-file';
 };
 
 export default DocumentViewer;

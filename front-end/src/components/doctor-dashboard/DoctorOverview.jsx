@@ -1,6 +1,6 @@
-// src/components/doctor-dashboard/DoctorOverview.jsx
+// src/components/doctor-dashboard/DoctorOverview.jsx - Version optimisée
 import React, { useState, useEffect } from "react";
-import axios from "../../axios";
+import doctorApiClient from "../../services/doctorApiClient";
 
 const DoctorOverview = ({ 
   user, 
@@ -12,28 +12,22 @@ const DoctorOverview = ({
   const [invoices, setInvoices] = useState([]);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
 
-  // Calculer le nombre de rendez-vous aujourd'hui
+  // Calculer les statistiques
   const today = new Date().toISOString().split('T')[0];
   const appointmentsToday = appointments.filter(apt => apt.date === today);
-  
-  // Calculer le nombre de rendez-vous en attente
   const pendingAppointments = appointments.filter(apt => apt.status === "en attente");
+  const confirmedAppointments = appointments.filter(apt => apt.status === "confirmé");
 
-  // Récupérer les factures du médecin lors du chargement du composant
+  // Récupérer les factures
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
         setInvoicesLoading(true);
-        const response = await axios.get("/api/doctor/invoices", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        
-        // Récupérer seulement les 5 factures les plus récentes
-        const sortedInvoices = response.data.invoices || [];
-        setInvoices(sortedInvoices.slice(0, 5));
-        setInvoicesLoading(false);
+        const response = await doctorApiClient.getInvoices();
+        setInvoices(response.slice(0, 5)); // Seulement les 5 plus récentes
       } catch (err) {
         console.error("Erreur lors du chargement des factures:", err);
+      } finally {
         setInvoicesLoading(false);
       }
     };
@@ -41,10 +35,39 @@ const DoctorOverview = ({
     fetchInvoices();
   }, []);
 
-  // Format pour la monnaie
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
   };
+
+  const getUpcomingAppointments = () => {
+    return appointments
+      .filter(apt => new Date(`${apt.date}T${apt.time}`) >= new Date())
+      .sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`))
+      .slice(0, 5);
+  };
+
+  const StatCard = ({ icon, title, value, color = "primary" }) => (
+    <div className="stat-card">
+      <div className={`stat-icon stat-icon-${color}`}>
+        <i className={`fas ${icon}`}></i>
+      </div>
+      <div className="stat-info">
+        <h3>{title}</h3>
+        <p className="stat-value">{value}</p>
+      </div>
+    </div>
+  );
+
+  const ActionButton = ({ icon, label, onClick, disabled }) => (
+    <button 
+      className="action-btn" 
+      onClick={onClick} 
+      disabled={disabled}
+    >
+      <i className={`fas ${icon}`}></i>
+      {label}
+    </button>
+  );
 
   return (
     <div className="overview-container">
@@ -54,55 +77,59 @@ const DoctorOverview = ({
       </div>
 
       <div className="stats-container">
-        <div className="stat-card">
-          <div className="stat-icon"><i className="fas fa-calendar-day"></i></div>
-          <div className="stat-info">
-            <h3>Rendez-vous aujourd'hui</h3>
-            <p className="stat-value">{appointmentsToday.length}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon"><i className="fas fa-calendar-check"></i></div>
-          <div className="stat-info">
-            <h3>Rendez-vous en attente</h3>
-            <p className="stat-value">{pendingAppointments.length}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon"><i className="fas fa-users"></i></div>
-          <div className="stat-info">
-            <h3>Nombre de patients</h3>
-            <p className="stat-value">{patients.length}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon"><i className="fas fa-clipboard-list"></i></div>
-          <div className="stat-info">
-            <h3>Total consultations</h3>
-            <p className="stat-value">{appointments.filter(apt => apt.status === "confirmé").length}</p>
-          </div>
-        </div>
+        <StatCard 
+          icon="fa-calendar-day" 
+          title="Rendez-vous aujourd'hui" 
+          value={appointmentsToday.length}
+          color="primary"
+        />
+        <StatCard 
+          icon="fa-calendar-check" 
+          title="Rendez-vous en attente" 
+          value={pendingAppointments.length}
+          color="warning"
+        />
+        <StatCard 
+          icon="fa-users" 
+          title="Nombre de patients" 
+          value={patients.length}
+          color="success"
+        />
+        <StatCard 
+          icon="fa-clipboard-list" 
+          title="Total consultations" 
+          value={confirmedAppointments.length}
+          color="info"
+        />
       </div>
 
       <div className="quick-actions">
         <h3>Actions rapides</h3>
         <div className="action-buttons">
-          <button className="action-btn" onClick={() => handleTabChange("appointments")} disabled={actionLoading}>
-            <i className="fas fa-calendar-alt"></i>
-            Voir les rendez-vous
-          </button>
-          <button className="action-btn" onClick={() => handleTabChange("patients")} disabled={actionLoading}>
-            <i className="fas fa-user-injured"></i>
-            Gérer les patients
-          </button>
-          <button className="action-btn" onClick={() => handleTabChange("prescriptions")} disabled={actionLoading}>
-            <i className="fas fa-prescription"></i>
-            Créer une ordonnance
-          </button>
-          <button className="action-btn" onClick={() => handleTabChange("invoices")} disabled={actionLoading}>
-            <i className="fas fa-file-invoice-dollar"></i>
-            Voir les factures
-          </button>
+          <ActionButton 
+            icon="fa-calendar-alt" 
+            label="Voir les rendez-vous"
+            onClick={() => handleTabChange("appointments")}
+            disabled={actionLoading}
+          />
+          <ActionButton 
+            icon="fa-user-injured" 
+            label="Gérer les patients"
+            onClick={() => handleTabChange("patients")}
+            disabled={actionLoading}
+          />
+          <ActionButton 
+            icon="fa-prescription" 
+            label="Créer une ordonnance"
+            onClick={() => handleTabChange("prescriptions")}
+            disabled={actionLoading}
+          />
+          <ActionButton 
+            icon="fa-file-invoice-dollar" 
+            label="Voir les factures"
+            onClick={() => handleTabChange("invoices")}
+            disabled={actionLoading}
+          />
         </div>
       </div>
 
@@ -110,7 +137,7 @@ const DoctorOverview = ({
         <div className="dashboard-section">
           <h3>Rendez-vous à venir</h3>
           {appointments.length > 0 ? (
-            <div className="upcoming-appointments">
+            <>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -122,33 +149,23 @@ const DoctorOverview = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments
-                    .filter(apt => new Date(`${apt.date}T${apt.time}`) >= new Date())
-                    .sort((a, b) => {
-                      const dateA = new Date(`${a.date}T${a.time}`);
-                      const dateB = new Date(`${b.date}T${b.time}`);
-                      return dateA - dateB;
-                    })
-                    .slice(0, 5)
-                    .map(appointment => (
-                      <tr key={appointment.id}>
-                        <td>{appointment.date}</td>
-                        <td>{appointment.time}</td>
-                        <td>{appointment.patient_name}</td>
-                        <td>
-                          {appointment.reason
-                            ? appointment.reason.length > 30
-                              ? `${appointment.reason.substring(0, 30)}...`
-                              : appointment.reason
-                            : "Non spécifié"}
-                        </td>
-                        <td>
-                          <span className={`status-badge ${appointment.status.replace(" ", "")}`}>
-                            {appointment.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                  {getUpcomingAppointments().map(appointment => (
+                    <tr key={appointment.id}>
+                      <td>{appointment.date}</td>
+                      <td>{appointment.time}</td>
+                      <td>{appointment.patient_name}</td>
+                      <td>
+                        {appointment.reason && appointment.reason.length > 30
+                          ? `${appointment.reason.substring(0, 30)}...`
+                          : appointment.reason || "Non spécifié"}
+                      </td>
+                      <td>
+                        <span className={`status-badge ${appointment.status.replace(" ", "")}`}>
+                          {appointment.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
               <div className="text-right">
@@ -160,13 +177,12 @@ const DoctorOverview = ({
                   Voir tous les rendez-vous
                 </button>
               </div>
-            </div>
+            </>
           ) : (
             <p className="no-data">Aucun rendez-vous à venir</p>
           )}
         </div>
 
-        {/* Nouvelle section pour les factures récentes */}
         <div className="dashboard-section">
           <h3>Factures récentes</h3>
           {invoicesLoading ? (
@@ -174,7 +190,7 @@ const DoctorOverview = ({
               <i className="fas fa-spinner fa-spin"></i> Chargement des factures...
             </div>
           ) : invoices.length > 0 ? (
-            <div className="recent-invoices">
+            <>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -211,7 +227,7 @@ const DoctorOverview = ({
                   Voir toutes les factures
                 </button>
               </div>
-            </div>
+            </>
           ) : (
             <p className="no-data">Aucune facture récente</p>
           )}
@@ -220,7 +236,7 @@ const DoctorOverview = ({
         <div className="dashboard-section">
           <h3>Patients récents</h3>
           {patients.length > 0 ? (
-            <div className="recent-patients">
+            <>
               <ul className="patient-list">
                 {patients.slice(0, 5).map(patient => (
                   <li key={patient.id} className="patient-list-item">
@@ -233,10 +249,7 @@ const DoctorOverview = ({
                     </div>
                     <button 
                       className="btn-icon"
-                      onClick={() => {
-                        handleTabChange("patients");
-                        // handlePatientSelect serait idéalement appelé ici
-                      }}
+                      onClick={() => handleTabChange("patients")}
                       disabled={actionLoading}
                     >
                       <i className="fas fa-chevron-right"></i>
@@ -253,7 +266,7 @@ const DoctorOverview = ({
                   Voir tous les patients
                 </button>
               </div>
-            </div>
+            </>
           ) : (
             <p className="no-data">Aucun patient récent</p>
           )}
