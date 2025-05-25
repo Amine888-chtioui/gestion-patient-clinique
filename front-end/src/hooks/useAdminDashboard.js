@@ -1,4 +1,4 @@
-// src/hooks/useAdminDashboard.js
+// src/hooks/useAdminDashboard.js - Version optimisée sans rechargements inutiles
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import adminApiClient from '../services/adminApiClient';
@@ -12,6 +12,7 @@ export const useAdminDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false); // NOUVEAU: Flag d'initialisation
 
   // Navigation states
   const [activeTab, setActiveTab] = useState("overview");
@@ -47,7 +48,7 @@ export const useAdminDashboard = () => {
     profile: false
   });
 
-  // Data loaded flags - OPTIMISATION: Plus intelligent sur quelles sections sont vraiment chargées
+  // Data loaded flags - OPTIMISATION: Mémoire persistante des données chargées
   const [dataLoaded, setDataLoaded] = useState({
     overview: false,
     patients: false,
@@ -97,15 +98,23 @@ export const useAdminDashboard = () => {
     }
   }, [navigate]);
 
-  // OPTIMISATION: Fonction de chargement intelligente - charge seulement une fois
+  // OPTIMISATION PRINCIPALE: Fonction de chargement qui ne charge QUE si nécessaire
   const loadSectionData = useCallback(async (section, forceReload = false) => {
-    // Si déjà chargé et pas de rechargement forcé, ne rien faire
+    // CONDITION CLÉE: Si déjà chargé et pas de rechargement forcé, NE RIEN FAIRE
     if (dataLoaded[section] && !forceReload) {
-      console.log(`Section ${section} déjà chargée, pas de rechargement`);
-      return;
+      console.log(`✅ Section ${section} déjà en cache, pas de rechargement`);
+      return Promise.resolve(); // Retour immédiat
+    }
+
+    // Si déjà en cours de chargement, ne pas relancer
+    if (loadingStates[section]) {
+      console.log(`⏳ Section ${section} déjà en cours de chargement`);
+      return Promise.resolve();
     }
 
     setLoadingState(section, true);
+    console.log(`🔄 Chargement de la section ${section}...`);
+
     try {
       switch (section) {
         case "overview":
@@ -113,52 +122,58 @@ export const useAdminDashboard = () => {
           if (Object.keys(data.stats).length === 0 || forceReload) {
             const stats = await adminApiClient.getStatistics();
             updateData('stats', stats);
+            console.log(`📊 Stats chargées pour overview`);
           }
           break;
 
         case "patients":
-          // Charger les patients seulement si pas déjà chargés
+          // Charger les patients seulement si le tableau est vide
           if (data.patients.length === 0 || forceReload) {
             const patients = await adminApiClient.getPatients();
             updateData('patients', patients);
+            console.log(`👥 ${patients.length} patients chargés`);
           }
           break;
 
         case "doctors":
-          // Charger les médecins seulement si pas déjà chargés
+          // Charger les médecins seulement si le tableau est vide
           if (data.doctors.length === 0 || forceReload) {
             const doctors = await adminApiClient.getDoctors();
             updateData('doctors', doctors);
+            console.log(`👨‍⚕️ ${doctors.length} médecins chargés`);
           }
           break;
 
         case "appointments":
-          // Charger seulement ce qui n'est pas déjà en cache
-          const appointmentsNeeded = data.appointments.length === 0 || forceReload;
-          const patientsNeeded = data.patients.length === 0 && !dataLoaded.patients;
-          const doctorsNeeded = data.doctors.length === 0 && !dataLoaded.doctors;
-
+          // Chargement intelligent: seulement ce qui manque
           const promises = [];
-          if (appointmentsNeeded) {
+          
+          if (data.appointments.length === 0 || forceReload) {
             promises.push(
-              adminApiClient.getAppointments().then(appointments => 
-                updateData('appointments', appointments)
-              )
+              adminApiClient.getAppointments().then(appointments => {
+                updateData('appointments', appointments);
+                console.log(`📅 ${appointments.length} rendez-vous chargés`);
+              })
             );
           }
-          if (patientsNeeded) {
+
+          // Charger patients et doctors SEULEMENT s'ils ne sont pas déjà chargés
+          if (data.patients.length === 0 && !dataLoaded.patients) {
             promises.push(
               adminApiClient.getPatients().then(patients => {
                 updateData('patients', patients);
                 markSectionAsLoaded('patients');
+                console.log(`👥 ${patients.length} patients chargés (pour appointments)`);
               })
             );
           }
-          if (doctorsNeeded) {
+
+          if (data.doctors.length === 0 && !dataLoaded.doctors) {
             promises.push(
               adminApiClient.getDoctors().then(doctors => {
                 updateData('doctors', doctors);
                 markSectionAsLoaded('doctors');
+                console.log(`👨‍⚕️ ${doctors.length} médecins chargés (pour appointments)`);
               })
             );
           }
@@ -171,16 +186,16 @@ export const useAdminDashboard = () => {
         case "medicalRecords":
           const recordsPromises = [];
           
-          // Charger les dossiers seulement si pas déjà chargés
           if (data.medicalRecords.length === 0 || forceReload) {
             recordsPromises.push(
-              adminApiClient.getMedicalRecords().then(records => 
-                updateData('medicalRecords', records)
-              )
+              adminApiClient.getMedicalRecords().then(records => {
+                updateData('medicalRecords', records);
+                console.log(`📋 ${records.length} dossiers médicaux chargés`);
+              })
             );
           }
           
-          // Charger patients et doctors seulement si nécessaire
+          // Charger patients et doctors seulement si pas déjà en mémoire
           if (data.patients.length === 0 && !dataLoaded.patients) {
             recordsPromises.push(
               adminApiClient.getPatients().then(patients => {
@@ -207,16 +222,16 @@ export const useAdminDashboard = () => {
         case "prescriptions":
           const prescriptionsPromises = [];
           
-          // Charger les prescriptions seulement si pas déjà chargées
           if (data.prescriptions.length === 0 || forceReload) {
             prescriptionsPromises.push(
-              adminApiClient.getPrescriptions().then(prescriptions => 
-                updateData('prescriptions', prescriptions)
-              )
+              adminApiClient.getPrescriptions().then(prescriptions => {
+                updateData('prescriptions', prescriptions);
+                console.log(`💊 ${prescriptions.length} prescriptions chargées`);
+              })
             );
           }
           
-          // Charger patients et doctors seulement si nécessaire
+          // Même logique pour patients et doctors
           if (data.patients.length === 0 && !dataLoaded.patients) {
             prescriptionsPromises.push(
               adminApiClient.getPatients().then(patients => {
@@ -241,48 +256,72 @@ export const useAdminDashboard = () => {
           break;
 
         case "statistics":
-          // Les statistiques peuvent être rechargées à chaque fois pour avoir les dernières données
+          // Pour les statistiques, on peut forcer un reload plus souvent
           if (Object.keys(data.stats).length === 0 || forceReload) {
             const stats = await adminApiClient.getStatistics();
             updateData('stats', stats);
+            console.log(`📈 Statistiques chargées`);
           }
           break;
 
         case "users":
-          // Charger les utilisateurs seulement si pas déjà chargés
           if (data.users.length === 0 || forceReload) {
             const users = await adminApiClient.getUsers();
             updateData('users', users);
+            console.log(`👤 ${users.length} utilisateurs chargés`);
           }
           break;
 
         case "services":
-          // Charger les services seulement si pas déjà chargés
           if (data.services.length === 0 || forceReload) {
             const services = await adminApiClient.getServices();
             updateData('services', services);
+            console.log(`🏥 ${services.length} services chargés`);
           }
           break;
       }
 
+      // MARQUER comme chargé SEULEMENT après succès
       markSectionAsLoaded(section);
-      console.log(`Section ${section} chargée et marquée comme chargée`);
+      console.log(`✅ Section ${section} chargée et mise en cache`);
+      
     } catch (error) {
-      console.error(`Erreur lors du chargement de la section ${section}:`, error);
+      console.error(`❌ Erreur lors du chargement de la section ${section}:`, error);
       setActionError(`Impossible de charger les données pour ${section}.`);
     } finally {
       setLoadingState(section, false);
     }
-  }, [data, dataLoaded, updateData, markSectionAsLoaded, setLoadingState, setActionError]);
+  }, [
+    data, 
+    dataLoaded, 
+    loadingStates,
+    updateData, 
+    markSectionAsLoaded, 
+    setLoadingState, 
+    setActionError
+  ]);
 
-  // Initialize dashboard
+  // OPTIMISATION: Fonction pour forcer le rechargement si vraiment nécessaire
+  const refreshSectionData = useCallback(async (section) => {
+    console.log(`🔄 Rechargement forcé de la section ${section}`);
+    await loadSectionData(section, true);
+  }, [loadSectionData]);
+
+  // Initialize dashboard - UNE SEULE FOIS
   useEffect(() => {
     const initDashboard = async () => {
+      // Si déjà initialisé, ne pas refaire l'initialisation
+      if (isInitialized) {
+        console.log(`✅ Dashboard déjà initialisé, pas de re-initialisation`);
+        return;
+      }
+
       const token = localStorage.getItem("token");
       if (!token) return navigate("/login");
 
       try {
         setInitialLoading(true);
+        console.log(`🚀 Initialisation du dashboard admin...`);
 
         const userResponse = await adminApiClient.getUser();
         setUser(userResponse);
@@ -296,6 +335,7 @@ export const useAdminDashboard = () => {
         try {
           const profileResponse = await adminApiClient.getProfile();
           setProfile(profileResponse);
+          console.log(`👤 Profil admin chargé`);
         } catch (profileErr) {
           console.warn("Impossible de charger le profil administrateur:", profileErr);
         }
@@ -321,9 +361,17 @@ export const useAdminDashboard = () => {
         }
 
         setActiveTab(initialTab);
+        console.log(`📌 Onglet initial: ${initialTab}`);
+
+        // Charger SEULEMENT l'onglet initial
         await loadSectionData(initialTab);
+        
+        // MARQUER comme initialisé
+        setIsInitialized(true);
+        console.log(`✅ Dashboard admin initialisé avec succès`);
+        
       } catch (err) {
-        console.error("Erreur d'initialisation:", err);
+        console.error("❌ Erreur d'initialisation:", err);
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           navigate("/login");
@@ -345,7 +393,31 @@ export const useAdminDashboard = () => {
     return () => {
       window.removeEventListener("admin-logout", handleLogoutEvent);
     };
-  }, [navigate, location.pathname, loadSectionData]);
+  }, [navigate, location.pathname, loadSectionData, isInitialized]); // Ajout d'isInitialized
+
+  // OPTIMISATION: Surveiller les changements d'URL SEULEMENT si initialisé
+  useEffect(() => {
+    if (!isInitialized) return; // Ne pas réagir aux changements d'URL avant l'initialisation
+
+    const pathSegments = location.pathname.split("/").filter(Boolean);
+    if (pathSegments.length >= 3 && pathSegments[0] === "admin" && pathSegments[1] === "dashboard") {
+      const newTab = pathSegments[2];
+      
+      // Changer d'onglet SEULEMENT si différent
+      if (newTab !== activeTab) {
+        console.log(`🔄 Changement d'onglet: ${activeTab} → ${newTab}`);
+        setActiveTab(newTab);
+        
+        // Charger les données SEULEMENT si pas déjà chargées
+        if (!dataLoaded[newTab]) {
+          console.log(`📊 Données pas encore chargées pour ${newTab}, chargement...`);
+          loadSectionData(newTab);
+        } else {
+          console.log(`✅ Données déjà en cache pour ${newTab}, affichage immédiat`);
+        }
+      }
+    }
+  }, [location.pathname, activeTab, isInitialized, dataLoaded, loadSectionData]);
 
   // Handle logout
   const handleLogout = useCallback(async () => {
@@ -390,6 +462,7 @@ export const useAdminDashboard = () => {
     clearMessages,
     handleApiError,
     loadSectionData,
+    refreshSectionData, // NOUVEAU: Pour forcer le rechargement si nécessaire
     handleLogout
   };
 };
