@@ -1,7 +1,6 @@
-// src/components/admin-dashboard/AdminSidebar.jsx
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { ADMIN_TABS } from "../../constants/adminDashboard";
 
 const AdminSidebar = ({
   user,
@@ -9,7 +8,7 @@ const AdminSidebar = ({
   handleTabChange,
   handleLogout,
   actionLoading,
-  profile, // Ajout du prop profile
+  profile
 }) => {
   const navigate = useNavigate();
 
@@ -34,27 +33,12 @@ const AdminSidebar = ({
 
       <nav className="sidebar-nav">
         <ul>
-          {[
-            { id: "overview", icon: "home", label: "Tableau de bord" },
-            { id: "patients", icon: "user-injured", label: "Patients" },
-            { id: "doctors", icon: "user-md", label: "Médecins" },
-            { id: "appointments", icon: "calendar-alt", label: "Rendez-vous" },
-            {
-              id: "medicalRecords",
-              icon: "file-medical",
-              label: "Dossiers médicaux",
-            },
-            { id: "services", icon: "hospital", label: "Services" },
-            { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
-            { id: "payments", icon: "credit-card", label: "Paiements" },
-            { id: "contacts", icon: "envelope", label: "Messages" },
-            { id: "statistics", icon: "chart-bar", label: "Statistiques" },
-            { id: "users", icon: "users", label: "Utilisateurs" },
-          ].map((item) => (
+          {ADMIN_TABS.map((item) => (
             <li key={item.id} className={activeTab === item.id ? "active" : ""}>
               <button
                 onClick={() => handleTabChange(item.id)}
                 data-tab={item.id}
+                disabled={actionLoading}
               >
                 <i className={`fas fa-${item.icon}`}></i> {item.label}
               </button>

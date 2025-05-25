@@ -1,4 +1,3 @@
-// src/components/admin-dashboard/ContentHeader.jsx
 import React, { useState, useRef, useEffect } from "react";
 import AdminNotificationButton from "./AdminNotificationButton";
 
@@ -6,7 +5,7 @@ const ContentHeader = ({ activeTab, handleTabChange }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
 
-  // Close menu when clicking outside
+  // Fermer le menu quand on clique à l'extérieur
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -25,34 +24,23 @@ const ContentHeader = ({ activeTab, handleTabChange }) => {
   };
 
   const getTabTitle = () => {
-    switch (activeTab) {
-      case "overview":
-        return "Tableau de bord";
-      case "patients":
-        return "Gestion des patients";
-      case "doctors":
-        return "Gestion des médecins";
-      case "appointments":
-        return "Gestion des rendez-vous";
-      case "medicalRecords":
-        return "Gestion des dossiers médicaux";
-      case "invoices":
-        return "Gestion des factures";
-      case "payments":
-        return "Gestion des paiements";
-      case "statistics":
-        return "Statistiques";
-      case "users":
-        return "Gestion des utilisateurs";
-      case "profile":
-        return "Mon profil";
-      case "contacts":
-        return "Messages de contact";
-      case "services":
-        return "Gestion des services";
-      default:
-        return "Administration";
-    }
+    const tabTitles = {
+      overview: "Tableau de bord",
+      patients: "Gestion des patients",
+      doctors: "Gestion des médecins",
+      appointments: "Gestion des rendez-vous",
+      medicalRecords: "Gestion des dossiers médicaux",
+      prescriptions: "Gestion des ordonnances",
+      invoices: "Gestion des factures",
+      payments: "Gestion des paiements",
+      statistics: "Statistiques",
+      users: "Gestion des utilisateurs",
+      profile: "Mon profil",
+      contacts: "Messages de contact",
+      services: "Gestion des services"
+    };
+    
+    return tabTitles[activeTab] || "Administration";
   };
 
   return (
