@@ -1,9 +1,9 @@
-// src/components/invoices/InvoiceList.jsx - Avec téléchargement PDF
+// src/components/invoices/InvoiceList.jsx - Version améliorée avec hook PDF
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
 import ErrorDisplay from "../../components/common/ErrorDisplay";
-import { generateInvoicePDF } from "../../utils/invoicePdfGenerator";
+import { useInvoicePDF } from "../../hooks/useInvoicePDF";
 
 const InvoiceList = ({ onInvoiceAction }) => {
   const [invoices, setInvoices] = useState([]);
@@ -11,7 +11,16 @@ const InvoiceList = ({ onInvoiceAction }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [downloadingPdf, setDownloadingPdf] = useState(null); // Pour gérer le loading du PDF
+  const [selectedInvoices, setSelectedInvoices] = useState([]);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
+  // Utilisation du hook PDF
+  const { 
+    isGenerating, 
+    generatePDFFromId, 
+    generateBatchPDFs,
+    showSuccessMessage 
+  } = useInvoicePDF();
 
   useEffect(() => {
     fetchInvoices();
@@ -33,39 +42,47 @@ const InvoiceList = ({ onInvoiceAction }) => {
     }
   };
 
-  // Fonction pour télécharger une facture en PDF
+  // Fonction pour télécharger une facture en PDF - Maintenant avec le hook
   const handleDownloadPDF = async (invoiceId) => {
-    try {
-      setDownloadingPdf(invoiceId);
-      console.log(`🔄 Téléchargement PDF pour la facture ${invoiceId}...`);
-      
-      // Récupérer les détails complets de la facture
-      const response = await axios.get(`/api/invoices/${invoiceId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      
-      const invoiceData = response.data.data;
-      console.log("📄 Données de la facture récupérées:", invoiceData);
-      
-      // Informations de la clinique (vous pouvez les récupérer depuis une API ou les définir ici)
-      const clinicInfo = {
-        name: "Clinique Médicale Excellence",
-        address: "123 Avenue de la Santé",
-        city: "75001 Paris, France",
-        phone: "01 23 45 67 89",
-        email: "contact@clinique-excellence.fr"
-      };
-      
-      // Générer et télécharger le PDF
-      generateInvoicePDF(invoiceData, clinicInfo);
-      
-      console.log("✅ PDF généré et téléchargé avec succès");
-      
-    } catch (err) {
-      console.error("❌ Erreur lors du téléchargement du PDF:", err);
-      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
-    } finally {
-      setDownloadingPdf(null);
+    await generatePDFFromId(invoiceId);
+  };
+
+  // Fonction pour télécharger plusieurs factures en PDF
+  const handleDownloadSelectedPDFs = async () => {
+    if (selectedInvoices.length === 0) {
+      alert("Veuillez sélectionner au moins une facture");
+      return;
+    }
+
+    await generateBatchPDFs(selectedInvoices);
+    setSelectedInvoices([]);
+    setShowBulkActions(false);
+  };
+
+  // Gestion de la sélection multiple
+  const handleInvoiceSelection = (invoiceId, isSelected) => {
+    if (isSelected) {
+      setSelectedInvoices(prev => [...prev, invoiceId]);
+    } else {
+      setSelectedInvoices(prev => prev.filter(id => id !== invoiceId));
+    }
+  };
+
+  // Sélectionner/désélectionner toutes les factures visibles
+  const handleSelectAll = (isSelected) => {
+    if (isSelected) {
+      const visibleInvoiceIds = filteredInvoices.map(invoice => invoice.id);
+      setSelectedInvoices(visibleInvoiceIds);
+    } else {
+      setSelectedInvoices([]);
+    }
+  };
+
+  // Basculer l'affichage des actions en lot
+  const toggleBulkActions = () => {
+    setShowBulkActions(!showBulkActions);
+    if (showBulkActions) {
+      setSelectedInvoices([]);
     }
   };
 
@@ -142,12 +159,54 @@ const InvoiceList = ({ onInvoiceAction }) => {
     <div className="invoices-container">
       <div className="invoices-header">
         <h2>Liste des factures</h2>
-        <button 
-          className="btn-primary"
-          onClick={() => onInvoiceAction('create')}
-        >
-          <i className="fas fa-plus"></i> Créer une facture
-        </button>
+        <div className="header-actions">
+          {!showBulkActions && (
+            <>
+              <button 
+                className="btn-outline"
+                onClick={toggleBulkActions}
+                disabled={invoices.length === 0}
+              >
+                <i className="fas fa-tasks"></i> Actions en lot
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={() => onInvoiceAction('create')}
+              >
+                <i className="fas fa-plus"></i> Créer une facture
+              </button>
+            </>
+          )}
+          
+          {showBulkActions && (
+            <>
+              <span className="selected-count">
+                {selectedInvoices.length} facture{selectedInvoices.length > 1 ? 's' : ''} sélectionnée{selectedInvoices.length > 1 ? 's' : ''}
+              </span>
+              <button 
+                className="btn-primary"
+                onClick={handleDownloadSelectedPDFs}
+                disabled={selectedInvoices.length === 0 || isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i> Génération...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-file-pdf"></i> Télécharger PDFs
+                  </>
+                )}
+              </button>
+              <button 
+                className="btn-secondary"
+                onClick={toggleBulkActions}
+              >
+                <i className="fas fa-times"></i> Annuler
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="filters-container">
@@ -183,11 +242,46 @@ const InvoiceList = ({ onInvoiceAction }) => {
         </button>
       </div>
 
+      {/* Actions en lot - Section de sélection */}
+      {showBulkActions && (
+        <div className="bulk-actions-bar">
+          <div className="bulk-select-all">
+            <label className="checkbox-container">
+              <input 
+                type="checkbox"
+                checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+              />
+              <span className="checkmark"></span>
+              Sélectionner tout ({filteredInvoices.length})
+            </label>
+          </div>
+          
+          {selectedInvoices.length > 0 && (
+            <div className="bulk-actions">
+              <button 
+                className="btn-outline btn-sm"
+                onClick={() => setSelectedInvoices([])}
+              >
+                <i className="fas fa-times"></i> Désélectionner tout
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="table-container">
         {filteredInvoices.length > 0 ? (
           <table className="invoices-table">
             <thead>
               <tr>
+                {showBulkActions && <th width="40px">
+                  <input 
+                    type="checkbox"
+                    checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                </th>}
                 <th>Numéro</th>
                 <th>Date</th>
                 <th>Patient</th>
@@ -199,7 +293,16 @@ const InvoiceList = ({ onInvoiceAction }) => {
             </thead>
             <tbody>
               {filteredInvoices.map(invoice => (
-                <tr key={invoice.id}>
+                <tr key={invoice.id} className={selectedInvoices.includes(invoice.id) ? 'selected' : ''}>
+                  {showBulkActions && (
+                    <td>
+                      <input 
+                        type="checkbox"
+                        checked={selectedInvoices.includes(invoice.id)}
+                        onChange={(e) => handleInvoiceSelection(invoice.id, e.target.checked)}
+                      />
+                    </td>
+                  )}
                   <td>{invoice.number}</td>
                   <td>{formatDate(invoice.issue_date)}</td>
                   <td>{invoice.patient ? invoice.patient.name : 'N/A'}</td>
@@ -227,9 +330,9 @@ const InvoiceList = ({ onInvoiceAction }) => {
                       className="btn-icon btn-pdf" 
                       title="Télécharger PDF"
                       onClick={() => handleDownloadPDF(invoice.id)}
-                      disabled={downloadingPdf === invoice.id}
+                      disabled={isGenerating}
                     >
-                      {downloadingPdf === invoice.id ? (
+                      {isGenerating ? (
                         <i className="fas fa-spinner fa-spin"></i>
                       ) : (
                         <i className="fas fa-file-pdf"></i>
@@ -254,6 +357,73 @@ const InvoiceList = ({ onInvoiceAction }) => {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        .bulk-actions-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          background-color: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 4px;
+          margin-bottom: 16px;
+        }
+
+        .bulk-select-all {
+          display: flex;
+          align-items: center;
+        }
+
+        .checkbox-container {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+          margin-right: 8px;
+        }
+
+        .selected-count {
+          font-weight: 500;
+          color: #6c757d;
+          margin-right: 12px;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .bulk-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-sm {
+          padding: 6px 12px;
+          font-size: 0.875rem;
+        }
+
+        .invoices-table tr.selected {
+          background-color: rgba(106, 27, 154, 0.05);
+        }
+
+        .invoices-table tr.selected:hover {
+          background-color: rgba(106, 27, 154, 0.1);
+        }
+
+        .btn-pdf {
+          color: #dc3545;
+        }
+
+        .btn-pdf:hover {
+          background-color: rgba(220, 53, 69, 0.1);
+        }
+      `}</style>
     </div>
   );
 };
