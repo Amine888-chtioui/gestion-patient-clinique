@@ -61,19 +61,39 @@ const AdminDashboard = () => {
   } = dashboardState;
 
   // Rendu du contenu pour les factures
-  const renderInvoiceContent = () => {
-    switch (invoiceMode) {
-      case "details":
-        return <InvoiceDetails />;
-      case "create":
-        return <InvoiceForm />;
-      case "edit":
-        return <InvoiceForm />;
-      case "list":
-      default:
-        return <InvoiceList onInvoiceAction={actions.handleInvoiceAction} />;
-    }
-  };
+
+const renderInvoiceContent = () => {
+  switch (invoiceMode) {
+    case "details":
+      return <InvoiceDetails onInvoiceAction={actions.handleInvoiceAction} />;
+    case "create":
+      return (
+        <InvoiceForm 
+          onSuccess={(data) => {
+            dashboardState.setActionSuccess("Facture créée avec succès!");
+            setTimeout(() => dashboardState.setActionSuccess(null), 3000);
+            actions.handleInvoiceAction("list");
+          }}
+          onCancel={() => actions.handleInvoiceAction("list")}
+        />
+      );
+    case "edit":
+      return (
+        <InvoiceForm 
+          invoice={data.selectedInvoice} // Vous devrez récupérer la facture sélectionnée
+          onSuccess={(data) => {
+            dashboardState.setActionSuccess("Facture mise à jour avec succès!");
+            setTimeout(() => dashboardState.setActionSuccess(null), 3000);
+            actions.handleInvoiceAction("list");
+          }}
+          onCancel={() => actions.handleInvoiceAction("list")}
+        />
+      );
+    case "list":
+    default:
+      return <InvoiceList onInvoiceAction={actions.handleInvoiceAction} />;
+  }
+};
 
   // Composant de rendu conditionnel optimisé
   const renderSectionContent = () => {

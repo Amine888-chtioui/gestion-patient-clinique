@@ -1,8 +1,9 @@
-// src/components/invoices/InvoiceList.jsx
+// src/components/invoices/InvoiceList.jsx - Avec téléchargement PDF
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
 import ErrorDisplay from "../../components/common/ErrorDisplay";
+import { generateInvoicePDF } from "../../utils/invoicePdfGenerator";
 
 const InvoiceList = ({ onInvoiceAction }) => {
   const [invoices, setInvoices] = useState([]);
@@ -10,6 +11,7 @@ const InvoiceList = ({ onInvoiceAction }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [downloadingPdf, setDownloadingPdf] = useState(null); // Pour gérer le loading du PDF
 
   useEffect(() => {
     fetchInvoices();
@@ -28,6 +30,42 @@ const InvoiceList = ({ onInvoiceAction }) => {
       console.error("Erreur lors de la récupération des factures:", err);
       setError("Impossible de charger les factures. Veuillez réessayer plus tard.");
       setLoading(false);
+    }
+  };
+
+  // Fonction pour télécharger une facture en PDF
+  const handleDownloadPDF = async (invoiceId) => {
+    try {
+      setDownloadingPdf(invoiceId);
+      console.log(`🔄 Téléchargement PDF pour la facture ${invoiceId}...`);
+      
+      // Récupérer les détails complets de la facture
+      const response = await axios.get(`/api/invoices/${invoiceId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      
+      const invoiceData = response.data.data;
+      console.log("📄 Données de la facture récupérées:", invoiceData);
+      
+      // Informations de la clinique (vous pouvez les récupérer depuis une API ou les définir ici)
+      const clinicInfo = {
+        name: "Clinique Médicale Excellence",
+        address: "123 Avenue de la Santé",
+        city: "75001 Paris, France",
+        phone: "01 23 45 67 89",
+        email: "contact@clinique-excellence.fr"
+      };
+      
+      // Générer et télécharger le PDF
+      generateInvoicePDF(invoiceData, clinicInfo);
+      
+      console.log("✅ PDF généré et téléchargé avec succès");
+      
+    } catch (err) {
+      console.error("❌ Erreur lors du téléchargement du PDF:", err);
+      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
+    } finally {
+      setDownloadingPdf(null);
     }
   };
 
@@ -188,8 +226,14 @@ const InvoiceList = ({ onInvoiceAction }) => {
                     <button 
                       className="btn-icon btn-pdf" 
                       title="Télécharger PDF"
+                      onClick={() => handleDownloadPDF(invoice.id)}
+                      disabled={downloadingPdf === invoice.id}
                     >
-                      <i className="fas fa-file-pdf"></i>
+                      {downloadingPdf === invoice.id ? (
+                        <i className="fas fa-spinner fa-spin"></i>
+                      ) : (
+                        <i className="fas fa-file-pdf"></i>
+                      )}
                     </button>
                   </td>
                 </tr>

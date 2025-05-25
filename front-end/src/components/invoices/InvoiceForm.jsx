@@ -1,11 +1,20 @@
+// src/components/invoices/InvoiceForm.jsx - Version corrigée
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 
-const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actionLoading, setActionLoading }) => {
+const InvoiceForm = ({ onSuccess, onCancel, invoice = null }) => {
   const today = new Date().toISOString().split("T")[0];
   const thirtyDaysLater = new Date();
   thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
   const defaultDueDate = thirtyDaysLater.toISOString().split("T")[0];
+
+  // États
+  const [patients, setPatients] = useState([]); // État local pour les patients
+  const [loadingPatients, setLoadingPatients] = useState(true); // État de chargement des patients
+  const [actionLoading, setActionLoading] = useState(false); // NOUVEAU: État local pour le loading des actions
+  const [appointments, setAppointments] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   // État initial du formulaire
   const initialFormState = {
@@ -27,11 +36,7 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
     ],
   };
 
-  // État du formulaire
   const [formData, setFormData] = useState(initialFormState);
-  const [appointments, setAppointments] = useState([]);
-  const [errors, setErrors] = useState({});
-  const [selectedPatient, setSelectedPatient] = useState(null);
 
   // Calculer les totaux
   const [totals, setTotals] = useState({
@@ -40,9 +45,35 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
     total: 0,
   });
 
+  // NOUVEAU: Charger les patients au chargement du composant
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setLoadingPatients(true);
+        console.log("🔄 Chargement des patients pour le formulaire de facture...");
+        
+        const response = await axios.get("/api/admin/patients", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        });
+        
+        const patientsData = response.data.patients || [];
+        setPatients(patientsData);
+        console.log(`✅ ${patientsData.length} patients chargés pour le formulaire`);
+        
+      } catch (err) {
+        console.error("❌ Erreur lors du chargement des patients:", err);
+        setErrors(prev => ({ ...prev, global: "Impossible de charger la liste des patients" }));
+      } finally {
+        setLoadingPatients(false);
+      }
+    };
+
+    fetchPatients();
+  }, []);
+
   // Populer le formulaire avec les données d'une facture existante
   useEffect(() => {
-    if (invoice) {
+    if (invoice && patients.length > 0) { // MODIFIÉ: Attendre que les patients soient chargés
       setFormData({
         patient_id: invoice.patient_id.toString(),
         appointment_id: invoice.appointment_id ? invoice.appointment_id.toString() : "",
@@ -68,7 +99,7 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
         setSelectedPatient(patients.find(p => p.id === invoice.patient_id));
       }
     }
-  }, [invoice, patients]);
+  }, [invoice, patients]); // MODIFIÉ: Dépendance sur patients
 
   // Calculer les totaux à chaque changement des éléments
   useEffect(() => {
@@ -303,6 +334,32 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
     }).format(amount);
   };
 
+  // NOUVEAU: Affichage durant le chargement des patients
+  if (loadingPatients) {
+    return (
+      <div className="invoice-form">
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '200px',
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div className="loading-spinner" style={{ 
+            width: '40px', 
+            height: '40px',
+            border: '3px solid rgba(106, 27, 154, 0.2)',
+            borderTop: '3px solid #6a1b9a',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p>Chargement des données du formulaire...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="invoice-form">
       <form onSubmit={handleSubmit}>
@@ -322,11 +379,17 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
                 <option value="">Sélectionner un patient</option>
                 {patients.map(patient => (
                   <option key={patient.id} value={patient.id}>
-                    {patient.name}
+                    {patient.name} ({patient.email})
                   </option>
                 ))}
               </select>
               {errors.patient_id && <div className="invalid-feedback">{errors.patient_id}</div>}
+              {/* NOUVEAU: Indicateur si aucun patient disponible */}
+              {patients.length === 0 && (
+                <small className="text-muted">
+                  Aucun patient disponible. Veuillez d'abord créer des patients dans la section "Patients".
+                </small>
+              )}
             </div>
             
             <div className="form-group">
@@ -586,7 +649,7 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
           <button
             type="submit"
             className="btn-primary"
-            disabled={actionLoading}
+            disabled={actionLoading || patients.length === 0}
           >
             {actionLoading ? (
               <span><i className="loading-spinner"></i> Traitement...</span>
@@ -604,6 +667,39 @@ const InvoiceForm = ({ onSuccess, onCancel, invoice = null, patients = [], actio
           </button>
         </div>
       </form>
+      
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .text-muted {
+          color: #6c757d;
+          font-size: 0.875rem;
+        }
+        
+        .invalid-feedback {
+          display: block;
+          width: 100%;
+          margin-top: 0.25rem;
+          font-size: 0.875rem;
+          color: #dc3545;
+        }
+        
+        .alert {
+          padding: 0.75rem 1.25rem;
+          margin-bottom: 1rem;
+          border: 1px solid transparent;
+          border-radius: 0.25rem;
+        }
+        
+        .alert-danger {
+          color: #721c24;
+          background-color: #f8d7da;
+          border-color: #f5c6cb;
+        }
+      `}</style>
     </div>
   );
 };

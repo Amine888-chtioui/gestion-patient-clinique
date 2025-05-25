@@ -1,9 +1,10 @@
-// src/components/invoices/InvoiceDetails.jsx
+// src/components/invoices/InvoiceDetails.jsx - Avec téléchargement PDF
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../axios";
 import UnifiedLoadingSpinner from "../../components/common/UnifiedLoadingSpinner";
 import ErrorDisplay from "../../components/common/ErrorDisplay";
+import { generateInvoicePDF } from "../../utils/invoicePdfGenerator";
 
 const InvoiceDetails = ({ onInvoiceAction }) => {
   const { id } = useParams();
@@ -11,6 +12,7 @@ const InvoiceDetails = ({ onInvoiceAction }) => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   
   useEffect(() => {
     fetchInvoiceDetails();
@@ -30,6 +32,52 @@ const InvoiceDetails = ({ onInvoiceAction }) => {
       setError("Impossible de charger les détails de la facture. Veuillez réessayer plus tard.");
       setLoading(false);
     }
+  };
+
+  // Fonction pour télécharger le PDF
+  const handleDownloadPDF = async () => {
+    try {
+      setDownloadingPdf(true);
+      console.log(`🔄 Génération du PDF pour la facture ${invoice.number}...`);
+      
+      // Informations de la clinique
+      const clinicInfo = {
+        name: "Clinique Médicale Excellence",
+        address: "123 Avenue de la Santé",
+        city: "75001 Paris, France",
+        phone: "01 23 45 67 89",
+        email: "contact@clinique-excellence.fr"
+      };
+      
+      // Générer et télécharger le PDF
+      generateInvoicePDF(invoice, clinicInfo);
+      
+      console.log("✅ PDF généré et téléchargé avec succès");
+      
+      // Afficher un message de succès temporaire
+      showSuccessMessage("PDF téléchargé avec succès !");
+      
+    } catch (err) {
+      console.error("❌ Erreur lors de la génération du PDF:", err);
+      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Fonction pour afficher un message de succès temporaire
+  const showSuccessMessage = (message) => {
+    const successDiv = document.createElement('div');
+    successDiv.className = 'download-success';
+    successDiv.innerHTML = `
+      <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+      ${message}
+    `;
+    document.body.appendChild(successDiv);
+    
+    setTimeout(() => {
+      successDiv.remove();
+    }, 3000);
   };
   
   const formatDate = (dateString) => {
@@ -95,8 +143,20 @@ const InvoiceDetails = ({ onInvoiceAction }) => {
           <button className="btn-outline" onClick={() => onInvoiceAction('edit', invoice.id)}>
             <i className="fas fa-edit"></i> Modifier
           </button>
-          <button className="btn-primary">
-            <i className="fas fa-file-pdf"></i> Télécharger PDF
+          <button 
+            className="btn-primary"
+            onClick={handleDownloadPDF}
+            disabled={downloadingPdf}
+          >
+            {downloadingPdf ? (
+              <>
+                <i className="fas fa-spinner fa-spin"></i> Génération...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-file-pdf"></i> Télécharger PDF
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -134,10 +194,10 @@ const InvoiceDetails = ({ onInvoiceAction }) => {
         <div className="invoice-parties">
           <div className="party-section clinic">
             <h3>Clinique</h3>
-            <p>{invoice.clinic?.name || "Clinique Médicale"}</p>
-            <p>{invoice.clinic?.address || "123 Rue Médicale, Ville, Pays"}</p>
+            <p>{invoice.clinic?.name || "Clinique Médicale Excellence"}</p>
+            <p>{invoice.clinic?.address || "123 Avenue de la Santé"}</p>
             <p>Tél: {invoice.clinic?.phone || "01 23 45 67 89"}</p>
-            <p>Email: {invoice.clinic?.email || "contact@clinique.com"}</p>
+            <p>Email: {invoice.clinic?.email || "contact@clinique-excellence.fr"}</p>
           </div>
           
           <div className="party-section patient">
