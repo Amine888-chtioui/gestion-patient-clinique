@@ -47,7 +47,7 @@ export const useAdminDashboard = () => {
     profile: false
   });
 
-  // Data loaded flags
+  // Data loaded flags - OPTIMISATION: Plus intelligent sur quelles sections sont vraiment chargées
   const [dataLoaded, setDataLoaded] = useState({
     overview: false,
     patients: false,
@@ -97,9 +97,11 @@ export const useAdminDashboard = () => {
     }
   }, [navigate]);
 
-  // Data loading function
+  // OPTIMISATION: Fonction de chargement intelligente - charge seulement une fois
   const loadSectionData = useCallback(async (section, forceReload = false) => {
+    // Si déjà chargé et pas de rechargement forcé, ne rien faire
     if (dataLoaded[section] && !forceReload) {
+      console.log(`Section ${section} déjà chargée, pas de rechargement`);
       return;
     }
 
@@ -107,6 +109,7 @@ export const useAdminDashboard = () => {
     try {
       switch (section) {
         case "overview":
+          // Charger les stats seulement si pas déjà chargées
           if (Object.keys(data.stats).length === 0 || forceReload) {
             const stats = await adminApiClient.getStatistics();
             updateData('stats', stats);
@@ -114,6 +117,7 @@ export const useAdminDashboard = () => {
           break;
 
         case "patients":
+          // Charger les patients seulement si pas déjà chargés
           if (data.patients.length === 0 || forceReload) {
             const patients = await adminApiClient.getPatients();
             updateData('patients', patients);
@@ -121,6 +125,7 @@ export const useAdminDashboard = () => {
           break;
 
         case "doctors":
+          // Charger les médecins seulement si pas déjà chargés
           if (data.doctors.length === 0 || forceReload) {
             const doctors = await adminApiClient.getDoctors();
             updateData('doctors', doctors);
@@ -128,9 +133,10 @@ export const useAdminDashboard = () => {
           break;
 
         case "appointments":
+          // Charger seulement ce qui n'est pas déjà en cache
           const appointmentsNeeded = data.appointments.length === 0 || forceReload;
-          const patientsNeeded = data.patients.length === 0 || forceReload;
-          const doctorsNeeded = data.doctors.length === 0 || forceReload;
+          const patientsNeeded = data.patients.length === 0 && !dataLoaded.patients;
+          const doctorsNeeded = data.doctors.length === 0 && !dataLoaded.doctors;
 
           const promises = [];
           if (appointmentsNeeded) {
@@ -157,12 +163,15 @@ export const useAdminDashboard = () => {
             );
           }
 
-          await Promise.all(promises);
+          if (promises.length > 0) {
+            await Promise.all(promises);
+          }
           break;
 
         case "medicalRecords":
           const recordsPromises = [];
           
+          // Charger les dossiers seulement si pas déjà chargés
           if (data.medicalRecords.length === 0 || forceReload) {
             recordsPromises.push(
               adminApiClient.getMedicalRecords().then(records => 
@@ -171,7 +180,8 @@ export const useAdminDashboard = () => {
             );
           }
           
-          if (data.patients.length === 0) {
+          // Charger patients et doctors seulement si nécessaire
+          if (data.patients.length === 0 && !dataLoaded.patients) {
             recordsPromises.push(
               adminApiClient.getPatients().then(patients => {
                 updateData('patients', patients);
@@ -180,7 +190,7 @@ export const useAdminDashboard = () => {
             );
           }
           
-          if (data.doctors.length === 0) {
+          if (data.doctors.length === 0 && !dataLoaded.doctors) {
             recordsPromises.push(
               adminApiClient.getDoctors().then(doctors => {
                 updateData('doctors', doctors);
@@ -189,12 +199,15 @@ export const useAdminDashboard = () => {
             );
           }
 
-          await Promise.all(recordsPromises);
+          if (recordsPromises.length > 0) {
+            await Promise.all(recordsPromises);
+          }
           break;
 
         case "prescriptions":
           const prescriptionsPromises = [];
           
+          // Charger les prescriptions seulement si pas déjà chargées
           if (data.prescriptions.length === 0 || forceReload) {
             prescriptionsPromises.push(
               adminApiClient.getPrescriptions().then(prescriptions => 
@@ -203,7 +216,8 @@ export const useAdminDashboard = () => {
             );
           }
           
-          if (data.patients.length === 0) {
+          // Charger patients et doctors seulement si nécessaire
+          if (data.patients.length === 0 && !dataLoaded.patients) {
             prescriptionsPromises.push(
               adminApiClient.getPatients().then(patients => {
                 updateData('patients', patients);
@@ -212,7 +226,7 @@ export const useAdminDashboard = () => {
             );
           }
           
-          if (data.doctors.length === 0) {
+          if (data.doctors.length === 0 && !dataLoaded.doctors) {
             prescriptionsPromises.push(
               adminApiClient.getDoctors().then(doctors => {
                 updateData('doctors', doctors);
@@ -221,15 +235,21 @@ export const useAdminDashboard = () => {
             );
           }
 
-          await Promise.all(prescriptionsPromises);
+          if (prescriptionsPromises.length > 0) {
+            await Promise.all(prescriptionsPromises);
+          }
           break;
 
         case "statistics":
-          const stats = await adminApiClient.getStatistics();
-          updateData('stats', stats);
+          // Les statistiques peuvent être rechargées à chaque fois pour avoir les dernières données
+          if (Object.keys(data.stats).length === 0 || forceReload) {
+            const stats = await adminApiClient.getStatistics();
+            updateData('stats', stats);
+          }
           break;
 
         case "users":
+          // Charger les utilisateurs seulement si pas déjà chargés
           if (data.users.length === 0 || forceReload) {
             const users = await adminApiClient.getUsers();
             updateData('users', users);
@@ -237,6 +257,7 @@ export const useAdminDashboard = () => {
           break;
 
         case "services":
+          // Charger les services seulement si pas déjà chargés
           if (data.services.length === 0 || forceReload) {
             const services = await adminApiClient.getServices();
             updateData('services', services);
@@ -245,6 +266,7 @@ export const useAdminDashboard = () => {
       }
 
       markSectionAsLoaded(section);
+      console.log(`Section ${section} chargée et marquée comme chargée`);
     } catch (error) {
       console.error(`Erreur lors du chargement de la section ${section}:`, error);
       setActionError(`Impossible de charger les données pour ${section}.`);
@@ -323,7 +345,7 @@ export const useAdminDashboard = () => {
     return () => {
       window.removeEventListener("admin-logout", handleLogoutEvent);
     };
-  }, []);
+  }, [navigate, location.pathname, loadSectionData]);
 
   // Handle logout
   const handleLogout = useCallback(async () => {
@@ -369,193 +391,5 @@ export const useAdminDashboard = () => {
     handleApiError,
     loadSectionData,
     handleLogout
-  };
-};
-
-// src/hooks/useAdminActions.js
-import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import adminApiClient from '../services/adminApiClient';
-
-export const useAdminActions = (dashboardState) => {
-  const navigate = useNavigate();
-  const {
-    data,
-    updateData,
-    setActionLoading,
-    setActionError,
-    setActionSuccess,
-    clearMessages,
-    handleApiError
-  } = dashboardState;
-
-  // Navigation
-  const handleTabChange = useCallback((tab) => {
-    dashboardState.setActiveTab(tab);
-    clearMessages();
-
-    if (tab !== "invoices") {
-      dashboardState.setInvoiceMode("list");
-      dashboardState.setSelectedInvoiceId(null);
-    }
-
-    dashboardState.loadSectionData(tab);
-    navigate(`/admin/dashboard/${tab}`);
-  }, [dashboardState, clearMessages, navigate]);
-
-  const handleInvoiceAction = useCallback((action, id = null) => {
-    dashboardState.setInvoiceMode(action);
-    dashboardState.setSelectedInvoiceId(id);
-
-    if (action === "list") {
-      navigate("/admin/dashboard/invoices");
-    } else if (action === "details" && id) {
-      navigate(`/admin/dashboard/invoices/${id}`);
-    } else if (action === "create") {
-      navigate("/admin/dashboard/invoices/create");
-    } else if (action === "edit" && id) {
-      navigate(`/admin/dashboard/invoices/edit/${id}`);
-    }
-  }, [dashboardState, navigate]);
-
-  // Generic CRUD operations
-  const createEntity = useCallback(async (entityType, entityData) => {
-    setActionLoading(true);
-    clearMessages();
-
-    try {
-      const response = await adminApiClient[`create${entityType}`](entityData);
-      const entities = data[entityType.toLowerCase() + 's'] || data[entityType.toLowerCase()];
-      updateData(entityType.toLowerCase() + 's', [response[entityType.toLowerCase()], ...entities]);
-      setActionSuccess(`${entityType} ajouté avec succès!`);
-      setTimeout(() => setActionSuccess(null), 3000);
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setActionLoading(false);
-    }
-  }, [data, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
-
-  const updateEntity = useCallback(async (entityType, id, entityData) => {
-    setActionLoading(true);
-    clearMessages();
-
-    try {
-      const response = await adminApiClient[`update${entityType}`](id, entityData);
-      const entities = data[entityType.toLowerCase() + 's'] || data[entityType.toLowerCase()];
-      updateData(
-        entityType.toLowerCase() + 's',
-        entities.map((entity) =>
-          entity.id === id ? response[entityType.toLowerCase()] : entity
-        )
-      );
-      setActionSuccess(`${entityType} mis à jour avec succès!`);
-      setTimeout(() => setActionSuccess(null), 3000);
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setActionLoading(false);
-    }
-  }, [data, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
-
-  const deleteEntity = useCallback(async (entityType, id) => {
-    setActionLoading(true);
-    clearMessages();
-
-    try {
-      await adminApiClient[`delete${entityType}`](id);
-      const entities = data[entityType.toLowerCase() + 's'] || data[entityType.toLowerCase()];
-      updateData(
-        entityType.toLowerCase() + 's',
-        entities.filter((entity) => entity.id !== id)
-      );
-      setActionSuccess(`${entityType} supprimé avec succès!`);
-      setTimeout(() => setActionSuccess(null), 3000);
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setActionLoading(false);
-    }
-  }, [data, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
-
-  // Specific entity handlers
-  const handleAddPatient = useCallback(async (patientData) => {
-    await createEntity('Patient', patientData);
-  }, [createEntity]);
-
-  const handleUpdatePatient = useCallback(async (id, patientData) => {
-    await updateEntity('Patient', id, patientData);
-  }, [updateEntity]);
-
-  const handleDeletePatient = useCallback(async (id) => {
-    await deleteEntity('Patient', id);
-  }, [deleteEntity]);
-
-  const handleAddDoctor = useCallback(async (doctorData) => {
-    await createEntity('Doctor', doctorData);
-  }, [createEntity]);
-
-  const handleUpdateDoctor = useCallback(async (id, doctorData) => {
-    await updateEntity('Doctor', id, doctorData);
-  }, [updateEntity]);
-
-  const handleDeleteDoctor = useCallback(async (id) => {
-    await deleteEntity('Doctor', id);
-  }, [deleteEntity]);
-
-  const handleAddAppointment = useCallback(async (appointmentData) => {
-    await createEntity('Appointment', appointmentData);
-  }, [createEntity]);
-
-  const handleUpdateAppointment = useCallback(async (id, appointmentData) => {
-    await updateEntity('Appointment', id, appointmentData);
-  }, [updateEntity]);
-
-  const handleDeleteAppointment = useCallback(async (id) => {
-    await deleteEntity('Appointment', id);
-  }, [deleteEntity]);
-
-  const handleAddUser = useCallback(async (userData) => {
-    await createEntity('User', userData);
-  }, [createEntity]);
-
-  const handleUpdateUser = useCallback(async (id, userData) => {
-    await updateEntity('User', id, userData);
-  }, [updateEntity]);
-
-  const handleDeleteUser = useCallback(async (id) => {
-    await deleteEntity('User', id);
-  }, [deleteEntity]);
-
-  const handleAddPrescription = useCallback(async (prescriptionData) => {
-    await createEntity('Prescription', prescriptionData);
-  }, [createEntity]);
-
-  const handleUpdatePrescription = useCallback(async (id, prescriptionData) => {
-    await updateEntity('Prescription', id, prescriptionData);
-  }, [updateEntity]);
-
-  const handleDeletePrescription = useCallback(async (id) => {
-    await deleteEntity('Prescription', id);
-  }, [deleteEntity]);
-
-  return {
-    handleTabChange,
-    handleInvoiceAction,
-    handleAddPatient,
-    handleUpdatePatient,
-    handleDeletePatient,
-    handleAddDoctor,
-    handleUpdateDoctor,
-    handleDeleteDoctor,
-    handleAddAppointment,
-    handleUpdateAppointment,
-    handleDeleteAppointment,
-    handleAddUser,
-    handleUpdateUser,
-    handleDeleteUser,
-    handleAddPrescription,
-    handleUpdatePrescription,
-    handleDeletePrescription
   };
 };
