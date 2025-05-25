@@ -608,7 +608,7 @@ public function createPrescription(Request $request)
     /**
      * Récupérer le profil du patient
      */
-    public function getProfile()
+        public function getProfile()
     {
         $user = Auth::user();
         
@@ -634,7 +634,8 @@ public function createPrescription(Request $request)
             'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
             'emergencyContact' => $profile->emergency_contact,
             'medicalHistory' => $profile->medical_history,
-            'photoUrl' => $profile->profile_photo ? asset('uploads/profiles/' . $profile->profile_photo) : null,
+            // Photo stockée dans la table users uniquement
+            'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
         ];
         
         return response()->json([
@@ -645,218 +646,186 @@ public function createPrescription(Request $request)
     /**
      * Mettre à jour le profil du patient
      */
-    public function updateProfile(Request $request)
-{
-    $user = Auth::user();
-    
-    // Vérifier que l'utilisateur est un patient
-    if (!$user->isPatient()) {
-        return response()->json(['message' => 'Accès non autorisé'], 403);
+     public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        $validatedData = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+            'date_of_birth' => 'nullable|date',
+            'address' => 'nullable|string|max:255',
+            'blood_type' => 'nullable|string|max:10',
+            'allergies' => 'nullable|array',
+            'chronic_diseases' => 'nullable|array',
+            'emergency_contact' => 'nullable|string',
+            'medical_history' => 'nullable|string',
+        ]);
+        
+        // Mise à jour des informations de base de l'utilisateur
+        if (isset($validatedData['name'])) {
+            $user->name = $validatedData['name'];
+        }
+        
+        if (isset($validatedData['email'])) {
+            $user->email = $validatedData['email'];
+        }
+        
+        $user->save();
+        
+        // Récupérer ou créer le profil patient
+        $profile = $user->patientProfile ?? new PatientProfile(['user_id' => $user->id]);
+        
+        // Mettre à jour les champs du profil
+        if (isset($validatedData['phone'])) {
+            $profile->phone = $validatedData['phone'];
+        }
+        
+        if (isset($validatedData['date_of_birth'])) {
+            $profile->date_of_birth = $validatedData['date_of_birth'];
+        }
+        
+        if (isset($validatedData['address'])) {
+            $profile->address = $validatedData['address'];
+        }
+        
+        if (isset($validatedData['blood_type'])) {
+            $profile->blood_type = $validatedData['blood_type'];
+        }
+        
+        if (isset($validatedData['allergies'])) {
+            $profile->allergies = implode(',', $validatedData['allergies']);
+        }
+        
+        if (isset($validatedData['chronic_diseases'])) {
+            $profile->chronic_diseases = implode(',', $validatedData['chronic_diseases']);
+        }
+        
+        if (isset($validatedData['emergency_contact'])) {
+            $profile->emergency_contact = $validatedData['emergency_contact'];
+        }
+        
+        if (isset($validatedData['medical_history'])) {
+            $profile->medical_history = $validatedData['medical_history'];
+        }
+        
+        // Sauvegarder le profil
+        $user->patientProfile()->save($profile);
+        
+        // Préparer la réponse avec le profil mis à jour
+        $formattedProfile = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'phone' => $profile->phone,
+            'address' => $profile->address,
+            'dateOfBirth' => $profile->date_of_birth,
+            'bloodType' => $profile->blood_type,
+            'allergies' => $profile->allergies ? explode(',', $profile->allergies) : [],
+            'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
+            'emergencyContact' => $profile->emergency_contact,
+            'medicalHistory' => $profile->medical_history,
+            // Photo stockée dans la table users uniquement
+            'photoUrl' => $user->profile_photo ? asset('uploads/profiles/' . $user->profile_photo) : null,
+        ];
+        
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès',
+            'profile' => $formattedProfile
+        ]);
     }
-    
-    $validatedData = $request->validate([
-        'name' => 'sometimes|required|string|max:255',
-        'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
-        'phone' => 'nullable|string|max:20',
-        'date_of_birth' => 'nullable|date',
-        'address' => 'nullable|string|max:255',
-        'blood_type' => 'nullable|string|max:10',
-        'allergies' => 'nullable|array',
-        'chronic_diseases' => 'nullable|array',
-        'emergency_contact' => 'nullable|string',
-        'medical_history' => 'nullable|string',
-    ]);
-    
-    // Mise à jour des informations de base de l'utilisateur
-    if (isset($validatedData['name'])) {
-        $user->name = $validatedData['name'];
-    }
-    
-    if (isset($validatedData['email'])) {
-        $user->email = $validatedData['email'];
-    }
-    
-    $user->save();
-    
-    // Récupérer ou créer le profil patient
-    $profile = $user->patientProfile ?? new PatientProfile(['user_id' => $user->id]);
-    
-    // Mettre à jour les champs du profil
-    if (isset($validatedData['phone'])) {
-        $profile->phone = $validatedData['phone'];
-    }
-    
-    if (isset($validatedData['date_of_birth'])) {
-        $profile->date_of_birth = $validatedData['date_of_birth'];
-    }
-    
-    if (isset($validatedData['address'])) {
-        $profile->address = $validatedData['address'];
-    }
-    
-    if (isset($validatedData['blood_type'])) {
-        $profile->blood_type = $validatedData['blood_type'];
-    }
-    
-    if (isset($validatedData['allergies'])) {
-        $profile->allergies = implode(',', $validatedData['allergies']);
-    }
-    
-    if (isset($validatedData['chronic_diseases'])) {
-        $profile->chronic_diseases = implode(',', $validatedData['chronic_diseases']);
-    }
-    
-    if (isset($validatedData['emergency_contact'])) {
-        $profile->emergency_contact = $validatedData['emergency_contact'];
-    }
-    
-    if (isset($validatedData['medical_history'])) {
-        $profile->medical_history = $validatedData['medical_history'];
-    }
-    
-    // Sauvegarder le profil
-    $user->patientProfile()->save($profile);
-    
-    // Retirer la notification ci-dessous pour éviter d'envoyer une notification à chaque mise à jour
-    // $this->notificationService->sendNotification(
-    //     $user,
-    //     'Profil mis à jour',
-    //     'Vos informations personnelles ont été mises à jour avec succès.',
-    //     'success',
-    //     '/patient/dashboard?tab=profile'
-    // );
-    
-    // Préparer la réponse avec le profil mis à jour
-    $formattedProfile = [
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'role' => $user->role,
-        'phone' => $profile->phone,
-        'address' => $profile->address,
-        'dateOfBirth' => $profile->date_of_birth,
-        'bloodType' => $profile->blood_type,
-        'allergies' => $profile->allergies ? explode(',', $profile->allergies) : [],
-        'chronicDiseases' => $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
-        'emergencyContact' => $profile->emergency_contact,
-        'medicalHistory' => $profile->medical_history,
-        'photoUrl' => $profile->profile_photo ? asset('uploads/profiles/' . $profile->profile_photo) : null,
-    ];
-    
-    return response()->json([
-        'message' => 'Profil mis à jour avec succès',
-        'profile' => $formattedProfile
-    ]);
-}
     
     /**
      * Télécharger et mettre à jour la photo de profil du patient
      * 
      */
     public function updateProfilePhoto(Request $request)
-{
-    $user = Auth::user();
-    
-    // Vérifier que l'utilisateur est un patient
-    if (!$user->isPatient()) {
-        return response()->json(['message' => 'Accès non autorisé'], 403);
-    }
-    
-    // Validation de la requête
-    $request->validate([
-        'profile_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB max
-    ]);
-    
-    try {
-        Log::info('Début de la fonction uploadProfilePhoto');
+    {
+        $user = Auth::user();
         
-        // Vérifier si une image a été envoyée
-        if ($request->hasFile('profile_photo')) {
-            Log::info('Photo reçue avec succès');
-            $image = $request->file('profile_photo');
-            
-            // Récupérer le profil du patient, ou créer un profil s'il n'existe pas
-            $profile = $user->patientProfile ?? new PatientProfile(['user_id' => $user->id]);
-            Log::info('Profil patient récupéré/créé');
-            
-            // Supprimer l'ancienne photo si elle existe
-            if ($profile->profile_photo && file_exists(public_path('uploads/profiles/' . $profile->profile_photo))) {
-                unlink(public_path('uploads/profiles/' . $profile->profile_photo));
-                Log::info('Ancienne photo supprimée');
-            }
-            
-            // Générer un nom unique pour l'image
-            $fileName = time() . '.' . $image->getClientOriginalExtension();
-            Log::info('Nom de fichier généré: ' . $fileName);
-            
-            // Créer le dossier s'il n'existe pas
-            $uploadPath = public_path('uploads/profiles');
-            if (!file_exists($uploadPath)) {
-                mkdir($uploadPath, 0777, true);
-                Log::info('Dossier créé: ' . $uploadPath);
-            } else {
-                Log::info('Dossier existe déjà: ' . $uploadPath);
-            }
-            
-            try {
-                // Version sans Intervention Image
-                $image->move($uploadPath, $fileName);
-                Log::info('Image déplacée avec succès');
-                
-                /* Version avec Intervention Image (commentée)
-                $img = Image::make($image->getRealPath());
-                $img->fit(300, 300, function ($constraint) {
-                    $constraint->aspectRatio();
-                })->save($uploadPath . '/' . $fileName);
-                Log::info('Image redimensionnée et enregistrée');
-                */
-                
-                // Mettre à jour le chemin de la photo dans le profil
-                $profile->profile_photo = $fileName;
-                Log::info('Chemin de la photo mis à jour dans le modèle');
-                
-                // Sauvegarder le profil
-                $user->patientProfile()->save($profile);
-                Log::info('Profil sauvegardé en base de données');
-                
-                // Générer l'URL publique de la photo
-                $photoUrl = asset('uploads/profiles/' . $fileName);
-                Log::info('URL générée: ' . $photoUrl);
-                
-                // Retirer la notification ci-dessous pour éviter d'envoyer une notification à chaque mise à jour de photo
-                // $this->notificationService->sendNotification(
-                //     $user,
-                //     'Photo de profil mise à jour',
-                //     'Votre photo de profil a été mise à jour avec succès.',
-                //     'success',
-                //     '/patient/dashboard?tab=profile'
-                // );
-                
-                return response()->json([
-                    'message' => 'Photo de profil mise à jour avec succès',
-                    'photo_url' => $photoUrl
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Erreur lors du traitement de l\'image: ' . $e->getMessage());
-                Log::error($e->getTraceAsString());
-                throw $e; // Relancer l'exception pour être capturée par le bloc externe
-            }
-        } else {
-            Log::warning('Aucune image n\'a été envoyée');
-            return response()->json([
-                'message' => 'Aucune image n\'a été envoyée',
-            ], 400);
+        // Vérifier que l'utilisateur est un patient
+        if (!$user->isPatient()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
         }
-    } catch (\Exception $e) {
-        Log::error('Erreur lors de l\'upload de photo: ' . $e->getMessage());
-        Log::error($e->getTraceAsString());
         
-        return response()->json([
-            'message' => 'Erreur lors de la mise à jour de la photo de profil',
-            'error' => $e->getMessage()
-        ], 500);
+        // Validation de la requête
+        $request->validate([
+            'profile_photo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB max
+        ]);
+        
+        try {
+            Log::info('Début de la fonction updateProfilePhoto pour patient');
+            
+            // Vérifier si une image a été envoyée
+            if ($request->hasFile('profile_photo')) {
+                Log::info('Photo reçue avec succès');
+                $image = $request->file('profile_photo');
+                
+                // Supprimer l'ancienne photo si elle existe
+                if ($user->profile_photo && file_exists(public_path('uploads/profiles/' . $user->profile_photo))) {
+                    unlink(public_path('uploads/profiles/' . $user->profile_photo));
+                    Log::info('Ancienne photo supprimée');
+                }
+                
+                // Générer un nom unique pour l'image
+                $fileName = 'patient_' . $user->id . '_' . time() . '.' . $image->getClientOriginalExtension();
+                Log::info('Nom de fichier généré: ' . $fileName);
+                
+                // Créer le dossier s'il n'existe pas
+                $uploadPath = public_path('uploads/profiles');
+                if (!file_exists($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                    Log::info('Dossier créé: ' . $uploadPath);
+                } else {
+                    Log::info('Dossier existe déjà: ' . $uploadPath);
+                }
+                
+                try {
+                    // Déplacer l'image
+                    $image->move($uploadPath, $fileName);
+                    Log::info('Image déplacée avec succès');
+                    
+                    // Mettre à jour le chemin de la photo dans le modèle utilisateur (pas dans patient_profile)
+                    $user->profile_photo = $fileName;
+                    $user->save();
+                    Log::info('Modèle utilisateur mis à jour avec le nouveau chemin de photo');
+                    
+                    // Générer l'URL publique de la photo
+                    $photoUrl = asset('uploads/profiles/' . $fileName);
+                    Log::info('URL générée: ' . $photoUrl);
+                    
+                    return response()->json([
+                        'message' => 'Photo de profil mise à jour avec succès',
+                        'photo_url' => $photoUrl
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Erreur lors du traitement de l\'image: ' . $e->getMessage());
+                    Log::error($e->getTraceAsString());
+                    throw $e;
+                }
+            } else {
+                Log::warning('Aucune image n\'a été envoyée');
+                return response()->json([
+                    'message' => 'Aucune image n\'a été envoyée',
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'upload de photo patient: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            return response()->json([
+                'message' => 'Erreur lors de la mise à jour de la photo de profil',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
     
     /**
      * Télécharger un document

@@ -173,6 +173,7 @@ const Profile = ({ user, profile, updateProfile, updatePhoto, actionLoading }) =
 const ProfileHeader = React.memo(({ profile, user, title, subtitle, onPhotoClick, actionLoading }) => (
   <div className="profile-header">
     <div className="profile-avatar">
+      {/* Photo maintenant stockée dans users.profile_photo et accessible via profile.photoUrl */}
       {profile?.photoUrl ? (
         <img src={profile.photoUrl} alt="Photo de profil" className="profile-photo" />
       ) : (

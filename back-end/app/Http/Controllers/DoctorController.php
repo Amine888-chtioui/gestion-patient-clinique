@@ -176,7 +176,7 @@ public function getAllDoctors()
             ->pluck('patient_id')
             ->unique();
         
-        // Récupérer les informations détaillées de ces patients
+        // Récupérer les informations détaillées de ces patients avec leurs photos
         $patients = User::whereIn('id', $patientIds)
             ->where('role', 'patient')
             ->with('patientProfile')
@@ -196,7 +196,7 @@ public function getAllDoctors()
             }
         }
         
-        // Formater les données pour la réponse
+        // Formater les données pour la réponse AVEC les photos de profil
         $formattedPatients = $patients->map(function ($patient) use ($lastAppointments) {
             $profile = $patient->patientProfile;
             
@@ -213,6 +213,10 @@ public function getAllDoctors()
                 'emergency_contact' => $profile ? $profile->emergency_contact : null,
                 'medical_history' => $profile ? $profile->medical_history : null,
                 'last_appointment' => isset($lastAppointments[$patient->id]) ? $lastAppointments[$patient->id] : null,
+                // AJOUT: Photo de profil du patient
+                'profile_photo_url' => $patient->profile_photo 
+                    ? asset('uploads/profiles/' . $patient->profile_photo) 
+                    : null,
             ];
         });
         
@@ -227,172 +231,176 @@ public function getAllDoctors()
     /**
  * Récupérer les détails d'un patient spécifique avec relations
  */
-public function getPatientDetails($id)
-{
-    $user = Auth::user();
-    
-    // Vérifier que l'utilisateur est un médecin
-    if (!$user->isDoctor()) {
-        return response()->json(['message' => 'Accès non autorisé'], 403);
-    }
-    
-    // Vérifier que le médecin a déjà vu ce patient
-    $hasAppointment = Appointment::where('doctor_id', $user->id)
-        ->where('patient_id', $id)
-        ->exists();
-    
-    if (!$hasAppointment) {
-        return response()->json(['message' => 'Vous n\'êtes pas autorisé à accéder aux informations de ce patient'], 403);
-    }
-    
-    // Récupérer le patient avec son profil
-    $patient = User::where('id', $id)
-        ->where('role', 'patient')
-        ->with('patientProfile')
-        ->firstOrFail();
-    
-    // Récupérer les rendez-vous avec leurs relations
-    $appointments = Appointment::where('doctor_id', $user->id)
-        ->where('patient_id', $id)
-        ->with([
-            'medicalRecord' => function($query) {
-                $query->select('id', 'appointment_id', 'diagnosis', 'type', 'notes');
-            },
-            'medicalRecord.documents' => function($query) {
-                $query->select('id', 'medical_record_id', 'name', 'type');
-            }
-        ])
-        ->orderBy('date', 'desc')
-        ->orderBy('time', 'desc')
-        ->get()
-        ->map(function ($appointment) use ($user) {
-            // Récupérer les ordonnances liées à ce rendez-vous
-            $prescriptions = [];
-            if ($appointment->medicalRecord) {
-                $prescriptions = Prescription::where('medical_record_id', $appointment->medicalRecord->id)
-                    ->with('medications')
-                    ->get()
-                    ->map(function ($prescription) {
+ public function getPatientDetails($id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un médecin
+        if (!$user->isDoctor()) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Vérifier que le médecin a déjà vu ce patient
+        $hasAppointment = Appointment::where('doctor_id', $user->id)
+            ->where('patient_id', $id)
+            ->exists();
+        
+        if (!$hasAppointment) {
+            return response()->json(['message' => 'Vous n\'êtes pas autorisé à accéder aux informations de ce patient'], 403);
+        }
+        
+        // Récupérer le patient avec son profil
+        $patient = User::where('id', $id)
+            ->where('role', 'patient')
+            ->with('patientProfile')
+            ->firstOrFail();
+        
+        // Récupérer les rendez-vous avec leurs relations
+        $appointments = Appointment::where('doctor_id', $user->id)
+            ->where('patient_id', $id)
+            ->with([
+                'medicalRecord' => function($query) {
+                    $query->select('id', 'appointment_id', 'diagnosis', 'type', 'notes');
+                },
+                'medicalRecord.documents' => function($query) {
+                    $query->select('id', 'medical_record_id', 'name', 'type');
+                }
+            ])
+            ->orderBy('date', 'desc')
+            ->orderBy('time', 'desc')
+            ->get()
+            ->map(function ($appointment) use ($user) {
+                // Récupérer les ordonnances liées à ce rendez-vous
+                $prescriptions = [];
+                if ($appointment->medicalRecord) {
+                    $prescriptions = Prescription::where('medical_record_id', $appointment->medicalRecord->id)
+                        ->with('medications')
+                        ->get()
+                        ->map(function ($prescription) {
+                            return [
+                                'id' => $prescription->id,
+                                'date' => $prescription->date,
+                                'notes' => $prescription->notes,
+                                'medications_count' => $prescription->medications->count(),
+                                'medications' => $prescription->medications->map(function ($med) {
+                                    return [
+                                        'name' => $med->name,
+                                        'dosage' => $med->dosage,
+                                        'frequency' => $med->frequency,
+                                        'duration' => $med->duration,
+                                    ];
+                                }),
+                            ];
+                        });
+                }
+                
+                return [
+                    'id' => $appointment->id,
+                    'date' => $appointment->date,
+                    'time' => $appointment->time,
+                    'status' => $appointment->status,
+                    'reason' => $appointment->reason,
+                    'notes' => $appointment->notes,
+                    'medical_record' => $appointment->medicalRecord ? [
+                        'id' => $appointment->medicalRecord->id,
+                        'diagnosis' => $appointment->medicalRecord->diagnosis,
+                        'type' => $appointment->medicalRecord->type,
+                        'notes' => $appointment->medicalRecord->notes,
+                        'documents' => $appointment->medicalRecord->documents->map(function ($doc) {
+                            return [
+                                'id' => $doc->id,
+                                'name' => $doc->name,
+                                'type' => $doc->type,
+                            ];
+                        }),
+                    ] : null,
+                    'prescriptions' => $prescriptions,
+                    'has_medical_record' => $appointment->medicalRecord !== null,
+                ];
+            });
+        
+        // Récupérer les dossiers médicaux du patient créés par ce médecin
+        $medicalRecords = MedicalRecord::where('doctor_id', $user->id)
+            ->where('patient_id', $id)
+            ->with('documents')
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($record) use ($user) {
+                return [
+                    'id' => $record->id,
+                    'date' => $record->date,
+                    'type' => $record->type,
+                    'doctor_name' => $user->name,
+                    'diagnosis' => $record->diagnosis,
+                    'notes' => $record->notes,
+                    'appointment_id' => $record->appointment_id,
+                    'documents' => $record->documents->map(function ($document) {
                         return [
-                            'id' => $prescription->id,
-                            'date' => $prescription->date,
-                            'notes' => $prescription->notes,
-                            'medications_count' => $prescription->medications->count(),
-                            'medications' => $prescription->medications->map(function ($med) {
-                                return [
-                                    'name' => $med->name,
-                                    'dosage' => $med->dosage,
-                                    'frequency' => $med->frequency,
-                                    'duration' => $med->duration,
-                                ];
-                            }),
-                        ];
-                    });
-            }
-            
-            return [
-                'id' => $appointment->id,
-                'date' => $appointment->date,
-                'time' => $appointment->time,
-                'status' => $appointment->status,
-                'reason' => $appointment->reason,
-                'notes' => $appointment->notes,
-                'medical_record' => $appointment->medicalRecord ? [
-                    'id' => $appointment->medicalRecord->id,
-                    'diagnosis' => $appointment->medicalRecord->diagnosis,
-                    'type' => $appointment->medicalRecord->type,
-                    'notes' => $appointment->medicalRecord->notes,
-                    'documents' => $appointment->medicalRecord->documents->map(function ($doc) {
-                        return [
-                            'id' => $doc->id,
-                            'name' => $doc->name,
-                            'type' => $doc->type,
+                            'id' => $document->id,
+                            'name' => $document->name,
+                            'type' => $document->type,
                         ];
                     }),
-                ] : null,
-                'prescriptions' => $prescriptions,
-                'has_medical_record' => $appointment->medicalRecord !== null,
-            ];
-        });
-    
-    // Récupérer les dossiers médicaux du patient créés par ce médecin
-    $medicalRecords = MedicalRecord::where('doctor_id', $user->id)
-        ->where('patient_id', $id)
-        ->with('documents')
-        ->orderBy('date', 'desc')
-        ->get()
-        ->map(function ($record) use ($user) {
-            return [
-                'id' => $record->id,
-                'date' => $record->date,
-                'type' => $record->type,
-                'doctor_name' => $user->name,
-                'diagnosis' => $record->diagnosis,
-                'notes' => $record->notes,
-                'appointment_id' => $record->appointment_id,
-                'documents' => $record->documents->map(function ($document) {
-                    return [
-                        'id' => $document->id,
-                        'name' => $document->name,
-                        'type' => $document->type,
-                    ];
-                }),
-            ];
-        });
-    
-    // Récupérer les ordonnances du patient créées par ce médecin
-    $prescriptions = Prescription::where('doctor_id', $user->id)
-        ->where('patient_id', $id)
-        ->with(['medications', 'medicalRecord'])
-        ->orderBy('date', 'desc')
-        ->get()
-        ->map(function ($prescription) use ($user) {
-            return [
-                'id' => $prescription->id,
-                'date' => $prescription->date,
-                'doctor_name' => $user->name,
-                'notes' => $prescription->notes,
-                'medical_record_id' => $prescription->medical_record_id,
-                'medical_record' => $prescription->medicalRecord ? [
-                    'id' => $prescription->medicalRecord->id,
-                    'diagnosis' => $prescription->medicalRecord->diagnosis,
-                    'type' => $prescription->medicalRecord->type,
-                ] : null,
-                'medications' => $prescription->medications->map(function ($medication) {
-                    return [
-                        'name' => $medication->name,
-                        'dosage' => $medication->dosage,
-                        'frequency' => $medication->frequency,
-                        'duration' => $medication->duration,
-                        'instructions' => $medication->instructions,
-                    ];
-                }),
-            ];
-        });
-    
-    // Formater les données du patient
-    $profile = $patient->patientProfile;
-    $patientData = [
-        'id' => $patient->id,
-        'name' => $patient->name,
-        'email' => $patient->email,
-        'phone' => $profile ? $profile->phone : null,
-        'date_of_birth' => $profile ? $profile->date_of_birth : null,
-        'address' => $profile ? $profile->address : null,
-        'blood_type' => $profile ? $profile->blood_type : null,
-        'allergies' => $profile && $profile->allergies ? explode(',', $profile->allergies) : [],
-        'chronic_diseases' => $profile && $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
-        'emergency_contact' => $profile ? $profile->emergency_contact : null,
-        'medical_history' => $profile ? $profile->medical_history : null,
-        'appointments' => $appointments,
-        'medical_records' => $medicalRecords,
-        'prescriptions' => $prescriptions,
-    ];
-    
-    return response()->json([
-        'patient' => $patientData
-    ]);
-}
+                ];
+            });
+        
+        // Récupérer les ordonnances du patient créées par ce médecin
+        $prescriptions = Prescription::where('doctor_id', $user->id)
+            ->where('patient_id', $id)
+            ->with(['medications', 'medicalRecord'])
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($prescription) use ($user) {
+                return [
+                    'id' => $prescription->id,
+                    'date' => $prescription->date,
+                    'doctor_name' => $user->name,
+                    'notes' => $prescription->notes,
+                    'medical_record_id' => $prescription->medical_record_id,
+                    'medical_record' => $prescription->medicalRecord ? [
+                        'id' => $prescription->medicalRecord->id,
+                        'diagnosis' => $prescription->medicalRecord->diagnosis,
+                        'type' => $prescription->medicalRecord->type,
+                    ] : null,
+                    'medications' => $prescription->medications->map(function ($medication) {
+                        return [
+                            'name' => $medication->name,
+                            'dosage' => $medication->dosage,
+                            'frequency' => $medication->frequency,
+                            'duration' => $medication->duration,
+                            'instructions' => $medication->instructions,
+                        ];
+                    }),
+                ];
+            });
+        
+        // Formater les données du patient AVEC la photo de profil
+        $profile = $patient->patientProfile;
+        $patientData = [
+            'id' => $patient->id,
+            'name' => $patient->name,
+            'email' => $patient->email,
+            'phone' => $profile ? $profile->phone : null,
+            'date_of_birth' => $profile ? $profile->date_of_birth : null,
+            'address' => $profile ? $profile->address : null,
+            'blood_type' => $profile ? $profile->blood_type : null,
+            'allergies' => $profile && $profile->allergies ? explode(',', $profile->allergies) : [],
+            'chronic_diseases' => $profile && $profile->chronic_diseases ? explode(',', $profile->chronic_diseases) : [],
+            'emergency_contact' => $profile ? $profile->emergency_contact : null,
+            'medical_history' => $profile ? $profile->medical_history : null,
+            'appointments' => $appointments,
+            'medical_records' => $medicalRecords,
+            'prescriptions' => $prescriptions,
+            // AJOUT: Photo de profil du patient
+            'profile_photo_url' => $patient->profile_photo 
+                ? asset('uploads/profiles/' . $patient->profile_photo) 
+                : null,
+        ];
+        
+        return response()->json([
+            'patient' => $patientData
+        ]);
+    }
 
    // Dans la méthode getProfile du DoctorController
 public function getProfile()

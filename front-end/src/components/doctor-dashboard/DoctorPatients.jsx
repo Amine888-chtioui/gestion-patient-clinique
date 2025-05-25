@@ -1,4 +1,4 @@
-// src/components/doctor-dashboard/DoctorPatients.jsx
+// src/components/doctor-dashboard/DoctorPatients.jsx - Version avec photos de profil
 import React, { useState } from "react";
 
 const DoctorPatients = ({ patients, handlePatientSelect, actionLoading }) => {
@@ -10,6 +10,41 @@ const DoctorPatients = ({ patients, handlePatientSelect, actionLoading }) => {
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     patient.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Composant pour l'avatar du patient avec photo de profil
+  const PatientAvatar = ({ patient, size = "large" }) => {
+    const sizeClasses = {
+      small: "w-8 h-8 text-sm",
+      medium: "w-12 h-12 text-base", 
+      large: "w-20 h-20 text-3xl"
+    };
+
+    if (patient.profile_photo_url) {
+      return (
+        <div className={`patient-avatar ${sizeClasses[size]} rounded-full overflow-hidden border-3 border-white shadow-lg`}>
+          <img 
+            src={patient.profile_photo_url} 
+            alt={`Photo de ${patient.name}`}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback vers l'icône si l'image ne charge pas
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+          <div className="patient-avatar-fallback" style={{ display: 'none' }}>
+            <i className="fas fa-user-circle"></i>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`patient-avatar ${sizeClasses[size]} bg-primary-light rounded-full flex items-center justify-center text-primary-color`}>
+        <i className="fas fa-user-circle"></i>
+      </div>
+    );
+  };
 
   return (
     <div className="patients-container">
@@ -46,9 +81,7 @@ const DoctorPatients = ({ patients, handlePatientSelect, actionLoading }) => {
           <div className="patients-grid">
             {filteredPatients.map(patient => (
               <div key={patient.id} className="patient-card">
-                <div className="patient-avatar">
-                  <i className="fas fa-user-circle"></i>
-                </div>
+                <PatientAvatar patient={patient} size="large" />
                 <h3 className="patient-name">{patient.name}</h3>
                 <p className="patient-email">{patient.email}</p>
                 <div className="patient-info">
@@ -78,7 +111,7 @@ const DoctorPatients = ({ patients, handlePatientSelect, actionLoading }) => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Nom</th>
+                  <th>Patient</th>
                   <th>Email</th>
                   <th>Téléphone</th>
                   <th>Dernier RDV</th>
@@ -90,10 +123,15 @@ const DoctorPatients = ({ patients, handlePatientSelect, actionLoading }) => {
                   <tr key={patient.id} className="patient-row">
                     <td>
                       <div className="patient-name-cell">
-                        <div className="patient-avatar-small">
-                          <i className="fas fa-user-circle"></i>
+                        <PatientAvatar patient={patient} size="medium" />
+                        <div className="patient-name-info">
+                          <span className="patient-name-text">{patient.name}</span>
+                          {patient.profile_photo_url && (
+                            <span className="has-photo-indicator">
+                              <i className="fas fa-camera text-success"></i>
+                            </span>
+                          )}
                         </div>
-                        <span>{patient.name}</span>
                       </div>
                     </td>
                     <td>{patient.email}</td>

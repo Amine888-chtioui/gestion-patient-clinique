@@ -1,4 +1,4 @@
-// src/components/doctor-dashboard/PatientDetails.jsx - Version corrigée
+// src/components/doctor-dashboard/PatientDetails.jsx - Version avec photo de profil
 import React, { useState, useEffect } from "react";
 import axios from "../../axios";
 
@@ -23,6 +23,47 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   const medicalRecords = patient.medical_records || [];
   const prescriptions = patient.prescriptions || [];
   const appointments = patient.appointments || [];
+
+  // Composant pour l'avatar du patient avec photo de profil
+  const PatientAvatar = ({ patient, size = "large" }) => {
+    const sizeConfig = {
+      small: { container: "w-12 h-12", icon: "text-lg" },
+      medium: { container: "w-16 h-16", icon: "text-xl" },
+      large: { container: "w-20 h-20", icon: "text-3xl" },
+      xlarge: { container: "w-24 h-24", icon: "text-4xl" }
+    };
+
+    const config = sizeConfig[size] || sizeConfig.large;
+
+    if (patient.profile_photo_url) {
+      return (
+        <div className={`patient-avatar ${config.container} rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100`}>
+          <img 
+            src={patient.profile_photo_url} 
+            alt={`Photo de profil de ${patient.name}`}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback vers l'icône si l'image ne charge pas
+              e.target.style.display = 'none';
+              e.target.nextElementSibling.style.display = 'flex';
+            }}
+          />
+          <div 
+            className={`patient-avatar-fallback ${config.container} bg-primary-light rounded-full flex items-center justify-center text-primary-color ${config.icon}`}
+            style={{ display: 'none' }}
+          >
+            <i className="fas fa-user-circle"></i>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`patient-avatar ${config.container} bg-primary-light rounded-full flex items-center justify-center text-primary-color ${config.icon} border-4 border-white shadow-lg`}>
+        <i className="fas fa-user-circle"></i>
+      </div>
+    );
+  };
 
   // Charger les factures du patient quand l'onglet factures est activé ou quand le patient change
   useEffect(() => {
@@ -156,12 +197,16 @@ const PatientDetails = ({ patient, handleSubTabChange, actionLoading }) => {
   return (
     <div className="patient-details-container">
       <div className="patient-header">
-        <div className="patient-avatar">
-          <i className="fas fa-user-circle"></i>
-        </div>
+        <PatientAvatar patient={patient} size="xlarge" />
         <div className="patient-title">
           <h2>{patient.name}</h2>
           <p>{patient.email}</p>
+          {patient.profile_photo_url && (
+            <span className="photo-status-badge">
+              <i className="fas fa-camera text-success"></i>
+              <span className="text-sm text-success">Photo de profil</span>
+            </span>
+          )}
         </div>
         <div className="patient-actions">
           <button

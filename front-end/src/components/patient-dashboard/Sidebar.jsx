@@ -16,6 +16,7 @@ const Sidebar = ({
 
       <div className="user-info">
         <div className="avatar">
+          {/* Photo stockée dans user.profile_photo via l'API */}
           {profile?.photoUrl ? (
             <img
               src={profile.photoUrl}
