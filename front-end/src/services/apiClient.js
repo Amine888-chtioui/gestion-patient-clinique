@@ -1,4 +1,4 @@
-// src/services/apiClient.js - Version mise à jour avec getPaymentMethods
+// src/services/apiClient.js - Version organisée et simplifiée
 import axios from '../axios';
 
 class PatientApiClient {
@@ -8,7 +8,8 @@ class PatientApiClient {
     });
   }
 
-  // Appointments
+  // ==================== GESTION DES RENDEZ-VOUS ====================
+
   async getAppointments() {
     const response = await axios.get("/api/patient/appointments", this.getAuthHeaders());
     return response.data.appointments || [];
@@ -29,7 +30,8 @@ class PatientApiClient {
     return response.data;
   }
 
-  // Medical Records
+  // ==================== DOSSIERS MÉDICAUX ====================
+
   async getMedicalRecords() {
     const response = await axios.get("/api/patient/medical-records", this.getAuthHeaders());
     return response.data.medicalRecords || [];
@@ -42,7 +44,8 @@ class PatientApiClient {
     });
   }
 
-  // Prescriptions
+  // ==================== ORDONNANCES ====================
+
   async getPrescriptions() {
     const response = await axios.get("/api/patient/prescriptions", this.getAuthHeaders());
     return response.data.prescriptions || [];
@@ -55,7 +58,8 @@ class PatientApiClient {
     });
   }
 
-  // Profile
+  // ==================== PROFIL PATIENT ====================
+
   async getProfile() {
     const response = await axios.get("/api/patient/profile", this.getAuthHeaders());
     return response.data.profile || null;
@@ -80,7 +84,8 @@ class PatientApiClient {
     return response.data;
   }
 
-  // Invoices
+  // ==================== FACTURES ====================
+
   async getInvoices(params = {}) {
     const response = await axios.get("/api/patient/invoices", {
       ...this.getAuthHeaders(),
@@ -101,15 +106,20 @@ class PatientApiClient {
     });
   }
 
-  // NOUVEAU: Méthodes de paiement depuis la base de données
+  // ==================== PAIEMENTS ====================
+
   async getPaymentMethods() {
-    console.log("🔄 Appel API pour récupérer les méthodes de paiement...");
     const response = await axios.get("/api/patient/payment-methods", this.getAuthHeaders());
-    console.log("✅ Réponse API méthodes de paiement:", response.data);
     return response.data;
   }
 
-  // Doctors and Services
+  async processPayment(paymentData) {
+    const response = await axios.post('/api/patient/payments/process', paymentData, this.getAuthHeaders());
+    return response.data;
+  }
+
+  // ==================== MÉDECINS ET SERVICES ====================
+
   async getDoctors() {
     const response = await axios.get("/api/doctors", this.getAuthHeaders());
     return response.data || [];
@@ -130,6 +140,8 @@ class PatientApiClient {
     return response.data.schedules || [];
   }
 
+  // ==================== DISPONIBILITÉS MÉDECIN ====================
+
   async getDoctorAvailability(doctorId, date) {
     const response = await axios.get(`/api/doctors/${doctorId}/availability`, {
       params: { date }
@@ -144,12 +156,14 @@ class PatientApiClient {
     return response.data;
   }
 
-  // Payments
-  async processPayment(paymentData) {
-    console.log("💳 Envoi des données de paiement:", paymentData);
-    const response = await axios.post('/api/patient/payments/process', paymentData, this.getAuthHeaders());
-    console.log("✅ Réponse traitement paiement:", response.data);
-    return response.data;
+  // ==================== FONCTIONS D'AUTHENTIFICATION ====================
+
+  async logout() {
+    try {
+      await axios.post('/api/logout', {}, this.getAuthHeaders());
+    } catch (error) {
+      console.warn('Erreur lors de la déconnexion:', error);
+    }
   }
 }
 
