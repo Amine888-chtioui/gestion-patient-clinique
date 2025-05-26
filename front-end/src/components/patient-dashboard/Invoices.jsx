@@ -1,4 +1,4 @@
-// src/components/patient-dashboard/Invoices.jsx - Version optimisée
+// src/components/patient-dashboard/Invoices.jsx - Version corrigée avec méthodes de paiement de la DB
 import React, { useState, useEffect, useCallback } from "react";
 import apiClient from "../../services/apiClient";
 import "../common/modal.css";
@@ -22,8 +22,10 @@ const Invoices = ({ actionLoading }) => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]); // NOUVEAU: Méthodes de paiement de la DB
+  const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false); // NOUVEAU: État de chargement
   const [paymentData, setPaymentData] = useState({
-    payment_method: "card",
+    payment_method_id: "", // MODIFIÉ: Utiliser l'ID de la méthode
     card_number: "",
     expiry_date: "",
     cvv: "",
@@ -61,6 +63,34 @@ const Invoices = ({ actionLoading }) => {
       cancelled: "Annulée",
     };
     return statusLabels[status] || status;
+  }, []);
+
+  // NOUVEAU: Fonction pour charger les méthodes de paiement depuis la DB
+  const fetchPaymentMethods = useCallback(async () => {
+    try {
+      setLoadingPaymentMethods(true);
+      console.log("🔄 Chargement des méthodes de paiement depuis la base de données...");
+      
+      const response = await apiClient.getPaymentMethods();
+      const methods = response.payment_methods || [];
+      
+      setPaymentMethods(methods);
+      console.log(`✅ ${methods.length} méthodes de paiement chargées:`, methods);
+      
+      // Sélectionner automatiquement la première méthode disponible
+      if (methods.length > 0) {
+        setPaymentData(prev => ({
+          ...prev,
+          payment_method_id: methods[0].id.toString()
+        }));
+      }
+      
+    } catch (err) {
+      console.error("❌ Erreur lors du chargement des méthodes de paiement:", err);
+      setPaymentMethods([]);
+    } finally {
+      setLoadingPaymentMethods(false);
+    }
   }, []);
 
   // Chargement des factures
@@ -147,33 +177,62 @@ const Invoices = ({ actionLoading }) => {
     }
   }, []);
 
-  // Gestion du paiement
-  const handleOpenPaymentModal = useCallback((invoice) => {
+  // MODIFIÉ: Gestion du modal de paiement avec chargement des méthodes
+  const handleOpenPaymentModal = useCallback(async (invoice) => {
     setSelectedInvoice(invoice);
     setShowPaymentModal(true);
     setPaymentError(null);
     setPaymentSuccess(null);
+    
+    // Réinitialiser les données de paiement
     setPaymentData({
-      payment_method: "card",
+      payment_method_id: "",
       card_number: "",
       expiry_date: "",
       cvv: "",
       name_on_card: "",
     });
-  }, []);
 
+    // Charger les méthodes de paiement depuis la base de données
+    await fetchPaymentMethods();
+  }, [fetchPaymentMethods]);
+
+  // MODIFIÉ: Traitement du paiement avec l'ID de la méthode
   const handleProcessPayment = useCallback(async (e) => {
     if (e) e.preventDefault();
     if (!selectedInvoice) return;
+
+    // Validation de base
+    if (!paymentData.payment_method_id) {
+      setPaymentError("Veuillez sélectionner une méthode de paiement");
+      return;
+    }
+
+    // Trouver la méthode de paiement sélectionnée
+    const selectedMethod = paymentMethods.find(m => m.id.toString() === paymentData.payment_method_id);
+    if (!selectedMethod) {
+      setPaymentError("Méthode de paiement invalide");
+      return;
+    }
+
+    // Validation pour les cartes bancaires
+    if (selectedMethod.code === 'card') {
+      if (!paymentData.card_number || !paymentData.expiry_date || !paymentData.cvv || !paymentData.name_on_card) {
+        setPaymentError("Veuillez remplir tous les champs de la carte bancaire");
+        return;
+      }
+    }
 
     setPaymentProcessing(true);
     setPaymentError(null);
     setPaymentSuccess(null);
 
     try {
+      console.log("💳 Traitement du paiement avec la méthode:", selectedMethod.name);
+      
       await apiClient.processPayment({
         invoice_id: selectedInvoice.id,
-        payment_method_id: 1,
+        payment_method_id: parseInt(paymentData.payment_method_id),
         payment_session_id: "sess_" + Math.random().toString(36).substr(2, 9),
       });
 
@@ -202,10 +261,13 @@ const Invoices = ({ actionLoading }) => {
       }, 2000);
     } catch (err) {
       console.error("Erreur lors du paiement:", err);
-      setPaymentError("Une erreur s'est produite lors du traitement du paiement. Veuillez réessayer.");
+      setPaymentError(
+        err.response?.data?.message || 
+        "Une erreur s'est produite lors du traitement du paiement. Veuillez réessayer."
+      );
       setPaymentProcessing(false);
     }
-  }, [selectedInvoice, invoiceDetails, fetchInvoices]);
+  }, [selectedInvoice, paymentData, paymentMethods, invoiceDetails, fetchInvoices]);
 
   // Fonctions de fermeture des modals
   const closeDetailsModal = useCallback(() => {
@@ -218,6 +280,7 @@ const Invoices = ({ actionLoading }) => {
     setShowPaymentModal(false);
     setSelectedInvoice(null);
     setPaymentProcessing(false);
+    setPaymentMethods([]); // Nettoyer les méthodes de paiement
   }, []);
 
   // Affichage pendant le chargement des données
@@ -365,12 +428,14 @@ const Invoices = ({ actionLoading }) => {
         />
       )}
 
-      {/* Modal de paiement */}
+      {/* MODIFIÉ: Modal de paiement avec méthodes dynamiques */}
       {showPaymentModal && selectedInvoice && (
         <PaymentModal
           invoice={selectedInvoice}
           paymentData={paymentData}
           setPaymentData={setPaymentData}
+          paymentMethods={paymentMethods}
+          loadingPaymentMethods={loadingPaymentMethods}
           paymentProcessing={paymentProcessing}
           paymentError={paymentError}
           paymentSuccess={paymentSuccess}
@@ -384,7 +449,7 @@ const Invoices = ({ actionLoading }) => {
   );
 };
 
-// Composant Modal pour les détails de facture
+// Composant Modal pour les détails de facture (inchangé)
 const InvoiceDetailsModal = React.memo(({
   invoice,
   isLoading,
@@ -496,7 +561,7 @@ const InvoiceDetailsModal = React.memo(({
   </div>
 ));
 
-// Composant pour le tableau des items de facture
+// Composant pour le tableau des items de facture (inchangé)
 const InvoiceItemsTable = React.memo(({ items, formatAmount }) => (
   <div className="invoice-items-section">
     <h4>Détails des prestations</h4>
@@ -523,11 +588,13 @@ const InvoiceItemsTable = React.memo(({ items, formatAmount }) => (
   </div>
 ));
 
-// Composant Modal pour le paiement
+// MODIFIÉ: Modal de paiement avec méthodes dynamiques
 const PaymentModal = React.memo(({
   invoice,
   paymentData,
   setPaymentData,
+  paymentMethods,
+  loadingPaymentMethods,
   paymentProcessing,
   paymentError,
   paymentSuccess,
@@ -588,6 +655,8 @@ const PaymentModal = React.memo(({
           <PaymentForm
             paymentData={paymentData}
             setPaymentData={setPaymentData}
+            paymentMethods={paymentMethods}
+            loadingPaymentMethods={loadingPaymentMethods}
             onSubmit={onProcess}
             onCancel={onClose}
             invoice={invoice}
@@ -604,10 +673,12 @@ const PaymentModal = React.memo(({
   </div>
 ));
 
-// Composant formulaire de paiement
+// MODIFIÉ: Formulaire de paiement avec méthodes dynamiques
 const PaymentForm = React.memo(({
   paymentData,
   setPaymentData,
+  paymentMethods,
+  loadingPaymentMethods,
   onSubmit,
   onCancel,
   invoice,
@@ -618,52 +689,79 @@ const PaymentForm = React.memo(({
     setPaymentData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Trouver la méthode de paiement sélectionnée
+  const selectedMethod = paymentMethods.find(m => m.id.toString() === paymentData.payment_method_id);
+
   return (
     <form onSubmit={onSubmit} className="payment-form">
       <h4>Informations de paiement</h4>
 
       <div className="form-group">
-        <label htmlFor="payment_method">Méthode de paiement</label>
-        <select
-          id="payment_method"
-          name="payment_method"
-          value={paymentData.payment_method}
-          onChange={handleInputChange}
-          required
-        >
-          <option value="card">Carte bancaire</option>
-          <option value="transfer">Virement bancaire</option>
-        </select>
+        <label htmlFor="payment_method_id">Méthode de paiement</label>
+        {loadingPaymentMethods ? (
+          <div style={{ padding: '10px', textAlign: 'center' }}>
+            <i className="fas fa-spinner fa-spin"></i> Chargement des méthodes de paiement...
+          </div>
+        ) : paymentMethods.length === 0 ? (
+          <div className="no-payment-methods">
+            <i className="fas fa-exclamation-triangle"></i>
+            <p>Aucune méthode de paiement n'est disponible actuellement.</p>
+            <p>Veuillez contacter l'administration.</p>
+          </div>
+        ) : (
+          <select
+            id="payment_method_id"
+            name="payment_method_id"
+            value={paymentData.payment_method_id}
+            onChange={handleInputChange}
+            required
+          >
+            <option value="">Sélectionner une méthode</option>
+            {paymentMethods.map(method => (
+              <option key={method.id} value={method.id}>
+                {method.name}
+                {method.description && ` - ${method.description}`}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {paymentData.payment_method === "card" && (
+      {/* Afficher les champs spécifiques selon la méthode sélectionnée */}
+      {selectedMethod && selectedMethod.code === 'card' && (
         <CardPaymentFields paymentData={paymentData} onChange={handleInputChange} />
       )}
 
-      {paymentData.payment_method === "transfer" && (
+      {selectedMethod && selectedMethod.code === 'transfer' && (
         <TransferPaymentInfo invoice={invoice} />
       )}
 
-      <div className="payment-actions">
-        {paymentData.payment_method === "card" ? (
-          <button type="submit" className="btn-primary">
-            <i className="fas fa-lock"></i> Payer {formatAmount(invoice.total_amount)}
-          </button>
-        ) : (
-          <button type="button" className="btn-primary" onClick={onSubmit}>
-            J'ai effectué le virement
-          </button>
-        )}
+      {paymentMethods.length > 0 && (
+        <div className="payment-actions">
+          {selectedMethod && selectedMethod.code === 'card' ? (
+            <button type="submit" className="btn-primary">
+              <i className="fas fa-lock"></i> Payer {formatAmount(invoice.total_amount)}
+            </button>
+          ) : selectedMethod && selectedMethod.code === 'transfer' ? (
+            <button type="button" className="btn-primary" onClick={onSubmit}>
+              J'ai effectué le virement
+            </button>
+          ) : selectedMethod ? (
+            <button type="submit" className="btn-primary">
+              <i className="fas fa-check"></i> Confirmer le paiement
+            </button>
+          ) : null}
 
-        <button type="button" className="btn-secondary" onClick={onCancel}>
-          Annuler
-        </button>
-      </div>
+          <button type="button" className="btn-secondary" onClick={onCancel}>
+            Annuler
+          </button>
+        </div>
+      )}
     </form>
   );
 });
 
-// Composant pour les champs de carte bancaire
+// Composant pour les champs de carte bancaire (inchangé)
 const CardPaymentFields = React.memo(({ paymentData, onChange }) => (
   <>
     <div className="form-group">
@@ -725,7 +823,7 @@ const CardPaymentFields = React.memo(({ paymentData, onChange }) => (
   </>
 ));
 
-// Composant pour les informations de virement
+// Composant pour les informations de virement (inchangé)
 const TransferPaymentInfo = React.memo(({ invoice }) => (
   <div className="transfer-info">
     <p>Pour effectuer un virement bancaire, utilisez les informations suivantes:</p>

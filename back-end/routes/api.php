@@ -17,19 +17,12 @@ use App\Http\Controllers\DoctorScheduleController;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
 */
 
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login-with-google', [AuthController::class, 'loginWithGoogle']);
-// Route pour vérifier la disponibilité d'un médecin (accessible publiquement)
-Route::get('/doctors/{doctorId}/availability-check', [DoctorScheduleController::class, 'checkAvailability']);
 
 // Routes pour la réinitialisation de mot de passe
 Route::post('/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendVerificationCode']);
@@ -38,6 +31,11 @@ Route::post('/reset-password', [App\Http\Controllers\Auth\ForgotPasswordControll
 
 // Route pour le formulaire de contact (accessible publiquement)
 Route::post('/contact', [AdminController::class, 'storeContact']);
+
+// Routes publiques pour la vérification de disponibilité des médecins
+Route::get('/doctors/{doctorId}/availability', [DoctorController::class, 'getAvailability']);
+Route::get('/doctors/{doctorId}/monthly-availability', [DoctorController::class, 'getMonthlyAvailability']);
+Route::get('/doctors/{doctorId}/availability-check', [DoctorScheduleController::class, 'checkAvailability']);
 
 // Webhook (non authentifié)
 Route::post('/payments/webhook', [PaymentController::class, 'handlePaymentWebhook']);
@@ -73,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment-methods', [PaymentController::class, 'getPaymentMethods']);
         Route::post('/invoices/{id}/payment/initialize', [PaymentController::class, 'initializePayment']);
         Route::post('/payments/process', [PaymentController::class, 'processPayment']);
+        
         // Routes pour les services (correctement placées dans le préfixe 'patient')
         Route::get('/services', [ServiceController::class, 'getActiveServices']);
         Route::get('/services/{id}/doctors', [ServiceController::class, 'getDoctors']);
@@ -97,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::put('/profile', [DoctorController::class, 'updateProfile']);
         Route::post('/profile/photo', [DoctorController::class, 'updateProfilePhoto']);
+        
         // Routes pour les horaires de disponibilité des médecins
         Route::get('/schedules', [DoctorScheduleController::class, 'getSchedules']);
         Route::post('/schedules', [DoctorScheduleController::class, 'updateSchedule']);
@@ -181,8 +181,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Routes pour les médecins (accès public pour les patients)
     Route::get('/doctors', [DoctorController::class, 'getAllDoctors']);
-    Route::get('/doctors/{doctor_id}/availability', [DoctorController::class, 'getAvailability']);
-    Route::get('/doctors/{doctor_id}/monthly-availability', [DoctorController::class, 'getMonthlyAvailability']);
         
     // Routes pour la gestion des factures (version simplifiée)
     Route::get('/invoices', [SimpleInvoiceController::class, 'index']);

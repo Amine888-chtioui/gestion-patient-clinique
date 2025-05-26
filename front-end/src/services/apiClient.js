@@ -1,4 +1,4 @@
-// src/services/apiClient.js
+// src/services/apiClient.js - Version mise à jour avec getPaymentMethods
 import axios from '../axios';
 
 class PatientApiClient {
@@ -101,6 +101,14 @@ class PatientApiClient {
     });
   }
 
+  // NOUVEAU: Méthodes de paiement depuis la base de données
+  async getPaymentMethods() {
+    console.log("🔄 Appel API pour récupérer les méthodes de paiement...");
+    const response = await axios.get("/api/patient/payment-methods", this.getAuthHeaders());
+    console.log("✅ Réponse API méthodes de paiement:", response.data);
+    return response.data;
+  }
+
   // Doctors and Services
   async getDoctors() {
     const response = await axios.get("/api/doctors", this.getAuthHeaders());
@@ -138,7 +146,9 @@ class PatientApiClient {
 
   // Payments
   async processPayment(paymentData) {
+    console.log("💳 Envoi des données de paiement:", paymentData);
     const response = await axios.post('/api/patient/payments/process', paymentData, this.getAuthHeaders());
+    console.log("✅ Réponse traitement paiement:", response.data);
     return response.data;
   }
 }
