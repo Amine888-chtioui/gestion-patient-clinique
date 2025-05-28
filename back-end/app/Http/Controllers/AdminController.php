@@ -16,9 +16,17 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Contact;
 use App\Models\DoctorProfile;
 use App\Models\Medication;
+use App\Services\NotificationService; // AJOUT
 
 class AdminController extends Controller
 {
+     protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * Récupérer les statistiques générales pour le tableau de bord
      */
@@ -632,7 +640,7 @@ public function getMedicalRecords()
     /**
      * Ajouter un nouveau rendez-vous
      */
-    public function addAppointment(Request $request)
+     public function addAppointment(Request $request)
     {
         $user = Auth::user();
         
@@ -681,6 +689,25 @@ public function getMedicalRecords()
             'status' => $request->status,
             'notes' => $request->notes,
         ]);
+
+        // AJOUT: Notifications après création du rendez-vous
+        // Notification au patient
+        $this->notificationService->sendNotification(
+            $patient,
+            'Nouveau rendez-vous programmé',
+            "Un rendez-vous a été programmé pour vous le {$appointment->date} à {$appointment->time} avec le Dr {$doctor->name}.",
+            'appointment',
+            '/patient/dashboard?tab=appointments'
+        );
+
+        // Notification au médecin
+        $this->notificationService->sendNotification(
+            $doctor,
+            'Nouveau rendez-vous assigné',
+            "Un rendez-vous a été programmé avec {$patient->name} le {$appointment->date} à {$appointment->time}.",
+            'appointment',
+            '/doctor/dashboard?tab=appointments'
+        );
         
         return response()->json([
             'message' => 'Rendez-vous créé avec succès',
@@ -703,7 +730,7 @@ public function getMedicalRecords()
     /**
      * Mettre à jour un rendez-vous existant
      */
-    public function updateAppointment(Request $request, $id)
+     public function updateAppointment(Request $request, $id)
     {
         $user = Auth::user();
         
@@ -713,7 +740,14 @@ public function getMedicalRecords()
         }
         
         // Trouver le rendez-vous
-        $appointment = Appointment::findOrFail($id);
+        $appointment = Appointment::with(['patient', 'doctor'])->findOrFail($id);
+        
+        // AJOUT: Sauvegarder les anciennes valeurs pour les notifications
+        $oldDate = $appointment->date;
+        $oldTime = $appointment->time;
+        $oldStatus = $appointment->status;
+        $oldPatientId = $appointment->patient_id;
+        $oldDoctorId = $appointment->doctor_id;
         
         // Valider les données
         $validator = Validator::make($request->all(), [
@@ -772,8 +806,78 @@ public function getMedicalRecords()
         
         $appointment->save();
         
-        // Recharger les relations pour la réponse
+        // Recharger les relations pour la réponse et les notifications
         $appointment->load(['patient:id,name,email', 'doctor:id,name,email']);
+
+        // AJOUT: Notifications après modification
+        $hasDateTimeChanged = ($oldDate !== $appointment->date) || ($oldTime !== $appointment->time);
+        $hasStatusChanged = $oldStatus !== $appointment->status;
+        $hasPatientChanged = $oldPatientId !== $appointment->patient_id;
+        $hasDoctorChanged = $oldDoctorId !== $appointment->doctor_id;
+
+        // Notification au patient actuel
+        if ($hasDateTimeChanged || $hasStatusChanged || $hasDoctorChanged) {
+            $message = "Votre rendez-vous a été modifié par l'administration.";
+            if ($hasDateTimeChanged) {
+                $message = "Votre rendez-vous a été reprogrammé du {$oldDate} à {$oldTime} vers le {$appointment->date} à {$appointment->time}.";
+            } elseif ($hasStatusChanged) {
+                $message = "Le statut de votre rendez-vous du {$appointment->date} à {$appointment->time} a été modifié : {$appointment->status}.";
+            }
+            
+            $this->notificationService->sendNotification(
+                $appointment->patient,
+                'Rendez-vous modifié',
+                $message,
+                'appointment',
+                '/patient/dashboard?tab=appointments'
+            );
+        }
+
+        // Notification au médecin actuel
+        if ($hasDateTimeChanged || $hasStatusChanged || $hasPatientChanged) {
+            $message = "Un rendez-vous a été modifié par l'administration.";
+            if ($hasDateTimeChanged) {
+                $message = "Le rendez-vous avec {$appointment->patient->name} a été reprogrammé du {$oldDate} à {$oldTime} vers le {$appointment->date} à {$appointment->time}.";
+            } elseif ($hasStatusChanged) {
+                $message = "Le statut du rendez-vous avec {$appointment->patient->name} du {$appointment->date} à {$appointment->time} a été modifié : {$appointment->status}.";
+            }
+            
+            $this->notificationService->sendNotification(
+                $appointment->doctor,
+                'Rendez-vous modifié',
+                $message,
+                'appointment',
+                '/doctor/dashboard?tab=appointments'
+            );
+        }
+
+        // Notification à l'ancien patient si le patient a changé
+        if ($hasPatientChanged) {
+            $oldPatient = User::find($oldPatientId);
+            if ($oldPatient) {
+                $this->notificationService->sendNotification(
+                    $oldPatient,
+                    'Rendez-vous annulé',
+                    "Votre rendez-vous du {$oldDate} à {$oldTime} a été réassigné par l'administration.",
+                    'appointment',
+                    '/patient/dashboard?tab=appointments'
+                );
+            }
+        }
+
+        // Notification à l'ancien médecin si le médecin a changé
+        if ($hasDoctorChanged) {
+            $oldDoctor = User::find($oldDoctorId);
+            if ($oldDoctor) {
+                $this->notificationService->sendNotification(
+                    $oldDoctor,
+                    'Rendez-vous réassigné',
+                    "Le rendez-vous du {$oldDate} à {$oldTime} vous a été retiré par l'administration.",
+                    'appointment',
+                    '/doctor/dashboard?tab=appointments'
+                );
+            }
+        }
         
         return response()->json([
             'message' => 'Rendez-vous mis à jour avec succès',
@@ -805,14 +909,195 @@ public function getMedicalRecords()
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
         
-        // Trouver le rendez-vous
-        $appointment = Appointment::findOrFail($id);
-        
+        // Trouver le rendez-vous avec les relations
+        $appointment = Appointment::with(['patient', 'doctor'])->findOrFail($id);
+
+        // AJOUT: Sauvegarder les informations pour les notifications
+        $patient = $appointment->patient;
+        $doctor = $appointment->doctor;
+        $appointmentDate = $appointment->date;
+        $appointmentTime = $appointment->time;
+
         // Supprimer le rendez-vous
         $appointment->delete();
+
+        // AJOUT: Notifications après suppression
+        // Notification au patient
+        $this->notificationService->sendNotification(
+            $patient,
+            'Rendez-vous annulé',
+            "Votre rendez-vous du {$appointmentDate} à {$appointmentTime} avec le Dr {$doctor->name} a été annulé par l'administration.",
+            'appointment',
+            '/patient/dashboard?tab=appointments'
+        );
+
+        // Notification au médecin
+        $this->notificationService->sendNotification(
+            $doctor,
+            'Rendez-vous annulé',
+            "Le rendez-vous avec {$patient->name} du {$appointmentDate} à {$appointmentTime} a été annulé par l'administration.",
+            'appointment',
+            '/doctor/dashboard?tab=appointments'
+        );
         
         return response()->json([
             'message' => 'Rendez-vous supprimé avec succès'
+        ]);
+    }
+
+        public function updateMedicalRecord(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est un administrateur
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+        
+        // Trouver le dossier médical avec ses relations
+        $medicalRecord = MedicalRecord::with(['patient', 'doctor'])->findOrFail($id);
+        
+        // Valider les données
+        $validator = Validator::make($request->all(), [
+            'patient_id' => 'sometimes|required|exists:users,id',
+            'doctor_id' => 'sometimes|required|exists:users,id',
+            'appointment_id' => 'nullable|exists:appointments,id',
+            'date' => 'sometimes|required|date',
+            'type' => 'sometimes|required|in:consultation,analyse,chirurgie,autre',
+            'diagnosis' => 'sometimes|required|string',
+            'notes' => 'nullable|string',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // AJOUT: Sauvegarder les anciennes valeurs pour les notifications
+        $oldPatientId = $medicalRecord->patient_id;
+        $oldDoctorId = $medicalRecord->doctor_id;
+        $hasChanged = false;
+        
+        // Mettre à jour les champs
+        if ($request->has('patient_id') && $request->patient_id != $medicalRecord->patient_id) {
+            $patient = User::find($request->patient_id);
+            if (!$patient || $patient->role !== 'patient') {
+                return response()->json(['message' => 'Patient non trouvé'], 404);
+            }
+            $medicalRecord->patient_id = $request->patient_id;
+            $hasChanged = true;
+        }
+        
+        if ($request->has('doctor_id') && $request->doctor_id != $medicalRecord->doctor_id) {
+            $doctor = User::find($request->doctor_id);
+            if (!$doctor || $doctor->role !== 'doctor') {
+                return response()->json(['message' => 'Médecin non trouvé'], 404);
+            }
+            $medicalRecord->doctor_id = $request->doctor_id;
+            $hasChanged = true;
+        }
+        
+        if ($request->has('appointment_id')) {
+            $medicalRecord->appointment_id = $request->appointment_id;
+            $hasChanged = true;
+        }
+        
+        if ($request->has('date')) {
+            $medicalRecord->date = $request->date;
+            $hasChanged = true;
+        }
+        
+        if ($request->has('type')) {
+            $medicalRecord->type = $request->type;
+            $hasChanged = true;
+        }
+        
+        if ($request->has('diagnosis')) {
+            $medicalRecord->diagnosis = $request->diagnosis;
+            $hasChanged = true;
+        }
+        
+        if ($request->has('notes')) {
+            $medicalRecord->notes = $request->notes;
+            $hasChanged = true;
+        }
+        
+        $medicalRecord->save();
+        
+        // Recharger les relations
+        $medicalRecord->load(['patient', 'doctor', 'documents']);
+
+        // AJOUT: Notifications après modification
+        if ($hasChanged) {
+            // Notification au patient actuel
+            $this->notificationService->sendNotification(
+                $medicalRecord->patient,
+                'Dossier médical modifié',
+                "Votre dossier médical du {$medicalRecord->date} ({$medicalRecord->type}) a été modifié par l'administration.",
+                'medical',
+                '/patient/dashboard?tab=medicalRecords'
+            );
+
+            // Notification au médecin actuel
+            $this->notificationService->sendNotification(
+                $medicalRecord->doctor,
+                'Dossier médical modifié',
+                "Le dossier médical de {$medicalRecord->patient->name} du {$medicalRecord->date} a été modifié par l'administration.",
+                'medical',
+                '/doctor/dashboard?tab=patients'
+            );
+
+            // Si le patient a changé, notifier l'ancien patient
+            if ($request->has('patient_id') && $oldPatientId != $medicalRecord->patient_id) {
+                $oldPatient = User::find($oldPatientId);
+                if ($oldPatient) {
+                    $this->notificationService->sendNotification(
+                        $oldPatient,
+                        'Dossier médical transféré',
+                        "Un de vos dossiers médicaux a été transféré vers un autre patient par l'administration.",
+                        'medical',
+                        '/patient/dashboard?tab=medicalRecords'
+                    );
+                }
+            }
+
+            // Si le médecin a changé, notifier l'ancien médecin
+            if ($request->has('doctor_id') && $oldDoctorId != $medicalRecord->doctor_id) {
+                $oldDoctor = User::find($oldDoctorId);
+                if ($oldDoctor) {
+                    $this->notificationService->sendNotification(
+                        $oldDoctor,
+                        'Dossier médical transféré',
+                        "Un dossier médical que vous aviez créé a été transféré vers un autre médecin par l'administration.",
+                        'medical',
+                        '/doctor/dashboard?tab=patients'
+                    );
+                }
+            }
+        }
+        
+        return response()->json([
+            'message' => 'Dossier médical mis à jour avec succès',
+            'medicalRecord' => [
+                'id' => $medicalRecord->id,
+                'date' => $medicalRecord->date,
+                'type' => $medicalRecord->type,
+                'patient_id' => $medicalRecord->patient_id,
+                'patient_name' => $medicalRecord->patient->name,
+                'doctor_id' => $medicalRecord->doctor_id,
+                'doctor_name' => $medicalRecord->doctor->name,
+                'diagnosis' => $medicalRecord->diagnosis,
+                'notes' => $modicalRecord->notes,
+                'documents' => $medicalRecord->documents->map(function ($document) {
+                    return [
+                        'id' => $document->id,
+                        'name' => $document->name,
+                        'type' => $document->type,
+                    ];
+                })->toArray(),
+            ]
         ]);
     }
 

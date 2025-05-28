@@ -121,7 +121,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [AdminController::class, 'getUsers']);
         Route::post('/users', [AdminController::class, 'addUser']);
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
-        Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);    
+        Route::put('/medical-records/{id}', [AdminController::class, 'updateMedicalRecord']);
         
         // Routes pour le profil admin
         Route::get('/profile', [AdminController::class, 'getProfile']);
