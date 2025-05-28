@@ -1416,6 +1416,20 @@ public function updateProfilePhoto(Request $request)
     
     $contact = Contact::create($validatedData);
     
+    // NOUVEAU: Envoyer une notification à tous les administrateurs
+    $admins = User::where('role', 'admin')->get();
+    
+    foreach ($admins as $admin) {
+        $this->notificationService->sendNotification(
+            $admin,
+            'Nouveau message de contact',
+            "Nouveau message reçu de {$contact->name} ({$contact->email}). Sujet: " . 
+            (strlen($contact->message) > 50 ? substr($contact->message, 0, 50) . '...' : $contact->message),
+            'info',
+            '/admin/dashboard/contacts'
+        );
+    }
+    
     return response()->json([
         'message' => 'Votre message a été envoyé avec succès',
         'contact' => $contact

@@ -100,80 +100,93 @@ class PaymentController extends Controller
      * Finaliser un paiement (simulé)
      */
     public function processPayment(Request $request)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
+    
+    // Validation de base
+    $validator = Validator::make($request->all(), [
+        'invoice_id' => 'required|exists:invoices,id',
+        'payment_method_id' => 'required|exists:payment_methods,id',
+        'payment_session_id' => 'required|string',
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json([
+            'message' => 'Erreur de validation',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+    
+    // Récupérer la facture
+    $invoiceId = $request->input('invoice_id');
+    $invoice = Invoice::where('id', $invoiceId)
+        ->where(function($query) use ($user) {
+            // Si l'utilisateur est un admin, il peut payer n'importe quelle facture
+            // Sinon, il ne peut payer que ses propres factures
+            if (!$user->isAdmin()) {
+                $query->where('patient_id', $user->id);
+            }
+        })
+        ->with('patient') // Charger la relation patient immédiatement
+        ->first();
+    
+    if (!$invoice) {
+        return response()->json(['message' => 'Facture non trouvée'], 404);
+    }
+    
+    // Vérifier si la facture est déjà payée
+    if ($invoice->status === 'paid') {
+        return response()->json(['message' => 'Cette facture est déjà payée'], 422);
+    }
+    
+    // Traiter le paiement
+    $paymentMethodId = $request->input('payment_method_id');
+    
+    try {
+        // Simuler un traitement de paiement réussi
+        $invoice->processPayment($paymentMethodId);
         
-        // Validation de base
-        $validator = Validator::make($request->all(), [
-            'invoice_id' => 'required|exists:invoices,id',
-            'payment_method_id' => 'required|exists:payment_methods,id',
-            'payment_session_id' => 'required|string',
+        // Envoyer une notification au patient
+        $this->notificationService->sendInvoiceNotification(
+            $invoice->patient,
+            [
+                'id' => $invoice->id,
+                'number' => $invoice->number,
+                'amount' => $invoice->total_amount,
+                'due_date' => $invoice->due_date
+            ],
+            'paid'
+        );
+        
+        // NOUVEAU: Envoyer une notification aux administrateurs
+        $admins = \App\Models\User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $this->notificationService->sendNotification(
+                $admin,
+                'Paiement reçu',
+                "Paiement de " . number_format($invoice->total_amount, 2) . "€ reçu pour la facture {$invoice->number} de {$invoice->patient->name}",
+                'success',
+                '/admin/dashboard/invoices'
+            );
+        }
+        
+        return response()->json([
+            'message' => 'Paiement traité avec succès',
+            'invoice' => [
+                'id' => $invoice->id,
+                'number' => $invoice->number,
+                'status' => $invoice->status,
+                'payment_date' => $invoice->payment_date->format('Y-m-d'),
+            ]
         ]);
         
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Erreur de validation',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-        
-        // Récupérer la facture
-        $invoiceId = $request->input('invoice_id');
-        $invoice = Invoice::where('id', $invoiceId)
-            ->where(function($query) use ($user) {
-                // Si l'utilisateur est un admin, il peut payer n'importe quelle facture
-                // Sinon, il ne peut payer que ses propres factures
-                if (!$user->isAdmin()) {
-                    $query->where('patient_id', $user->id);
-                }
-            })
-            ->first();
-        
-        if (!$invoice) {
-            return response()->json(['message' => 'Facture non trouvée'], 404);
-        }
-        
-        // Vérifier si la facture est déjà payée
-        if ($invoice->status === 'paid') {
-            return response()->json(['message' => 'Cette facture est déjà payée'], 422);
-        }
-        
-        // Traiter le paiement
-        $paymentMethodId = $request->input('payment_method_id');
-        
-        try {
-            // Simuler un traitement de paiement réussi
-            $invoice->processPayment($paymentMethodId);
-            
-            // Envoyer une notification au patient
-            $this->notificationService->sendInvoiceNotification(
-                $invoice->patient,
-                [
-                    'id' => $invoice->id,
-                    'number' => $invoice->number,
-                    'amount' => $invoice->total_amount,
-                    'due_date' => $invoice->due_date
-                ],
-                'paid'
-            );
-            
-            return response()->json([
-                'message' => 'Paiement traité avec succès',
-                'invoice' => [
-                    'id' => $invoice->id,
-                    'number' => $invoice->number,
-                    'status' => $invoice->status,
-                    'payment_date' => $invoice->payment_date->format('Y-m-d'),
-                ]
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Erreur lors du traitement du paiement',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Erreur lors du traitement du paiement',
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Traitement d'un webhook de paiement (simulé)

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -313,64 +314,55 @@ class SimpleInvoiceController extends Controller
      * Marquer une facture comme payée
      */
     public function markAsPaid(Request $request, $id)
-    {
-        $invoice = Invoice::findOrFail($id);
-        
-        // Vérifier si la facture est déjà payée
-        if ($invoice->status === 'paid') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice is already paid'
-            ], 400);
-        }
-        
-        $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|string|in:cash,card,transfer,check,insurance',
-            'payment_date' => 'nullable|date',
-        ]);
-        
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-        
-        try {
-            // Mettre à jour le statut et les informations de paiement
-            $invoice->status = 'paid';
-            $invoice->payment_method = $request->payment_method;
-            $invoice->payment_date = $request->payment_date ?? now();
-            $invoice->save();
-            
-            // Récupérer le patient
-            $invoice->load('patient');
-            
-            // Envoyer une notification au patient
-            $this->notificationService->sendInvoiceNotification(
-                $invoice->patient,
-                [
-                    'id' => $invoice->id,
-                    'number' => $invoice->number,
-                    'amount' => $invoice->total_amount,
-                    'due_date' => $invoice->due_date
-                ],
-                'paid'
-            );
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Invoice marked as paid',
-                'data' => $invoice
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark invoice as paid',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+{
+    $invoice = Invoice::findOrFail($id);
+    
+    if ($invoice->status === 'paid') {
+        return response()->json(['message' => 'Cette facture est déjà marquée comme payée'], 422);
     }
+    
+    $validator = Validator::make($request->all(), [
+        'payment_method' => 'required|string',
+        'payment_date' => 'nullable|date',
+    ]);
+    
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+    
+    $invoice->markAsPaid($request->payment_method, $request->payment_date)->save();
+    
+    // Charger la relation patient
+    $invoice->load('patient');
+    
+    // Envoyer une notification au patient
+    $notificationService = app(NotificationService::class);
+    $notificationService->sendInvoiceNotification(
+        $invoice->patient,
+        [
+            'id' => $invoice->id,
+            'number' => $invoice->number,
+            'amount' => $invoice->total_amount,
+            'due_date' => $invoice->due_date
+        ],
+        'paid'
+    );
+    
+    // NOUVEAU: Envoyer une notification aux administrateurs
+    $admins = User::where('role', 'admin')->get();
+    foreach ($admins as $admin) {
+        $notificationService->sendNotification(
+            $admin,
+            'Facture marquée comme payée',
+            "La facture {$invoice->number} de {$invoice->patient->name} a été marquée comme payée ({$invoice->total_amount}€)",
+            'success',
+            '/admin/dashboard/invoices'
+        );
+    }
+    
+    return response()->json([
+        'message' => 'Facture marquée comme payée',
+        'invoice' => $invoice->fresh(),
+    ]);
+}
 }
