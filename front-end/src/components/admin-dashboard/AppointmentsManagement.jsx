@@ -1,4 +1,4 @@
-// src/components/admin-dashboard/AppointmentsManagement.jsx
+// src/components/admin-dashboard/AppointmentsManagement.jsx - CORRECTION CHAMP MÉDECIN
 import React, { useState } from "react";
 
 const AppointmentsManagement = ({ 
@@ -29,16 +29,23 @@ const AppointmentsManagement = ({
   
   // État du formulaire (pour ajout ou édition)
   const [formData, setFormData] = useState(emptyAppointment);
+
+  // DEBUG: Vérifier les données reçues
+  console.log("🔍 AppointmentsManagement - Données reçues:", {
+    appointments: appointments?.length || 0,
+    patients: patients?.length || 0,
+    doctors: doctors?.length || 0,
+    showAddForm
+  });
   
   // Filtrer les rendez-vous selon les critères
   const filteredAppointments = appointments.filter(appointment => {
     const matchesSearch = 
-      appointment.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.doctor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.doctor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (appointment.reason && appointment.reason.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === "all" || appointment.status === statusFilter;
-    
     const matchesDate = !dateFilter || appointment.date === dateFilter;
     
     return matchesSearch && matchesStatus && matchesDate;
@@ -74,26 +81,46 @@ const AppointmentsManagement = ({
     setEditingAppointment(null);
     setShowAddForm(false);
   };
+
+  // Helper pour afficher les infos de notification
+  const showNotificationInfo = (action, patientName, doctorName) => {
+    const messages = {
+      create: `📩 Le patient ${patientName} et le Dr ${doctorName} recevront une notification`,
+      update: `📩 Les personnes concernées recevront une notification des changements`,
+      delete: `📩 Le patient ${patientName} et le Dr ${doctorName} recevront une notification d'annulation`
+    };
+    
+    return (
+      <div className="notification-info">
+        <small style={{ color: '#6c757d', fontStyle: 'italic' }}>
+          <i className="fas fa-info-circle"></i> {messages[action]}
+        </small>
+      </div>
+    );
+  };
   
   // Soumettre le formulaire
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (editingAppointment) {
-      // Mise à jour d'un rendez-vous existant
       handleUpdateAppointment(editingAppointment, formData);
     } else {
-      // Ajout d'un nouveau rendez-vous
       handleAddAppointment(formData);
     }
     
-    // Réinitialiser le formulaire après soumission
     cancelForm();
   };
   
   // Confirmer la suppression d'un rendez-vous
   const confirmDelete = (id) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous ?")) {
+    const appointment = appointments.find(apt => apt.id === id);
+    
+    const confirmMessage = `Êtes-vous sûr de vouloir supprimer ce rendez-vous ?
+
+📩 Le patient ${appointment.patient_name} et le Dr ${appointment.doctor_name} recevront une notification d'annulation.`;
+    
+    if (window.confirm(confirmMessage)) {
       handleDeleteAppointment(id);
     }
   };
@@ -101,8 +128,6 @@ const AppointmentsManagement = ({
   // Formater la date pour l'affichage
   const formatDate = (date) => {
     if (!date) return "";
-    
-    // Si la date est déjà au format 'YYYY-MM-DD', nous l'utilisons directement
     return date;
   };
 
@@ -168,17 +193,51 @@ const AppointmentsManagement = ({
         </button>
       </div>
 
-      {/* Formulaire d'ajout/édition */}
+      {/* Formulaire d'ajout/édition - AVEC CHAMP MÉDECIN CORRIGÉ */}
       {showAddForm && (
         <div className="form-container">
           <h3>{editingAppointment ? "Modifier le rendez-vous" : "Ajouter un nouveau rendez-vous"}</h3>
+          
+          {/* Messages de debug si pas de données */}
+          {(!patients || patients.length === 0) && (
+            <div className="alert alert-warning" style={{
+              padding: '10px',
+              marginBottom: '15px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: '4px',
+              color: '#856404'
+            }}>
+              ⚠️ Aucun patient disponible. Veuillez d'abord ajouter des patients.
+            </div>
+          )}
+          
+          {(!doctors || doctors.length === 0) && (
+            <div className="alert alert-warning" style={{
+              padding: '10px',
+              marginBottom: '15px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: '4px',
+              color: '#856404'
+            }}>
+              ⚠️ Aucun médecin disponible. Veuillez d'abord ajouter des médecins.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <div className="form-section">
               <h4>Informations du rendez-vous</h4>
               
+              {/* PREMIÈRE LIGNE - Patient et Médecin côte à côte */}
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="patient_id">Patient*</label>
+                  <label htmlFor="patient_id">
+                    Patient* 
+                    <span style={{ color: '#6c757d', fontSize: '0.8em', marginLeft: '5px' }}>
+                      ({patients?.length || 0} disponibles)
+                    </span>
+                  </label>
                   <select
                     id="patient_id"
                     name="patient_id"
@@ -186,19 +245,29 @@ const AppointmentsManagement = ({
                     value={formData.patient_id}
                     onChange={handleChange}
                     required
-                    disabled={actionLoading}
+                    disabled={actionLoading || !patients || patients.length === 0}
                   >
                     <option value="">Sélectionner un patient</option>
-                    {patients.map(patient => (
-                      <option key={patient.id} value={patient.id}>
-                        {patient.name} ({patient.email})
-                      </option>
-                    ))}
+                    {patients && patients.length > 0 ? (
+                      patients.map(patient => (
+                        <option key={patient.id} value={patient.id}>
+                          {patient.name} ({patient.email})
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Aucun patient disponible</option>
+                    )}
                   </select>
                 </div>
                 
+                {/* CHAMP MÉDECIN - OBLIGATOIRE ET VISIBLE */}
                 <div className="form-group">
-                  <label htmlFor="doctor_id">Médecin*</label>
+                  <label htmlFor="doctor_id">
+                    Médecin* 
+                    <span style={{ color: '#6c757d', fontSize: '0.8em', marginLeft: '5px' }}>
+                      ({doctors?.length || 0} disponibles)
+                    </span>
+                  </label>
                   <select
                     id="doctor_id"
                     name="doctor_id"
@@ -206,18 +275,23 @@ const AppointmentsManagement = ({
                     value={formData.doctor_id}
                     onChange={handleChange}
                     required
-                    disabled={actionLoading}
+                    disabled={actionLoading || !doctors || doctors.length === 0}
                   >
                     <option value="">Sélectionner un médecin</option>
-                    {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name} {doctor.speciality ? `(${doctor.speciality})` : ''}
-                      </option>
-                    ))}
+                    {doctors && doctors.length > 0 ? (
+                      doctors.map(doctor => (
+                        <option key={doctor.id} value={doctor.id}>
+                          {doctor.name} {doctor.speciality ? `(${doctor.speciality})` : ''}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>Aucun médecin disponible</option>
+                    )}
                   </select>
                 </div>
               </div>
               
+              {/* DEUXIÈME LIGNE - Date et Heure */}
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="date">Date*</label>
@@ -248,6 +322,7 @@ const AppointmentsManagement = ({
                 </div>
               </div>
               
+              {/* TROISIÈME LIGNE - Motif */}
               <div className="form-group">
                 <label htmlFor="reason">Motif de consultation</label>
                 <textarea
@@ -258,9 +333,11 @@ const AppointmentsManagement = ({
                   onChange={handleChange}
                   rows="2"
                   disabled={actionLoading}
-                ></textarea>
+                  placeholder="Décrivez le motif de la consultation..."
+                />
               </div>
               
+              {/* QUATRIÈME LIGNE - Statut et Notes */}
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="status">Statut*</label>
@@ -289,16 +366,28 @@ const AppointmentsManagement = ({
                     onChange={handleChange}
                     rows="2"
                     disabled={actionLoading}
-                  ></textarea>
+                    placeholder="Notes supplémentaires..."
+                  />
                 </div>
               </div>
+
+              {/* Affichage des infos de notification */}
+              {formData.patient_id && formData.doctor_id && (
+                <div className="notification-preview">
+                  {showNotificationInfo(
+                    editingAppointment ? 'update' : 'create',
+                    patients.find(p => p.id === parseInt(formData.patient_id))?.name,
+                    doctors.find(d => d.id === parseInt(formData.doctor_id))?.name
+                  )}
+                </div>
+              )}
             </div>
             
             <div className="form-actions">
               <button 
                 type="submit" 
                 className="btn-primary"
-                disabled={actionLoading}
+                disabled={actionLoading || !formData.patient_id || !formData.doctor_id}
               >
                 {actionLoading ? (
                   <span><i className="loading-spinner"></i> Traitement...</span>
@@ -385,6 +474,60 @@ const AppointmentsManagement = ({
           )}
         </div>
       )}
+
+      {/* Styles CSS */}
+      <style jsx>{`
+        .notification-info, .notification-preview {
+          margin: 15px 0;
+          padding: 10px;
+          background-color: rgba(40, 167, 69, 0.1);
+          border-left: 3px solid #28a745;
+          border-radius: 4px;
+        }
+
+        .notification-info small, .notification-preview small {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: #495057;
+        }
+
+        .notification-info i, .notification-preview i {
+          color: #17a2b8;
+        }
+
+        .alert {
+          border-radius: 4px;
+          margin-bottom: 15px;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .form-group {
+          flex: 1;
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 0.5rem;
+          border: 1px solid #ced4da;
+          border-radius: 4px;
+        }
+
+        .form-control:disabled {
+          background-color: #e9ecef;
+          opacity: 0.6;
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
 };

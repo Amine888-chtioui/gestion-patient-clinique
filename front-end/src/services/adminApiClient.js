@@ -1,4 +1,4 @@
-// src/services/adminApiClient.js
+// src/services/adminApiClient.js - Version complète avec notifications
 import axios from '../axios';
 
 class AdminApiClient {
@@ -96,31 +96,44 @@ class AdminApiClient {
     return response.data;
   }
 
-  // Appointments
+  // Appointments - AVEC NOTIFICATIONS AUTOMATIQUES
   async getAppointments() {
     const response = await axios.get("/api/admin/appointments", this.getAuthHeaders());
     return response.data.appointments || [];
   }
 
   async createAppointment(appointmentData) {
+    console.log("🔄 Création d'un rendez-vous par l'admin...");
     const response = await axios.post("/api/admin/appointments", appointmentData, this.getAuthHeaders());
+    console.log("✅ Rendez-vous créé - Notifications envoyées automatiquement aux patient et médecin");
     return response.data;
   }
 
   async updateAppointment(id, appointmentData) {
+    console.log("🔄 Modification d'un rendez-vous par l'admin...");
     const response = await axios.put(`/api/admin/appointments/${id}`, appointmentData, this.getAuthHeaders());
+    console.log("✅ Rendez-vous modifié - Notifications envoyées selon les changements");
     return response.data;
   }
 
   async deleteAppointment(id) {
+    console.log("🔄 Suppression d'un rendez-vous par l'admin...");
     const response = await axios.delete(`/api/admin/appointments/${id}`, this.getAuthHeaders());
+    console.log("✅ Rendez-vous supprimé - Notifications d'annulation envoyées");
     return response.data;
   }
 
-  // Medical Records
+  // Medical Records - AVEC NOTIFICATIONS AUTOMATIQUES
   async getMedicalRecords() {
     const response = await axios.get("/api/admin/medical-records", this.getAuthHeaders());
     return response.data.medicalRecords || [];
+  }
+
+  async updateMedicalRecord(id, recordData) {
+    console.log("🔄 Modification d'un dossier médical par l'admin...");
+    const response = await axios.put(`/api/admin/medical-records/${id}`, recordData, this.getAuthHeaders());
+    console.log("✅ Dossier médical modifié - Notifications envoyées aux concernés");
+    return response.data;
   }
 
   // Prescriptions

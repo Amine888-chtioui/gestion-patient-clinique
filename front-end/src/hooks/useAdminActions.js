@@ -1,4 +1,4 @@
-// src/hooks/useAdminActions.js
+// src/hooks/useAdminActions.js - Version complète avec notifications
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminApiClient from '../services/adminApiClient';
@@ -104,7 +104,7 @@ export const useAdminActions = (dashboardState) => {
     }
   }, [data, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
 
-  // Specific entity handlers
+  // Specific entity handlers with NOTIFICATION INFO
   const handleAddPatient = useCallback(async (patientData) => {
     await createEntity('Patient', patientData);
   }, [createEntity]);
@@ -129,17 +129,117 @@ export const useAdminActions = (dashboardState) => {
     await deleteEntity('Doctor', id);
   }, [deleteEntity]);
 
+  // APPOINTMENTS - AVEC MESSAGES DE NOTIFICATION
   const handleAddAppointment = useCallback(async (appointmentData) => {
-    await createEntity('Appointment', appointmentData);
-  }, [createEntity]);
+    setActionLoading(true);
+    clearMessages();
+
+    try {
+      console.log("🔄 Création d'un rendez-vous par l'admin...");
+      
+      const response = await adminApiClient.createAppointment(appointmentData);
+      const newAppointment = response.appointment;
+      
+      updateData('appointments', [newAppointment, ...data.appointments]);
+      
+      // Message de succès avec info sur les notifications
+      setActionSuccess(
+        `Rendez-vous créé avec succès! 📩 Le patient ${newAppointment.patient_name} et le Dr ${newAppointment.doctor_name} ont été notifiés.`
+      );
+      
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      handleApiError(err, "Erreur lors de la création du rendez-vous");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [data.appointments, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
 
   const handleUpdateAppointment = useCallback(async (id, appointmentData) => {
-    await updateEntity('Appointment', id, appointmentData);
-  }, [updateEntity]);
+    setActionLoading(true);
+    clearMessages();
+
+    try {
+      console.log("🔄 Modification d'un rendez-vous par l'admin...");
+      
+      const response = await adminApiClient.updateAppointment(id, appointmentData);
+      
+      updateData('appointments',
+        data.appointments.map((appointment) =>
+          appointment.id === id ? response.appointment : appointment
+        )
+      );
+
+      // Message de succès avec info sur les notifications
+      setActionSuccess(
+        `Rendez-vous mis à jour avec succès! 📩 Les personnes concernées ont été notifiées des changements.`
+      );
+      
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      handleApiError(err, "Erreur lors de la modification du rendez-vous");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [data.appointments, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
 
   const handleDeleteAppointment = useCallback(async (id) => {
-    await deleteEntity('Appointment', id);
-  }, [deleteEntity]);
+    setActionLoading(true);
+    clearMessages();
+
+    try {
+      console.log("🔄 Suppression d'un rendez-vous par l'admin...");
+      
+      // Trouver le rendez-vous pour le message
+      const appointment = data.appointments.find(apt => apt.id === id);
+      
+      await adminApiClient.deleteAppointment(id);
+      
+      updateData('appointments', 
+        data.appointments.filter((appointment) => appointment.id !== id)
+      );
+
+      // Message de succès avec info sur les notifications
+      setActionSuccess(
+        `Rendez-vous supprimé avec succès! 📩 ${appointment?.patient_name || 'Le patient'} et ${appointment?.doctor_name || 'le médecin'} ont été notifiés de l'annulation.`
+      );
+      
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      handleApiError(err, "Erreur lors de la suppression du rendez-vous");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [data.appointments, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
+
+  // MEDICAL RECORDS - NOUVELLE MÉTHODE AVEC NOTIFICATIONS
+  const handleUpdateMedicalRecord = useCallback(async (id, recordData) => {
+    setActionLoading(true);
+    clearMessages();
+
+    try {
+      console.log("🔄 Modification d'un dossier médical par l'admin...");
+      
+      const response = await adminApiClient.updateMedicalRecord(id, recordData);
+      
+      updateData('medicalRecords',
+        data.medicalRecords.map((record) =>
+          record.id === id ? response.medicalRecord : record
+        )
+      );
+
+      // Message de succès avec info sur les notifications
+      setActionSuccess(
+        `Dossier médical mis à jour avec succès! 📩 Le patient et le médecin concernés ont été notifiés.`
+      );
+      
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err) {
+      handleApiError(err, "Erreur lors de la modification du dossier médical");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [data.medicalRecords, updateData, setActionLoading, clearMessages, setActionSuccess, handleApiError]);
 
   const handleAddUser = useCallback(async (userData) => {
     await createEntity('User', userData);
@@ -177,6 +277,7 @@ export const useAdminActions = (dashboardState) => {
     handleAddAppointment,
     handleUpdateAppointment,
     handleDeleteAppointment,
+    handleUpdateMedicalRecord, // NOUVEAU
     handleAddUser,
     handleUpdateUser,
     handleDeleteUser,

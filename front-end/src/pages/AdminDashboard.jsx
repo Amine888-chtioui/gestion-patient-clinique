@@ -1,4 +1,4 @@
-// src/pages/AdminDashboard.jsx - Version réorganisée et optimisée
+// src/pages/AdminDashboard.jsx - Version complète avec support des notifications
 import React from "react";
 import "../components/admin-dashboard/admin-dashboard.css";
 import "../styles/invoices.css";
@@ -61,39 +61,38 @@ const AdminDashboard = () => {
   } = dashboardState;
 
   // Rendu du contenu pour les factures
-
-const renderInvoiceContent = () => {
-  switch (invoiceMode) {
-    case "details":
-      return <InvoiceDetails onInvoiceAction={actions.handleInvoiceAction} />;
-    case "create":
-      return (
-        <InvoiceForm 
-          onSuccess={(data) => {
-            dashboardState.setActionSuccess("Facture créée avec succès!");
-            setTimeout(() => dashboardState.setActionSuccess(null), 3000);
-            actions.handleInvoiceAction("list");
-          }}
-          onCancel={() => actions.handleInvoiceAction("list")}
-        />
-      );
-    case "edit":
-      return (
-        <InvoiceForm 
-          invoice={data.selectedInvoice} // Vous devrez récupérer la facture sélectionnée
-          onSuccess={(data) => {
-            dashboardState.setActionSuccess("Facture mise à jour avec succès!");
-            setTimeout(() => dashboardState.setActionSuccess(null), 3000);
-            actions.handleInvoiceAction("list");
-          }}
-          onCancel={() => actions.handleInvoiceAction("list")}
-        />
-      );
-    case "list":
-    default:
-      return <InvoiceList onInvoiceAction={actions.handleInvoiceAction} />;
-  }
-};
+  const renderInvoiceContent = () => {
+    switch (invoiceMode) {
+      case "details":
+        return <InvoiceDetails onInvoiceAction={actions.handleInvoiceAction} />;
+      case "create":
+        return (
+          <InvoiceForm 
+            onSuccess={(data) => {
+              dashboardState.setActionSuccess("Facture créée avec succès!");
+              setTimeout(() => dashboardState.setActionSuccess(null), 3000);
+              actions.handleInvoiceAction("list");
+            }}
+            onCancel={() => actions.handleInvoiceAction("list")}
+          />
+        );
+      case "edit":
+        return (
+          <InvoiceForm 
+            invoice={data.selectedInvoice}
+            onSuccess={(data) => {
+              dashboardState.setActionSuccess("Facture mise à jour avec succès!");
+              setTimeout(() => dashboardState.setActionSuccess(null), 3000);
+              actions.handleInvoiceAction("list");
+            }}
+            onCancel={() => actions.handleInvoiceAction("list")}
+          />
+        );
+      case "list":
+      default:
+        return <InvoiceList onInvoiceAction={actions.handleInvoiceAction} />;
+    }
+  };
 
   // Composant de rendu conditionnel optimisé
   const renderSectionContent = () => {
@@ -157,6 +156,7 @@ const renderInvoiceContent = () => {
             patients={data.patients}
             doctors={data.doctors}
             actionLoading={actionLoading}
+            handleUpdateMedicalRecord={actions.handleUpdateMedicalRecord} // NOUVEAU PROP
           />
         );
 
@@ -298,7 +298,12 @@ const renderInvoiceContent = () => {
         />
 
         <div className="content-body">
-          <ActionMessages success={actionSuccess} error={actionError} />
+          {/* Messages d'action avec notifications enrichies */}
+          <ActionMessages 
+            success={actionSuccess} 
+            error={actionError}
+            autoHideDuration={actionSuccess && actionSuccess.includes('📩') ? 7000 : 5000} // Plus long pour les messages avec notifications
+          />
           {renderSectionContent()}
         </div>
       </main>
@@ -307,7 +312,164 @@ const renderInvoiceContent = () => {
         activeTab={activeTab} 
         handleTabChange={actions.handleTabChange} 
       />
+
+      {/* Styles CSS globaux pour les notifications */}
+      <style jsx global>{`
+        /* Styles pour les infos de notification */
+        .notification-info {
+          margin: 10px 0;
+          padding: 8px 12px;
+          background-color: rgba(23, 162, 184, 0.1);
+          border-left: 3px solid #17a2b8;
+          border-radius: 4px;
+          animation: fadeIn 0.3s ease;
+        }
+
+        .notification-preview {
+          margin: 15px 0;
+          padding: 10px;
+          background-color: rgba(40, 167, 69, 0.1);
+          border-left: 3px solid #28a745;
+          border-radius: 4px;
+          animation: slideIn 0.3s ease;
+        }
+
+        .notification-info small,
+        .notification-preview small {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: #495057;
+        }
+
+        .notification-info i,
+        .notification-preview i {
+          color: #17a2b8;
+        }
+
+        /* Animation pour les messages de notification */
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+          from { 
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* Styles pour les messages de succès avec notifications */
+        .action-message.success {
+          border-left-width: 4px;
+        }
+
+        .action-message.success .message-content p {
+          line-height: 1.4;
+        }
+
+        /* Amélioration des confirmations de suppression */
+        .confirm-dialog {
+          white-space: pre-line;
+          text-align: left;
+        }
+
+        /* Styles pour les badges de notification dans les tableaux */
+        .notification-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 6px;
+          background-color: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .notification-badge i {
+          font-size: 0.7rem;
+        }
+
+        /* Responsive design pour les notifications */
+        @media (max-width: 768px) {
+          .notification-info,
+          .notification-preview {
+            margin: 8px 0;
+            padding: 6px 10px;
+          }
+
+          .notification-info small,
+          .notification-preview small {
+            font-size: 0.8rem;
+            gap: 4px;
+          }
+        }
+
+        /* Animation pour les actions de l'admin */
+        .admin-action-loading {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .admin-action-loading::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+          0% { left: -100%; }
+          100% { left: 100%; }
+        }
+
+        /* Console de débogage pour le développement */
+        .debug-notifications {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 10px;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 12px;
+          z-index: 9999;
+          max-width: 300px;
+          display: none; /* Masqué par défaut */
+        }
+
+        /* Afficher la console de débogage en mode développement */
+        body[data-debug="true"] .debug-notifications {
+          display: block;
+        }
+      `}</style>
+
+      {/* Console de débogage pour les notifications (uniquement en dev) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="debug-notifications" id="debug-notifications">
+          <div>🔔 Notifications Debug</div>
+          <div>Actions: {Object.keys(actions).length}</div>
+          <div>Loading: {actionLoading ? 'Yes' : 'No'}</div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default AdminDashboard;
