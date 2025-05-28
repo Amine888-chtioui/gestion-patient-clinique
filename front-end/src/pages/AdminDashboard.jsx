@@ -62,37 +62,57 @@ const AdminDashboard = () => {
 
   // Rendu du contenu pour les factures
   const renderInvoiceContent = () => {
-    switch (invoiceMode) {
-      case "details":
-        return <InvoiceDetails onInvoiceAction={actions.handleInvoiceAction} />;
-      case "create":
-        return (
-          <InvoiceForm 
-            onSuccess={(data) => {
-              dashboardState.setActionSuccess("Facture créée avec succès!");
-              setTimeout(() => dashboardState.setActionSuccess(null), 3000);
+  console.log('🔄 Rendu du contenu facture:', {
+    mode: invoiceMode,
+    selectedId: dashboardState.selectedInvoiceId,
+    selectedInvoice: data.selectedInvoice?.id
+  });
+
+  switch (invoiceMode) {
+    case "details":
+      return (
+        <InvoiceDetails 
+          onInvoiceAction={actions.handleInvoiceAction}
+          selectedInvoiceId={dashboardState.selectedInvoiceId}
+        />
+      );
+      
+    case "create":
+      return (
+        <InvoiceForm 
+          onSuccess={(invoiceData) => {
+            console.log('✅ Facture créée:', invoiceData);
+            dashboardState.setActionSuccess("Facture créée avec succès!");
+            setTimeout(() => {
+              dashboardState.setActionSuccess(null);
               actions.handleInvoiceAction("list");
-            }}
-            onCancel={() => actions.handleInvoiceAction("list")}
-          />
-        );
-      case "edit":
-        return (
-          <InvoiceForm 
-            invoice={data.selectedInvoice}
-            onSuccess={(data) => {
-              dashboardState.setActionSuccess("Facture mise à jour avec succès!");
-              setTimeout(() => dashboardState.setActionSuccess(null), 3000);
+            }, 2000);
+          }}
+          onCancel={() => actions.handleInvoiceAction("list")}
+        />
+      );
+      
+    case "edit":
+      return (
+        <InvoiceForm 
+          invoice={data.selectedInvoice}
+          onSuccess={(invoiceData) => {
+            console.log('✅ Facture mise à jour:', invoiceData);
+            dashboardState.setActionSuccess("Facture mise à jour avec succès!");
+            setTimeout(() => {
+              dashboardState.setActionSuccess(null);
               actions.handleInvoiceAction("list");
-            }}
-            onCancel={() => actions.handleInvoiceAction("list")}
-          />
-        );
-      case "list":
-      default:
-        return <InvoiceList onInvoiceAction={actions.handleInvoiceAction} />;
-    }
-  };
+            }, 2000);
+          }}
+          onCancel={() => actions.handleInvoiceAction("list")}
+        />
+      );
+      
+    case "list":
+    default:
+      return <InvoiceList onInvoiceAction={actions.handleInvoiceAction} />;
+  }
+};
 
   // Composant de rendu conditionnel optimisé
   const renderSectionContent = () => {

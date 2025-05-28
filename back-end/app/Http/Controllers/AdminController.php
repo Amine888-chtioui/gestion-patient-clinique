@@ -1836,4 +1836,84 @@ public function removeAdminPrescription($id)
         'message' => 'Prescription supprimée avec succès'
     ]);
 }
+
+public function getInvoiceStatistics()
+{
+    $user = Auth::user();
+    
+    // Vérifier que l'utilisateur est un administrateur
+    if ($user->role !== 'admin') {
+        return response()->json(['message' => 'Accès non autorisé'], 403);
+    }
+    
+    try {
+        // Statistiques de base des factures
+        $totalInvoices = DB::table('invoices')->count();
+        $paidInvoices = DB::table('invoices')->where('status', 'paid')->count();
+        $unpaidInvoices = DB::table('invoices')->where('status', 'unpaid')->count();
+        
+        // Revenus totaux
+        $totalRevenue = DB::table('invoices')
+            ->where('status', 'paid')
+            ->sum('total_amount');
+        
+        // Montant moyen des factures
+        $averageInvoiceAmount = $totalInvoices > 0 
+            ? DB::table('invoices')->avg('total_amount') 
+            : 0;
+        
+        // Statistiques par mois (année courante)
+        $currentYear = date('Y');
+        $invoicesByMonth = DB::table('invoices')
+            ->selectRaw('MONTH(date) as month, COUNT(*) as count, SUM(CASE WHEN status = "paid" THEN total_amount ELSE 0 END) as amount')
+            ->whereYear('date', $currentYear)
+            ->groupBy(DB::raw('MONTH(date)'))
+            ->get()
+            ->keyBy('month');
+        
+        // Formater les données par mois
+        $monthlyData = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $monthData = $invoicesByMonth->get($month);
+            $monthlyData[$month] = [
+                'count' => $monthData ? $monthData->count : 0,
+                'amount' => $monthData ? $monthData->amount : 0
+            ];
+        }
+        
+        // Méthodes de paiement
+        $paymentMethods = DB::table('invoices')
+            ->select('payment_method', DB::raw('COUNT(*) as count'))
+            ->where('status', 'paid')
+            ->whereNotNull('payment_method')
+            ->groupBy('payment_method')
+            ->get()
+            ->pluck('count', 'payment_method')
+            ->toArray();
+        
+        return response()->json([
+            'total_invoices' => $totalInvoices,
+            'paid_invoices' => $paidInvoices,
+            'unpaid_invoices' => $unpaidInvoices,
+            'total_revenue' => (float) $totalRevenue,
+            'average_invoice_amount' => (float) $averageInvoiceAmount,
+            'invoices_by_month' => $monthlyData,
+            'payment_methods' => $paymentMethods
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Erreur lors de la récupération des statistiques de facturation: ' . $e->getMessage());
+        
+        // Retourner des statistiques vides en cas d'erreur
+        return response()->json([
+            'total_invoices' => 0,
+            'paid_invoices' => 0,
+            'unpaid_invoices' => 0,
+            'total_revenue' => 0.0,
+            'average_invoice_amount' => 0.0,
+            'invoices_by_month' => array_fill(1, 12, ['count' => 0, 'amount' => 0]),
+            'payment_methods' => []
+        ]);
+    }
+}
 }

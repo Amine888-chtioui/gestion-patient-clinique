@@ -1,244 +1,330 @@
-// src/utils/invoicePdfGenerator.js
+// src/utils/invoicePdfGenerator.js - Version CORRIGÉE
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
-export const generateInvoicePDF = (invoice, clinicInfo = null) => {
-  // Créer une nouvelle instance PDF
-  const doc = new jsPDF();
-  
-  // Configuration des couleurs
-  const primaryColor = [106, 27, 154]; // Purple
-  const secondaryColor = [128, 128, 128]; // Gray
-  const textColor = [0, 0, 0]; // Black
-  
-  // Configuration de la police
-  doc.setFont('helvetica');
-  
-  // === EN-TÊTE DE LA FACTURE ===
-  // Logo et nom de la clinique (côté gauche)
-  doc.setFontSize(20);
-  doc.setTextColor(...primaryColor);
-  doc.text(clinicInfo?.name || 'Clinique Médicale', 20, 25);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...secondaryColor);
-  doc.text(clinicInfo?.address || '123 Rue de la Santé', 20, 32);
-  doc.text(clinicInfo?.city || '12345 Ville, Pays', 20, 37);
-  doc.text(`Tél: ${clinicInfo?.phone || '01 23 45 67 89'}`, 20, 42);
-  doc.text(`Email: ${clinicInfo?.email || 'contact@clinique.com'}`, 20, 47);
-  
-  // Titre FACTURE (côté droit)
-  doc.setFontSize(24);
-  doc.setTextColor(...primaryColor);
-  doc.text('FACTURE', 150, 25);
-  
-  // Numéro de facture et dates (côté droit)
-  doc.setFontSize(10);
-  doc.setTextColor(...textColor);
-  doc.text(`Numéro: ${invoice.number || 'N/A'}`, 150, 35);
-  doc.text(`Date d'émission: ${formatDate(invoice.date)}`, 150, 42);
-  doc.text(`Date d'échéance: ${formatDate(invoice.due_date)}`, 150, 49);
-  
-  // === LIGNE DE SÉPARATION ===
-  doc.setDrawColor(...primaryColor);
-  doc.setLineWidth(0.5);
-  doc.line(20, 55, 190, 55);
-  
-  // === INFORMATIONS CLIENT ===
-  doc.setFontSize(12);
-  doc.setTextColor(...primaryColor);
-  doc.text('FACTURÉ À:', 20, 70);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...textColor);
-  const patientName = invoice.patient?.name || invoice.patient_name || 'N/A';
-  const patientEmail = invoice.patient?.email || 'Email non disponible';
-  const patientPhone = invoice.patient?.phone || '';
-  const patientAddress = invoice.patient?.address || 'Adresse non disponible';
-  
-  doc.text(patientName, 20, 80);
-  doc.text(patientEmail, 20, 87);
-  if (patientPhone) {
-    doc.text(`Tél: ${patientPhone}`, 20, 94);
-  }
-  doc.text(patientAddress, 20, patientPhone ? 101 : 94);
-  
-  // === STATUT DE LA FACTURE ===
-  const statusY = 70;
-  const statusText = getStatusText(invoice.status);
-  const statusColor = getStatusColor(invoice.status);
-  
-  doc.setFontSize(12);
-  doc.setTextColor(...statusColor);
-  doc.text(`STATUT: ${statusText}`, 150, statusY);
-  
-  // Si payée, afficher les informations de paiement
-  if (invoice.status === 'paid' && invoice.payment_date) {
+// Import correct pour autoTable
+import autoTable from 'jspdf-autotable';
+
+/**
+ * Génère et télécharge un PDF pour une facture
+ * @param {Object} invoice - Données de la facture
+ * @param {Object} clinicInfo - Informations de la clinique
+ */
+export const generateInvoicePDF = (invoice, clinicInfo) => {
+  try {
+    console.log('🔄 Début de la génération PDF...');
+    console.log('📄 Données facture:', invoice);
+    
+    // Créer un nouveau document PDF
+    const doc = new jsPDF();
+    
+    // Configuration des couleurs
+    const primaryColor = [106, 27, 154]; // Violet admin
+    const secondaryColor = [108, 117, 125]; // Gris
+    const successColor = [40, 167, 69]; // Vert
+    const dangerColor = [220, 53, 69]; // Rouge
+    
+    // Configuration des polices
+    doc.setFont('helvetica');
+    
+    // Marges et dimensions
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const contentWidth = pageWidth - (margin * 2);
+    
+    let currentY = margin;
+    
+    // === EN-TÊTE DE LA CLINIQUE ===
+    doc.setFontSize(20);
+    doc.setTextColor(...primaryColor);
+    doc.text(clinicInfo.name || 'Clinique Médicale', margin, currentY);
+    currentY += 10;
+    
     doc.setFontSize(10);
     doc.setTextColor(...secondaryColor);
-    doc.text(`Payée le: ${formatDate(invoice.payment_date)}`, 150, statusY + 10);
-    if (invoice.payment_method) {
-      doc.text(`Méthode: ${getPaymentMethodText(invoice.payment_method)}`, 150, statusY + 17);
-    }
-  }
-  
-  // === TABLEAU DES ARTICLES ===
-  const tableStartY = 120;
-  
-  // Préparer les données du tableau
-  const tableData = [];
-  
-  if (invoice.items && invoice.items.length > 0) {
-    invoice.items.forEach(item => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const total = quantity * unitPrice;
-      
-      tableData.push([
-        item.description || 'Description non disponible',
-        quantity.toString(),
-        formatCurrency(unitPrice),
-        formatCurrency(total)
-      ]);
-    });
-  } else {
-    // Si pas d'items détaillés, créer une ligne générique
-    tableData.push([
-      'Consultation médicale',
-      '1',
-      formatCurrency(invoice.subtotal_amount || invoice.total_amount || 0),
-      formatCurrency(invoice.subtotal_amount || invoice.total_amount || 0)
-    ]);
-  }
-  
-  // Créer le tableau avec jsPDF-AutoTable
-  doc.autoTable({
-    head: [['Description', 'Quantité', 'Prix unitaire', 'Total']],
-    body: tableData,
-    startY: tableStartY,
-    theme: 'grid',
-    headStyles: {
-      fillColor: primaryColor,
-      textColor: [255, 255, 255],
-      fontSize: 10,
-      fontStyle: 'bold'
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: textColor
-    },
-    columnStyles: {
-      0: { cellWidth: 80 }, // Description
-      1: { cellWidth: 25, halign: 'center' }, // Quantité
-      2: { cellWidth: 35, halign: 'right' }, // Prix unitaire
-      3: { cellWidth: 35, halign: 'right' } // Total
-    },
-    margin: { left: 20, right: 20 }
-  });
-  
-  // === CALCULS TOTAUX ===
-  const finalY = doc.lastAutoTable.finalY + 10;
-  const rightX = 155;
-  
-  // Calculer les totaux
-  const subtotal = parseFloat(invoice.subtotal_amount) || parseFloat(invoice.amount) || 0;
-  const taxRate = parseFloat(invoice.tax_percent) || 20;
-  const taxAmount = parseFloat(invoice.tax_amount) || (subtotal * taxRate / 100);
-  const total = parseFloat(invoice.total_amount) || (subtotal + taxAmount);
-  
-  doc.setFontSize(10);
-  doc.setTextColor(...textColor);
-  
-  // Sous-total
-  doc.text('Sous-total:', rightX, finalY);
-  doc.text(formatCurrency(subtotal), rightX + 25, finalY);
-  
-  // TVA
-  doc.text(`TVA (${taxRate}%):`, rightX, finalY + 7);
-  doc.text(formatCurrency(taxAmount), rightX + 25, finalY + 7);
-  
-  // Ligne de séparation
-  doc.setDrawColor(...secondaryColor);
-  doc.setLineWidth(0.3);
-  doc.line(rightX, finalY + 12, rightX + 35, finalY + 12);
-  
-  // Total
-  doc.setFontSize(12);
-  doc.setTextColor(...primaryColor);
-  doc.text('TOTAL:', rightX, finalY + 20);
-  doc.text(formatCurrency(total), rightX + 25, finalY + 20);
-  
-  // === NOTES ===
-  if (invoice.notes) {
-    const notesY = finalY + 35;
-    doc.setFontSize(10);
-    doc.setTextColor(...primaryColor);
-    doc.text('NOTES:', 20, notesY);
+    doc.text(clinicInfo.address || '123 Avenue de la Santé', margin, currentY);
+    currentY += 5;
+    doc.text(clinicInfo.city || '75001 Paris, France', margin, currentY);
+    currentY += 5;
+    doc.text(`Tél: ${clinicInfo.phone || '01 23 45 67 89'}`, margin, currentY);
+    currentY += 5;
+    doc.text(`Email: ${clinicInfo.email || 'contact@clinique.fr'}`, margin, currentY);
+    currentY += 20;
     
-    doc.setTextColor(...textColor);
-    const splitNotes = doc.splitTextToSize(invoice.notes, 170);
-    doc.text(splitNotes, 20, notesY + 7);
+    // === TITRE FACTURE ===
+    doc.setFontSize(24);
+    doc.setTextColor(0, 0, 0);
+    doc.text('FACTURE', pageWidth - margin - 50, margin + 5);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(...secondaryColor);
+    doc.text(`N° ${invoice.number}`, pageWidth - margin - 50, margin + 15);
+    
+    // === INFORMATIONS PATIENT ===
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Facturé à:', pageWidth - margin - 80, currentY);
+    currentY += 8;
+    
+    doc.setFontSize(11);
+    const patientName = invoice.patient?.name || 'Patient non spécifié';
+    doc.text(patientName, pageWidth - margin - 80, currentY);
+    currentY += 6;
+    
+    if (invoice.patient?.email) {
+      doc.text(invoice.patient.email, pageWidth - margin - 80, currentY);
+      currentY += 6;
+    }
+    
+    if (invoice.patient?.phone) {
+      doc.text(`Tél: ${invoice.patient.phone}`, pageWidth - margin - 80, currentY);
+      currentY += 6;
+    }
+    
+    if (invoice.patient?.address) {
+      doc.text(invoice.patient.address, pageWidth - margin - 80, currentY);
+    }
+    
+    currentY += 15;
+    
+    // === INFORMATIONS FACTURE ===
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 10;
+    
+    // Dates et informations
+    const infoData = [
+      ['Date de facturation:', formatDate(invoice.date || invoice.issue_date)],
+      ['Date d\'échéance:', formatDate(invoice.due_date)],
+      ['Statut:', getStatusText(invoice.status)]
+    ];
+    
+    if (invoice.payment_date) {
+      infoData.push(['Date de paiement:', formatDate(invoice.payment_date)]);
+    }
+    
+    if (invoice.payment_method) {
+      infoData.push(['Méthode de paiement:', getPaymentMethodText(invoice.payment_method)]);
+    }
+    
+    // Afficher les informations en deux colonnes
+    doc.setFontSize(10);
+    infoData.forEach((info, index) => {
+      const yPos = currentY + (index * 6);
+      doc.setTextColor(...secondaryColor);
+      doc.text(info[0], margin, yPos);
+      doc.setTextColor(0, 0, 0);
+      doc.text(info[1], margin + 50, yPos);
+    });
+    
+    currentY += (infoData.length * 6) + 15;
+    
+    // === TABLEAU DES PRESTATIONS ===
+    doc.setFontSize(12);
+    doc.setTextColor(...primaryColor);
+    doc.text('Détail des prestations', margin, currentY);
+    currentY += 10;
+    
+    // Préparer les données du tableau
+    const tableData = [];
+    let subtotal = 0;
+    
+    if (invoice.items && invoice.items.length > 0) {
+      invoice.items.forEach(item => {
+        const quantity = parseFloat(item.quantity) || 1;
+        const unitPrice = parseFloat(item.unit_price) || 0;
+        const total = quantity * unitPrice;
+        subtotal += total;
+        
+        tableData.push([
+          item.description || 'Service',
+          quantity.toString(),
+          formatCurrency(unitPrice),
+          formatCurrency(total)
+        ]);
+      });
+    } else {
+      // Fallback si pas d'items détaillés
+      subtotal = parseFloat(invoice.amount) || parseFloat(invoice.total_amount) || parseFloat(invoice.subtotal_amount) || 0;
+      tableData.push([
+        'Consultation médicale',
+        '1',
+        formatCurrency(subtotal),
+        formatCurrency(subtotal)
+      ]);
+    }
+    
+    // CORRECTION IMPORTANTE: Utiliser autoTable correctement
+    autoTable(doc, {
+      startY: currentY,
+      head: [['Description', 'Qté', 'Prix unitaire', 'Total']],
+      body: tableData,
+      styles: {
+        fontSize: 10,
+        cellPadding: 5,
+      },
+      headStyles: {
+        fillColor: primaryColor,
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [248, 249, 250]
+      },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 20, halign: 'center' },
+        2: { cellWidth: 35, halign: 'right' },
+        3: { cellWidth: 35, halign: 'right' }
+      },
+      margin: { left: margin, right: margin }
+    });
+    
+    // Récupérer la position Y après le tableau
+    currentY = doc.lastAutoTable.finalY + 15;
+    
+    // === TOTAUX ===
+    const taxPercent = parseFloat(invoice.tax_percent) || parseFloat(invoice.tax_rate) || 20;
+    const taxAmount = parseFloat(invoice.tax_amount) || (subtotal * (taxPercent / 100));
+    const totalAmount = parseFloat(invoice.total_amount) || (subtotal + taxAmount);
+    
+    // Ligne de séparation
+    doc.setDrawColor(...secondaryColor);
+    doc.line(pageWidth - margin - 120, currentY - 5, pageWidth - margin, currentY - 5);
+    
+    // Sous-total
+    doc.setFontSize(11);
+    doc.setTextColor(...secondaryColor);
+    doc.text('Sous-total:', pageWidth - margin - 80, currentY);
+    doc.setTextColor(0, 0, 0);
+    doc.text(formatCurrency(subtotal), pageWidth - margin - 30, currentY, { align: 'right' });
+    currentY += 8;
+    
+    // TVA
+    doc.setTextColor(...secondaryColor);
+    doc.text(`TVA (${taxPercent}%):`, pageWidth - margin - 80, currentY);
+    doc.setTextColor(0, 0, 0);
+    doc.text(formatCurrency(taxAmount), pageWidth - margin - 30, currentY, { align: 'right' });
+    currentY += 8;
+    
+    // Total
+    doc.setDrawColor(...primaryColor);
+    doc.line(pageWidth - margin - 120, currentY - 2, pageWidth - margin, currentY - 2);
+    currentY += 5;
+    
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.text('TOTAL:', pageWidth - margin - 80, currentY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formatCurrency(totalAmount), pageWidth - margin - 30, currentY, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    currentY += 15;
+    
+    // === STATUT DE PAIEMENT ===
+    if (invoice.status === 'paid') {
+      doc.setFontSize(12);
+      doc.setTextColor(...successColor);
+      doc.text('✓ FACTURE PAYÉE', pageWidth - margin - 80, currentY);
+      if (invoice.payment_date) {
+        doc.setFontSize(10);
+        doc.text(`Payée le ${formatDate(invoice.payment_date)}`, pageWidth - margin - 80, currentY + 8);
+      }
+    } else if (invoice.status === 'overdue') {
+      doc.setTextColor(...dangerColor);
+      doc.text('⚠ FACTURE EN RETARD', pageWidth - margin - 80, currentY);
+    } else if (invoice.status === 'unpaid') {
+      doc.setTextColor(...dangerColor);
+      doc.text('EN ATTENTE DE PAIEMENT', pageWidth - margin - 80, currentY);
+    }
+    
+    currentY += 20;
+    
+    // === NOTES ===
+    if (invoice.notes) {
+      doc.setFontSize(10);
+      doc.setTextColor(...secondaryColor);
+      doc.text('Notes:', margin, currentY);
+      currentY += 8;
+      
+      doc.setTextColor(0, 0, 0);
+      const noteLines = doc.splitTextToSize(invoice.notes, contentWidth - 20);
+      doc.text(noteLines, margin, currentY);
+      currentY += (noteLines.length * 6);
+    }
+    
+    // === PIED DE PAGE ===
+    const footerY = pageHeight - 30;
+    doc.setDrawColor(...secondaryColor);
+    doc.line(margin, footerY - 10, pageWidth - margin, footerY - 10);
+    
+    doc.setFontSize(8);
+    doc.setTextColor(...secondaryColor);
+    doc.text('Merci de votre confiance - Facture générée automatiquement', margin, footerY);
+    doc.text(`Générée le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - margin - 60, footerY);
+    
+    // === TÉLÉCHARGEMENT ===
+    const fileName = `Facture_${invoice.number}_${invoice.patient?.name?.replace(/\s+/g, '_') || 'Patient'}.pdf`;
+    doc.save(fileName);
+    
+    console.log('✅ PDF généré et téléchargé avec succès:', fileName);
+    return true;
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la génération du PDF:', error);
+    throw new Error(`Erreur de génération PDF: ${error.message}`);
   }
-  
-  // === PIED DE PAGE ===
-  const pageHeight = doc.internal.pageSize.height;
-  const footerY = pageHeight - 30;
-  
-  doc.setFontSize(8);
-  doc.setTextColor(...secondaryColor);
-  doc.text('Merci pour votre confiance !', 20, footerY);
-  doc.text(`Facture générée le ${formatDate(new Date().toISOString())}`, 20, footerY + 5);
-  
-  // === TÉLÉCHARGEMENT ===
-  const fileName = `Facture_${invoice.number || 'sans_numero'}_${patientName.replace(/\s+/g, '_')}.pdf`;
-  doc.save(fileName);
 };
 
 // === FONCTIONS UTILITAIRES ===
 
+/**
+ * Formate une date au format français
+ */
 const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('fr-FR');
+  if (!dateString) return 'Non spécifiée';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR');
+  } catch (error) {
+    return dateString;
+  }
 };
 
+/**
+ * Formate un montant en euros
+ */
 const formatCurrency = (amount) => {
+  const num = parseFloat(amount) || 0;
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR'
-  }).format(amount || 0);
+  }).format(num);
 };
 
+/**
+ * Convertit le statut en texte français
+ */
 const getStatusText = (status) => {
   const statusMap = {
-    'paid': 'PAYÉE',
-    'unpaid': 'NON PAYÉE',
-    'pending': 'EN ATTENTE',
-    'overdue': 'EN RETARD',
-    'cancelled': 'ANNULÉE',
-    'draft': 'BROUILLON',
-    'sent': 'ENVOYÉE'
+    'paid': 'Payée',
+    'unpaid': 'Non payée',
+    'pending': 'En attente',
+    'overdue': 'En retard',
+    'cancelled': 'Annulée',
+    'draft': 'Brouillon',
+    'sent': 'Envoyée'
   };
-  return statusMap[status] || status?.toUpperCase() || 'INCONNU';
+  return statusMap[status] || status;
 };
 
-const getStatusColor = (status) => {
-  const colorMap = {
-    'paid': [40, 167, 69], // Vert
-    'unpaid': [220, 53, 69], // Rouge
-    'pending': [255, 193, 7], // Jaune
-    'overdue': [220, 53, 69], // Rouge
-    'cancelled': [108, 117, 125], // Gris
-    'draft': [108, 117, 125], // Gris
-    'sent': [23, 162, 184] // Bleu
-  };
-  return colorMap[status] || [0, 0, 0]; // Noir par défaut
-};
-
+/**
+ * Convertit la méthode de paiement en texte français
+ */
 const getPaymentMethodText = (method) => {
   const methodMap = {
-    'cash': 'Espèces',
     'card': 'Carte bancaire',
+    'cash': 'Espèces',
     'transfer': 'Virement',
     'check': 'Chèque',
     'insurance': 'Assurance'

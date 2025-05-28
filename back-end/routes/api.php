@@ -123,6 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);    
         Route::put('/medical-records/{id}', [AdminController::class, 'updateMedicalRecord']);
+        Route::get('/invoice-statistics', [AdminController::class, 'getInvoiceStatistics']);
         
         // Routes pour le profil admin
         Route::get('/profile', [AdminController::class, 'getProfile']);

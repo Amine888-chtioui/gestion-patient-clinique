@@ -1,4 +1,4 @@
-// src/components/admin-dashboard/AdminOverview.jsx
+// src/components/admin-dashboard/AdminOverview.jsx - Version corrigée
 import React, { useEffect, useState } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import axios from "../../axios";
@@ -14,6 +14,7 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
     payment_methods: {}
   });
   const [loadingInvoiceStats, setLoadingInvoiceStats] = useState(true);
+  const [invoiceStatsError, setInvoiceStatsError] = useState(null);
 
   // Extraire les statistiques ou utiliser des valeurs par défaut
   const {
@@ -36,13 +37,32 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
     const fetchInvoiceStats = async () => {
       try {
         setLoadingInvoiceStats(true);
+        setInvoiceStatsError(null);
+        
+        console.log("🔄 Chargement des statistiques de facturation...");
+        
         const response = await axios.get("/api/admin/invoice-statistics", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
+        
+        console.log("✅ Statistiques de facturation chargées:", response.data);
         setInvoiceStats(response.data);
+        
       } catch (error) {
-        console.error("Erreur lors du chargement des statistiques de facturation:", error);
-        // En cas d'erreur, on conserve les statistiques par défaut
+        console.error("❌ Erreur lors du chargement des statistiques de facturation:", error);
+        
+        // Gestion des différents types d'erreurs
+        if (error.response?.status === 404) {
+          console.warn("⚠️  Endpoint des statistiques de facturation non trouvé, utilisation de données par défaut");
+          setInvoiceStatsError("Les statistiques de facturation ne sont pas encore disponibles");
+        } else if (error.response?.status === 403) {
+          setInvoiceStatsError("Accès non autorisé aux statistiques de facturation");
+        } else {
+          setInvoiceStatsError("Erreur lors du chargement des statistiques de facturation");
+        }
+        
+        // Garder les statistiques par défaut en cas d'erreur
+        
       } finally {
         setLoadingInvoiceStats(false);
       }
@@ -160,8 +180,16 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
           </div>
           <div className="stat-info">
             <h3>Factures</h3>
-            <p className="stat-value">{invoiceStats.total_invoices}</p>
-            <p className="stat-text">{invoiceStats.unpaid_invoices} en attente</p>
+            {loadingInvoiceStats ? (
+              <p className="stat-value">...</p>
+            ) : invoiceStatsError ? (
+              <p className="stat-value">-</p>
+            ) : (
+              <>
+                <p className="stat-value">{invoiceStats.total_invoices}</p>
+                <p className="stat-text">{invoiceStats.unpaid_invoices} en attente</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -171,7 +199,13 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
           </div>
           <div className="stat-info">
             <h3>Revenus</h3>
-            <p className="stat-value">{formatCurrency(invoiceStats.total_revenue)}</p>
+            {loadingInvoiceStats ? (
+              <p className="stat-value">...</p>
+            ) : invoiceStatsError ? (
+              <p className="stat-value">-</p>
+            ) : (
+              <p className="stat-value">{formatCurrency(invoiceStats.total_revenue)}</p>
+            )}
           </div>
         </div>
 
@@ -234,10 +268,29 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
         
         {/* Section des statistiques de facturation */}
         <div className="finance-statistics">
-          <h3>Statistiques financières</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h3>Statistiques financières</h3>
+            {invoiceStatsError && (
+              <div style={{ 
+                padding: '8px 12px', 
+                backgroundColor: '#fff3cd', 
+                color: '#856404', 
+                borderRadius: '4px',
+                fontSize: '0.875rem'
+              }}>
+                ⚠️ {invoiceStatsError}
+              </div>
+            )}
+          </div>
           
           {loadingInvoiceStats ? (
             <div className="loading-indicator">Chargement des statistiques financières...</div>
+          ) : invoiceStatsError ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
+              <i className="fas fa-exclamation-triangle" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
+              <p>Les statistiques financières ne sont pas disponibles pour le moment.</p>
+              <p>Vérifiez que le module de facturation est correctement configuré.</p>
+            </div>
           ) : (
             <div className="statistics-grid">
               {/* Graphique des factures par mois (montant) */}
@@ -271,54 +324,58 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
               </div>
               
               {/* Graphique des factures par statut */}
-              <div className="chart-container">
-                <h4>Statut des factures</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={invoicesStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {invoicesStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={INVOICE_COLORS[index % INVOICE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {(invoiceStats.paid_invoices > 0 || invoiceStats.unpaid_invoices > 0) && (
+                <div className="chart-container">
+                  <h4>Statut des factures</h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={invoicesStatusData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {invoicesStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={INVOICE_COLORS[index % INVOICE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
               
               {/* Graphique des méthodes de paiement */}
-              <div className="chart-container">
-                <h4>Méthodes de paiement</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={paymentMethodsData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                    >
-                      {paymentMethodsData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              {paymentMethodsData.length > 0 && (
+                <div className="chart-container">
+                  <h4>Méthodes de paiement</h4>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={paymentMethodsData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {paymentMethodsData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -343,7 +400,7 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
             <div className="metric-card">
               <h5>Revenu moyen par patient</h5>
               <p className="metric-value">
-                {total_patients > 0 
+                {total_patients > 0 && !loadingInvoiceStats && !invoiceStatsError
                   ? formatCurrency(invoiceStats.total_revenue / total_patients) 
                   : formatCurrency(0)}
               </p>
@@ -355,7 +412,9 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
             <div className="metric-card">
               <h5>Montant moyen des factures</h5>
               <p className="metric-value">
-                {formatCurrency(invoiceStats.average_invoice_amount)}
+                {!loadingInvoiceStats && !invoiceStatsError
+                  ? formatCurrency(invoiceStats.average_invoice_amount)
+                  : formatCurrency(0)}
               </p>
               <p className="metric-description">
                 Montant moyen par facture
@@ -365,7 +424,7 @@ const AdminOverview = ({ stats, handleTabChange, actionLoading }) => {
             <div className="metric-card">
               <h5>Taux de paiement</h5>
               <p className="metric-value">
-                {invoiceStats.total_invoices > 0 
+                {!loadingInvoiceStats && !invoiceStatsError && invoiceStats.total_invoices > 0 
                   ? `${Math.round((invoiceStats.paid_invoices / invoiceStats.total_invoices) * 100)}%` 
                   : '0%'}
               </p>

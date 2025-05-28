@@ -1,7 +1,17 @@
-// src/hooks/useInvoicePDF.js
+// src/hooks/useInvoicePDF.js - Version corrigée
 import { useState } from 'react';
 import axios from '../axios';
-import { generateInvoicePDF } from '../utils/invoicePdfGenerator';
+
+// Import dynamique pour éviter les problèmes de SSR
+const loadPDFGenerator = async () => {
+  try {
+    const module = await import('../utils/invoicePdfGenerator');
+    return module.generateInvoicePDF;
+  } catch (error) {
+    console.error('❌ Erreur de chargement du générateur PDF:', error);
+    throw new Error('Le générateur PDF n\'est pas disponible');
+  }
+};
 
 export const useInvoicePDF = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,24 +46,44 @@ export const useInvoicePDF = () => {
       border-radius: 4px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 9999;
-      animation: slideInRight 0.3s ease-out;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
+      animation: slideInRight 0.3s ease-out;
     `;
     
     successDiv.innerHTML = `
       <i class="fas fa-check-circle"></i>
       ${message}
     `;
+
+    // Ajouter l'animation CSS
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
     
     document.body.appendChild(successDiv);
     
     setTimeout(() => {
       if (successDiv && successDiv.parentNode) {
-        successDiv.remove();
+        successDiv.style.animation = 'slideInRight 0.3s ease-out reverse';
+        setTimeout(() => successDiv.remove(), 300);
+      }
+      if (style && style.parentNode) {
+        style.remove();
       }
     }, 3000);
   };
@@ -77,12 +107,12 @@ export const useInvoicePDF = () => {
       border-radius: 4px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       z-index: 9999;
-      animation: slideInRight 0.3s ease-out;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
+      animation: slideInRight 0.3s ease-out;
     `;
     
     errorDiv.innerHTML = `
@@ -107,14 +137,22 @@ export const useInvoicePDF = () => {
       
       console.log(`🔄 Génération du PDF pour la facture ${invoice.number}...`);
       
+      // Charger le générateur PDF dynamiquement
+      const generateInvoicePDF = await loadPDFGenerator();
+      
       // Utiliser les infos de clinique fournies ou les valeurs par défaut
       const clinic = clinicInfo || defaultClinicInfo;
       
+      // Vérifier que la facture a les données nécessaires
+      if (!invoice.number) {
+        throw new Error('Numéro de facture manquant');
+      }
+      
       // Générer le PDF
-      generateInvoicePDF(invoice, clinic);
+      await generateInvoicePDF(invoice, clinic);
       
       console.log("✅ PDF généré avec succès");
-      showSuccessMessage();
+      showSuccessMessage(`PDF de la facture ${invoice.number} téléchargé !`);
       
       return true;
       
@@ -142,8 +180,13 @@ export const useInvoicePDF = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       });
       
-      const invoiceData = response.data.data;
-      console.log("📄 Données de la facture récupérées");
+      const invoiceData = response.data.data || response.data.invoice;
+      
+      if (!invoiceData) {
+        throw new Error('Données de facture introuvables');
+      }
+      
+      console.log("📄 Données de la facture récupérées:", invoiceData);
       
       // Générer le PDF
       return await generatePDFFromInvoice(invoiceData, clinicInfo);
@@ -158,6 +201,8 @@ export const useInvoicePDF = () => {
         errorMessage = "Accès non autorisé à cette facture";
       } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       
       setError(errorMessage);
@@ -173,31 +218,43 @@ export const useInvoicePDF = () => {
     const results = [];
     let successCount = 0;
     
-    for (const id of invoiceIds) {
-      const result = await generatePDFFromId(id, clinicInfo);
-      results.push({ id, success: result });
-      if (result) successCount++;
-      
-      // Délai entre chaque génération pour éviter de surcharger le serveur
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+    setIsGenerating(true);
     
-    // Message de résumé
-    if (successCount === invoiceIds.length) {
-      showSuccessMessage(`${successCount} PDF${successCount > 1 ? 's' : ''} téléchargé${successCount > 1 ? 's' : ''} avec succès !`);
-    } else if (successCount > 0) {
-      showSuccessMessage(`${successCount}/${invoiceIds.length} PDF${successCount > 1 ? 's' : ''} téléchargé${successCount > 1 ? 's' : ''}`);
-    } else {
-      showErrorMessage("Aucun PDF n'a pu être généré");
+    try {
+      for (const id of invoiceIds) {
+        const result = await generatePDFFromId(id, clinicInfo);
+        results.push({ id, success: result });
+        if (result) successCount++;
+        
+        // Délai entre chaque génération pour éviter de surcharger le serveur
+        if (invoiceIds.length > 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+      
+      // Message de résumé
+      if (successCount === invoiceIds.length) {
+        showSuccessMessage(`${successCount} PDF${successCount > 1 ? 's' : ''} téléchargé${successCount > 1 ? 's' : ''} avec succès !`);
+      } else if (successCount > 0) {
+        showSuccessMessage(`${successCount}/${invoiceIds.length} PDF${successCount > 1 ? 's' : ''} téléchargé${successCount > 1 ? 's' : ''}`);
+      } else {
+        showErrorMessage("Aucun PDF n'a pu être généré");
+      }
+      
+    } catch (err) {
+      console.error("❌ Erreur lors de la génération en lot:", err);
+      showErrorMessage("Erreur lors de la génération en lot");
+    } finally {
+      setIsGenerating(false);
     }
     
     return results;
   };
 
   // Fonction utilitaire pour vérifier si jsPDF est disponible
-  const checkPDFSupport = () => {
+  const checkPDFSupport = async () => {
     try {
-      require('jspdf');
+      await loadPDFGenerator();
       return true;
     } catch (err) {
       console.error("jsPDF n'est pas disponible:", err);
