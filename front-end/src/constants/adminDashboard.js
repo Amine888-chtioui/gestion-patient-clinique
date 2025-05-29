@@ -10,7 +10,7 @@ export const ADMIN_TABS = [
   { id: "invoices", icon: "file-invoice-dollar", label: "Factures" },
   { id: "payments", icon: "credit-card", label: "Paiements" },
   { id: "contacts", icon: "envelope", label: "Messages" },
-  { id: "statistics", icon: "chart-bar", label: "Statistiques" },
+  // { id: "statistics", icon: "chart-bar", label: "Statistiques" }, // SUPPRIMÉ
   { id: "users", icon: "users", label: "Utilisateurs" }
 ];
 
@@ -27,7 +27,7 @@ export const MOBILE_MORE_TABS = [
   { id: "services", icon: "hospital", label: "Services" },
   { id: "payments", icon: "credit-card", label: "Paiements" },
   { id: "contacts", icon: "envelope", label: "Messages" },
-  { id: "statistics", icon: "chart-bar", label: "Stats" },
+  // { id: "statistics", icon: "chart-bar", label: "Stats" }, // SUPPRIMÉ
   { id: "users", icon: "users", label: "Utilisateurs" },
   { id: "profile", icon: "user-cog", label: "Profil" }
 ];
@@ -129,7 +129,7 @@ export const LOADING_MESSAGES = {
   appointments: "Chargement des rendez-vous...",
   medicalRecords: "Chargement des dossiers médicaux...",
   prescriptions: "Chargement des ordonnances...",
-  statistics: "Chargement des statistiques...",
+  // statistics: "Chargement des statistiques...", // SUPPRIMÉ
   users: "Chargement des utilisateurs...",
   services: "Chargement des services...",
   invoices: "Chargement des factures...",

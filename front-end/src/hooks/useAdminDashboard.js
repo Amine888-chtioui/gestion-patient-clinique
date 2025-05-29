@@ -255,14 +255,6 @@ export const useAdminDashboard = () => {
           }
           break;
 
-        case "statistics":
-          // Pour les statistiques, on peut forcer un reload plus souvent
-          if (Object.keys(data.stats).length === 0 || forceReload) {
-            const stats = await adminApiClient.getStatistics();
-            updateData('stats', stats);
-            console.log(`📈 Statistiques chargées`);
-          }
-          break;
 
         case "users":
           if (data.users.length === 0 || forceReload) {

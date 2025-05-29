@@ -27,7 +27,6 @@ import PatientsManagement from "../components/admin-dashboard/PatientsManagement
 import DoctorsManagement from "../components/admin-dashboard/DoctorsManagement";
 import AppointmentsManagement from "../components/admin-dashboard/AppointmentsManagement";
 import MedicalRecordsManagement from "../components/admin-dashboard/MedicalRecordsManagement";
-import StatisticsView from "../components/admin-dashboard/StatisticsView";
 import UsersManagement from "../components/admin-dashboard/UsersManagement";
 import PaymentMethodsManagement from "../components/admin-dashboard/PaymentMethodsManagement";
 import ServicesManagement from "../components/admin-dashboard/ServicesManagement";
@@ -190,14 +189,6 @@ const AdminDashboard = () => {
             handleUpdatePrescription={actions.handleUpdatePrescription}
             handleDeletePrescription={actions.handleDeletePrescription}
             actionLoading={actionLoading}
-          />
-        );
-
-      case "statistics":
-        return (
-          <StatisticsView 
-            stats={data.stats} 
-            actionLoading={actionLoading} 
           />
         );
 
