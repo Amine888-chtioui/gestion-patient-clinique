@@ -241,8 +241,8 @@ const HomePage = () => {
             <div className="col-lg-6">
               <div className="about-content">
                 <p>
-                  Le Groupe AKDITAL est le leader du secteur privé de la santé
-                  au Maroc, opérant un réseau de 32 établissements de santé
+                  Le Groupe ADDAX est le leader du secteur privé de la santé au
+                  Maroc, opérant un réseau de 32 établissements de santé
                   répartis sur plusieurs villes du royaume et représentant plus
                   de 20% de l'offre nationale privée. Nous proposons une gamme
                   complète de soins médicaux, couvrant toutes les spécialités et

@@ -6,6 +6,7 @@ use App\Models\DoctorSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Validator;
 
 class DoctorScheduleController extends Controller
 {
@@ -41,14 +42,60 @@ class DoctorScheduleController extends Controller
             return response()->json(['message' => 'Accès non autorisé'], 403);
         }
         
-        // Valider les données de la requête
-        $validatedData = $request->validate([
+        // Validation de base d'abord
+        $validator = Validator::make($request->all(), [
             'schedules' => 'required|array',
             'schedules.*.day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'schedules.*.start_time' => 'required|date_format:H:i',
-            'schedules.*.end_time' => 'required|date_format:H:i|after:schedules.*.start_time',
+            'schedules.*.end_time' => 'required|date_format:H:i',
             'schedules.*.is_available' => 'boolean',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validatedData = $validator->validated();
+        
+        // Validation personnalisée pour les heures
+        foreach ($validatedData['schedules'] as $index => $scheduleData) {
+            if (isset($scheduleData['is_available']) && $scheduleData['is_available']) {
+                $startTime = strtotime($scheduleData['start_time']);
+                $endTime = strtotime($scheduleData['end_time']);
+                
+                if ($endTime <= $startTime) {
+                    return response()->json([
+                        'message' => 'Erreur de validation',
+                        'errors' => [
+                            "schedules.{$index}.end_time" => ["L'heure de fin doit être postérieure à l'heure de début."]
+                        ]
+                    ], 422);
+                }
+                
+                // Vérifier que l'heure de début n'est pas trop tôt (exemple: 6h00)
+                if ($startTime < strtotime('06:00')) {
+                    return response()->json([
+                        'message' => 'Erreur de validation',
+                        'errors' => [
+                            "schedules.{$index}.start_time" => ["L'heure de début ne peut pas être avant 06:00."]
+                        ]
+                    ], 422);
+                }
+                
+                // Vérifier que l'heure de fin n'est pas trop tard (exemple: 23h00)
+                if ($endTime > strtotime('23:00')) {
+                    return response()->json([
+                        'message' => 'Erreur de validation',
+                        'errors' => [
+                            "schedules.{$index}.end_time" => ["L'heure de fin ne peut pas être après 23:00."]
+                        ]
+                    ], 422);
+                }
+            }
+        }
         
         // Suppression de tous les horaires existants pour ce médecin
         $user->schedules()->delete();
@@ -157,9 +204,9 @@ class DoctorScheduleController extends Controller
     }
 
     /**
- * Récupérer les horaires d'un médecin (pour les patients)
- */
- public function getDoctorSchedules($doctor_id)
+     * Récupérer les horaires d'un médecin (pour les patients)
+     */
+    public function getDoctorSchedules($doctor_id)
     {
         // Vérifier que l'utilisateur spécifié est bien un médecin
         $doctor = User::find($doctor_id);
